@@ -9,19 +9,37 @@
 |---|---|
 | 프레임워크 | React 19 + TypeScript |
 | 빌드 도구 | Vite |
+| 스타일 | CSS Modules, CSS 변수 (라이트/다크) |
 | 린트 | oxlint |
 | 데이터 | [Pokémon TCG API v2](https://docs.pokemontcg.io/) |
 
 ## 진행 상황
 
 - [x] 프로젝트 초기 세팅 (Vite + React + TypeScript, API 클라이언트, 카드 타입 정의)
-- [ ] 카드 목록 + 페이지네이션
-- [ ] 이름 검색
-- [ ] 필터 (타입, 세트, 희귀도)
+- [x] 카드 목록 + 페이지네이션 (모바일은 "더 보기")
+- [x] 이름 검색 (입력 지연 처리, `/` 단축키)
+- [x] 필터 (타입, 세트, 희귀도) + 정렬, URL에 상태 저장
+- [x] 로딩 / 결과 없음 / 오류 / 응답 지연 상태
+- [x] 반응형 레이아웃 / 다크 모드
 - [ ] 카드 상세 페이지
-- [ ] 반응형 레이아웃 / 다크 모드 정리
 - [ ] 배포 (Vercel)
 - [ ] 덱 빌더
+
+## 주요 기능
+
+- **검색과 필터**: 카드 이름(영문) 부분 검색, 타입·세트·희귀도 필터, 4가지 정렬
+- **URL 상태**: 검색어·필터·페이지가 주소에 저장되어 새로고침, 링크 공유, 뒤로 가기가 그대로 동작
+- **불안정한 API 대응**: 요청의 상당수가 500/502로 실패하는 API라 다음을 적용
+  - 일시적 오류는 최대 4회 재시도(지수 백오프), 요청 전체 마감 시간 25초
+  - 성공한 응답은 10분간 메모리에 캐시, 세트·희귀도 목록은 하루 동안 localStorage에 캐시
+  - 5초 이상 걸리면 "응답이 늦어지고 있어요" 안내, 최종 실패 시 다시 시도 버튼
+  - 검색어나 필터가 바뀌면 이전 요청은 즉시 취소(AbortController)
+- **반응형**: 6열 → 2열 그리드, 모바일에서는 필터 패널과 "더 보기" 방식
+- **접근성**: 키보드 조작, `aria-pressed`/`aria-current`, 스크린 리더용 결과 수 알림, 움직임 줄이기 설정 존중
+
+## 디자인
+
+[Figma: Pokémon Card Dex](https://www.figma.com/design/n7tkM2aFBRJs43Qe9fNIwS) — 데스크톱, 모바일, 목록 상태(로딩·결과 없음·오류) 화면
 
 ## 시작하기
 
@@ -49,11 +67,15 @@ VITE_POKEMON_TCG_API_KEY=발급받은_키
 
 ```
 src/
-├─ api/        # Pokémon TCG API 요청 함수
-├─ types/      # API 응답 타입 정의
+├─ api/          # Pokémon TCG API 클라이언트 (재시도, 타임아웃, 캐시)
+├─ components/   # Header, SearchBar, TypeFilter, CardTile, Pagination, 상태 화면 등 (CSS Modules)
+├─ hooks/        # useCardSearch, useFilterOptions, useUrlParams, useMediaQuery, useDebouncedValue
+├─ lib/          # 필터 ↔ URL ↔ API 쿼리 변환, 타입 이름·색상, 페이지 번호 계산
+├─ pages/        # CardListPage
+├─ types/        # API 응답 타입 정의
 ├─ App.tsx
 ├─ main.tsx
-└─ index.css   # 전역 스타일, 색상 변수 (라이트/다크)
+└─ index.css     # 전역 스타일, 색상 변수 (라이트/다크)
 ```
 
 ## 브랜치 전략

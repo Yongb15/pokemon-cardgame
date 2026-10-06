@@ -1,0 +1,16 @@
+.footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+}
+
+.inner {
+  max-width: calc(var(--page-width) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 24px var(--gutter);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.inner a {
+  color: inherit;
+}
