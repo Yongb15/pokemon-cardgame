@@ -17,6 +17,9 @@ export interface CardSetSummary {
   }
 }
 
+/** Set as listed by `/sets` with `select=id,name,series,releaseDate` */
+export type CardSet = Pick<CardSetSummary, 'id' | 'name' | 'series' | 'releaseDate'>
+
 export interface Attack {
   name: string
   cost: string[]
