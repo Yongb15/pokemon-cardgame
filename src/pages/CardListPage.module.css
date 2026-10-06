@@ -81,6 +81,7 @@
 .results {
   margin-top: 28px;
   scroll-margin-top: 16px;
+  overflow-anchor: none; /* see the page-change scroll in CardListPage */
 }
 
 .results:focus {

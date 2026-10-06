@@ -80,14 +80,23 @@ export default function CardListPage() {
     updateFilters({ name: '' })
   }
 
+  /** From the invalid-search screen: the button disappears, and the next step is typing again */
+  function clearAndFocusSearch() {
+    clearName()
+    document.getElementById('card-search')?.focus()
+  }
+
   function resetFilters() {
     setNameInput('')
     setParams(filtersToParams({ ...filters, name: '', type: '', set: '', rarity: '' }))
     focusResults()
   }
 
-  // Scroll once the new page has rendered: scrolling right away gets cancelled when the
-  // grid swaps to the (shorter) skeleton and the document height drops.
+  // Bring the results into view after a page change: once the skeleton has rendered (scrolling
+  // before that is cut short when the document shrinks), and again once the cards arrive, since
+  // the grid grows back to full height. `overflow-anchor: none` on the results keeps the browser
+  // from re-anchoring to the pager/footer and pushing the view back down.
+  const { status, totalPages, totalCount } = search
   const scrollOnPageChange = useRef(false)
   function goToPage(next: number) {
     scrollOnPageChange.current = true
@@ -95,13 +104,12 @@ export default function CardListPage() {
   }
   useEffect(() => {
     if (!scrollOnPageChange.current) return
-    scrollOnPageChange.current = false
-    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [page])
+    resultsRef.current?.scrollIntoView({ behavior: status === 'loading' ? 'smooth' : 'auto', block: 'start' })
+    if (status !== 'loading') scrollOnPageChange.current = false
+  }, [page, status])
 
   // Keep the URL canonical: drop invalid values (?type=bogus, ?page=0), clamp ?page= past the
   // last page, and use page 1 on phones, where "load more" replaces page numbers.
-  const { status, totalPages, totalCount } = search
   const canonicalPage = isMobile ? 1 : status === 'success' && page > totalPages ? totalPages : page
   useEffect(() => {
     const canonical = filtersToParams(filters, canonicalPage)
@@ -253,9 +261,9 @@ export default function CardListPage() {
 
         {status === 'loading' && <SkeletonGrid count={isMobile ? 6 : 12} />}
         {status === 'invalid' && nameProblem && (
-          <InvalidSearchState reason={nameProblem} query={filters.name} onClear={clearName} />
+          <InvalidSearchState reason={nameProblem} query={filters.name} onClear={clearAndFocusSearch} />
         )}
-        {rejected && <InvalidSearchState reason="rejected" query={filters.name} onClear={clearName} />}
+        {rejected && <InvalidSearchState reason="rejected" query={filters.name} onClear={clearAndFocusSearch} />}
         {status === 'error' && !rejected && search.error && (
           <ErrorState
             error={search.error}

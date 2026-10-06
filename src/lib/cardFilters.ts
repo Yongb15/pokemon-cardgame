@@ -31,13 +31,15 @@ export function cleanName(raw: string) {
 }
 
 const HANGUL = /[ㄱ-ㆎ가-힣]/
-// Characters the API accepts inside a quoted name (it answers 400 to `"`, `(`, `\` and non-Latin scripts).
-// Covers names like Farfetch'd, Mr. Mime, Porygon-Z, Nidoran♀, Flabébé, Type: Null.
-const UNSEARCHABLE = /[^\p{Script=Latin}\p{N} .'’:&!?,/♀♂-]/gu
+// Characters the API accepts inside a quoted name; it answers 400 to `"`, `(`, `\`, ’, ♀/♂
+// and non-Latin scripts. Covers names like Farfetch'd, Mr. Mime, Porygon-Z, Type: Null.
+const UNSEARCHABLE = /[^\p{Script=Latin}\p{N} .':&!?,/-]/gu
 
 /** The part of the name the API can search for ('' if nothing usable is left) */
 export function searchableName(raw: string) {
-  return cleanName(raw.replace(UNSEARCHABLE, ' '))
+  const name = cleanName(raw.replace(/’/g, "'").replace(UNSEARCHABLE, ' '))
+  // Punctuation alone ("...", "-") would match every card
+  return /[\p{L}\p{N}]/u.test(name) ? name : ''
 }
 
 /** Why a search term can't be sent as typed, or null if it can */
