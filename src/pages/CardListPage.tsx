@@ -99,6 +99,8 @@ export default function CardListPage() {
   const { status, totalPages, totalCount } = search
   const scrollOnPageChange = useRef(false)
   function goToPage(next: number) {
+    // Same page: the URL won't change, so a pending scroll would fire on the next filter change
+    if (next === page) return
     scrollOnPageChange.current = true
     setParams(filtersToParams(filters, next))
   }
