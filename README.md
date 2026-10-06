@@ -25,14 +25,16 @@
 
 ## 시작하기
 
-Node.js 20 이상이 필요합니다.
+Node.js 20.19 이상 또는 22.12 이상이 필요합니다 (Vite 8 요구 사항).
 
 ```bash
 npm install
-npm run dev       # 개발 서버 (http://localhost:5173)
+npm run dev       # 개발 서버 (기본 http://localhost:5173)
 npm run build     # 타입 검사 + 프로덕션 빌드
 npm run lint      # 린트
 ```
+
+5173 포트가 이미 사용 중이면 Vite가 다른 포트를 자동으로 고릅니다. 터미널에 표시된 주소로 접속하세요.
 
 ### API 키 (선택)
 
