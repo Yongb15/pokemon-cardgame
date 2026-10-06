@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import CardGrid from '../components/CardGrid'
 import CardTile from '../components/CardTile'
-import { EmptyState, ErrorState, SkeletonGrid, SlowNotice } from '../components/ListStates'
+import { EmptyState, ErrorState, InvalidSearchState, SkeletonGrid, SlowNotice } from '../components/ListStates'
 import Pagination from '../components/Pagination'
 import SearchBar from '../components/SearchBar'
 import Select from '../components/Select'
 import TypeFilter from '../components/TypeFilter'
+import { ApiError } from '../api/pokemonTcg'
 import { useCardSearch } from '../hooks/useCardSearch'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { useFilterOptions } from '../hooks/useFilterOptions'
@@ -13,8 +14,10 @@ import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useUrlParams } from '../hooks/useUrlParams'
 import {
   activeFilterCount,
+  cleanName,
   filtersFromParams,
   filtersToParams,
+  nameIssue,
   pageFromParams,
   SORT_OPTIONS,
   type CardFilters,
@@ -38,18 +41,24 @@ export default function CardListPage() {
   const filters = useMemo(() => filtersFromParams(params), [params])
   const page = pageFromParams(params)
   const isMobile = useMediaQuery('(max-width: 640px)')
-  const { sets, rarities, setsFailed, raritiesFailed } = useFilterOptions()
-  const search = useCardSearch(filters, page)
+  const { sets, rarities } = useFilterOptions()
+  const search = useCardSearch(filters, page, isMobile ? 'append' : 'paged')
   const [panelOpen, setPanelOpen] = useState(false)
   const resultsRef = useRef<HTMLElement>(null)
+
+  /** Controls that remove themselves (chip ✕, retry, reset) hand focus to the results */
+  function focusResults() {
+    resultsRef.current?.focus({ preventScroll: true })
+  }
 
   // The search box updates instantly; the URL (and the request) follows after a pause in typing.
   const [nameInput, setNameInput] = useState(filters.name)
   const [urlName, setUrlName] = useState(filters.name)
   if (filters.name !== urlName) {
-    // URL changed underneath us (back/forward): show its search term
     setUrlName(filters.name)
-    setNameInput(filters.name)
+    // URL changed underneath us (back/forward): show its search term. Skip when it only
+    // reflects what's already typed, so "mr " doesn't lose its trailing space mid-typing.
+    if (cleanName(nameInput) !== filters.name) setNameInput(filters.name)
   }
   const debouncedName = useDebouncedValue(nameInput, SEARCH_DEBOUNCE_MS)
   const filtersRef = useRef(filters)
@@ -58,7 +67,7 @@ export default function CardListPage() {
   }, [filters])
   useEffect(() => {
     const current = filtersRef.current
-    if (debouncedName.trim() === current.name) return
+    if (cleanName(debouncedName) === current.name) return
     setParams(filtersToParams({ ...current, name: debouncedName }), 'replace')
   }, [debouncedName, setParams])
 
@@ -74,20 +83,30 @@ export default function CardListPage() {
   function resetFilters() {
     setNameInput('')
     setParams(filtersToParams({ ...filters, name: '', type: '', set: '', rarity: '' }))
+    focusResults()
   }
 
+  // Scroll once the new page has rendered: scrolling right away gets cancelled when the
+  // grid swaps to the (shorter) skeleton and the document height drops.
+  const scrollOnPageChange = useRef(false)
   function goToPage(next: number) {
+    scrollOnPageChange.current = true
     setParams(filtersToParams(filters, next))
-    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
-
-  // A stale or hand-edited ?page= beyond the last page: fall back to the last real page
-  const { status, totalPages, totalCount } = search
   useEffect(() => {
-    if (status === 'success' && totalCount > 0 && page > totalPages) {
-      setParams(filtersToParams(filtersRef.current, totalPages), 'replace')
-    }
-  }, [status, totalCount, totalPages, page, setParams])
+    if (!scrollOnPageChange.current) return
+    scrollOnPageChange.current = false
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [page])
+
+  // Keep the URL canonical: drop invalid values (?type=bogus, ?page=0), clamp ?page= past the
+  // last page, and use page 1 on phones, where "load more" replaces page numbers.
+  const { status, totalPages, totalCount } = search
+  const canonicalPage = isMobile ? 1 : status === 'success' && page > totalPages ? totalPages : page
+  useEffect(() => {
+    const canonical = filtersToParams(filters, canonicalPage)
+    if (canonical.toString() !== params.toString()) setParams(canonical, 'replace')
+  }, [filters, canonicalPage, params, setParams])
 
   const selectedSet = sets.find((set) => set.id === filters.set)
   const filterCount = activeFilterCount({ ...filters, name: '' })
@@ -144,6 +163,9 @@ export default function CardListPage() {
     filters.rarity && { key: 'rarity', label: `희귀도: ${filters.rarity}`, clear: () => updateFilters({ rarity: '' }) },
   ].filter((chip) => !!chip)
 
+  const nameProblem = nameIssue(filters.name)
+  const rejected = status === 'error' && search.error instanceof ApiError && search.error.status === 400
+
   return (
     <main className={styles.main}>
       <h1 className={styles.title}>카드 도감</h1>
@@ -183,18 +205,15 @@ export default function CardListPage() {
           {setSelect}
           {raritySelect}
           {!isMobile && <div className={styles.sort}>{sortSelect}</div>}
-          {(setsFailed || raritiesFailed) && (
-            <span className={styles.optionsError}>
-              {setsFailed && raritiesFailed ? '세트·희귀도' : setsFailed ? '세트' : '희귀도'} 목록을 불러오지 못했어요.
-            </span>
-          )}
         </div>
       )}
 
-      <section ref={resultsRef} className={styles.results} aria-labelledby="result-count">
+      <section ref={resultsRef} className={styles.results} aria-labelledby="result-count" tabIndex={-1}>
         <div className={styles.resultBar}>
           <p id="result-count" aria-live="polite">
-            {status === 'loading' && totalCount === 0 ? (
+            {status === 'invalid' || rejected ? (
+              '검색어 확인 필요'
+            ) : status === 'loading' && totalCount === 0 ? (
               '카드를 불러오는 중…'
             ) : status === 'error' ? (
               '불러오기 실패'
@@ -210,7 +229,15 @@ export default function CardListPage() {
             activeChips.length > 0 && (
               <div className={styles.activeChips}>
                 {activeChips.map((chip) => (
-                  <button key={chip.key} type="button" className={styles.activeChip} onClick={chip.clear}>
+                  <button
+                    key={chip.key}
+                    type="button"
+                    className={styles.activeChip}
+                    onClick={() => {
+                      chip.clear()
+                      focusResults()
+                    }}
+                  >
                     {chip.label} <span aria-label="해제">✕</span>
                   </button>
                 ))}
@@ -225,8 +252,20 @@ export default function CardListPage() {
         {search.slow && status === 'loading' && <SlowNotice />}
 
         {status === 'loading' && <SkeletonGrid count={isMobile ? 6 : 12} />}
-        {status === 'error' && search.error && <ErrorState error={search.error} onRetry={search.retry} />}
-        {status === 'success' && search.cards.length === 0 && page <= totalPages && (
+        {status === 'invalid' && nameProblem && (
+          <InvalidSearchState reason={nameProblem} query={filters.name} onClear={clearName} />
+        )}
+        {rejected && <InvalidSearchState reason="rejected" query={filters.name} onClear={clearName} />}
+        {status === 'error' && !rejected && search.error && (
+          <ErrorState
+            error={search.error}
+            onRetry={() => {
+              search.retry()
+              focusResults()
+            }}
+          />
+        )}
+        {status === 'success' && search.cards.length === 0 && (
           <EmptyState query={filters.name} onReset={resetFilters} />
         )}
         {status === 'success' && search.cards.length > 0 && (

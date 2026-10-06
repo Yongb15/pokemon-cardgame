@@ -43,12 +43,17 @@ export default function SearchBar({ value, onChange, placeholder }: Props) {
         autoComplete="off"
         spellCheck={false}
         onChange={(event) => onChange(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape') event.currentTarget.blur()
-        }}
       />
       {value ? (
-        <button type="button" className={styles.clear} onClick={() => onChange('')} aria-label="검색어 지우기">
+        <button
+          type="button"
+          className={styles.clear}
+          onClick={() => {
+            onChange('')
+            inputRef.current?.focus() // the button disappears; keep keyboard users in the search box
+          }}
+          aria-label="검색어 지우기"
+        >
           ✕
         </button>
       ) : (

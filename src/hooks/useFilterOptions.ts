@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
 import { getRarities, getSets } from '../api/pokemonTcg'
+import bundledRarities from '../data/rarities.json'
+import bundledSets from '../data/sets.json'
 import type { CardSet } from '../types/card'
 
-// Sets and rarities change only when a new expansion comes out, so keep them for a day.
+// Sets and rarities change only when a new expansion comes out. The selects start from a
+// snapshot bundled with the app (so they work even while the API is down) and pick up
+// newer lists from the API in the background, cached for a day.
 const STORAGE_TTL_MS = 24 * 60 * 60_000
 
 function readStored<T>(key: string): T | null {
@@ -24,7 +28,7 @@ function writeStored(key: string, data: unknown) {
   }
 }
 
-/** One shared in-flight request per list; a failure clears it so the next mount can retry. */
+/** One shared in-flight request per list; a failure clears it so a later mount tries again. */
 function createLoader<T>(storageKey: string, fetcher: () => Promise<T>) {
   let pending: Promise<T> | null = null
   return () => {
@@ -47,27 +51,28 @@ function createLoader<T>(storageKey: string, fetcher: () => Promise<T>) {
 const loadSets = createLoader('card-dex:sets:v1', () => getSets())
 const loadRarities = createLoader('card-dex:rarities:v1', () => getRarities())
 
-function useOption<T>(load: () => Promise<T[]>) {
-  const [items, setItems] = useState<T[]>([])
-  const [failed, setFailed] = useState(false)
+function useOption<T>(bundled: T[], load: () => Promise<T[]>) {
+  const [items, setItems] = useState(bundled)
 
   useEffect(() => {
     let active = true
     load().then(
-      (loaded) => active && setItems(loaded),
-      () => active && setFailed(true),
+      (loaded) => active && loaded.length > 0 && setItems(loaded),
+      () => {
+        // keep the bundled snapshot; the next page load tries again
+      },
     )
     return () => {
       active = false
     }
   }, [load])
 
-  return [items, failed] as const
+  return items
 }
 
-/** Options for the set / rarity selects. Empty lists until loaded (or if loading failed). */
+/** Options for the set / rarity selects: always available, refreshed from the API when possible. */
 export function useFilterOptions() {
-  const [sets, setsFailed] = useOption<CardSet>(loadSets)
-  const [rarities, raritiesFailed] = useOption<string>(loadRarities)
-  return { sets, rarities, setsFailed, raritiesFailed }
+  const sets = useOption<CardSet>(bundledSets, loadSets)
+  const rarities = useOption<string>(bundledRarities, loadRarities)
+  return { sets, rarities }
 }

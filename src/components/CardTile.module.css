@@ -71,7 +71,6 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  color: #fff;
   white-space: nowrap;
 }
 
@@ -79,7 +78,8 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: rgb(255 255 255 / 0.85);
+  background: currentColor;
+  opacity: 0.6;
 }
 
 .neutral {

@@ -9,6 +9,7 @@
   --border-strong: #d4d4d8;
   --accent: #e3350d;
   --accent-soft: #fdece8;
+  --accent-text: #b8290a; /* accent text on --accent-soft, 5.5:1 */
   --rare: #b45309;
   --shadow-hover: 0 12px 24px -8px rgb(0 0 0 / 0.18);
   --skeleton: #ececef;
@@ -36,6 +37,7 @@
     --border-strong: #52525b;
     --accent: #ff5a36;
     --accent-soft: rgb(255 90 54 / 0.15);
+    --accent-text: #ffb4a3;
     --rare: #f59e0b;
     --shadow-hover: 0 12px 24px -8px rgb(0 0 0 / 0.6);
     --skeleton: #34343a;

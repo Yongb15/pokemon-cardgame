@@ -42,6 +42,21 @@ export const TYPE_COLOR: Record<PokemonType, string> = {
   Colorless: '#a1a1aa',
 }
 
+/** Badge text color per type: whichever of ink/white clears WCAG AA (4.5:1) on TYPE_COLOR */
+export const TYPE_TEXT: Record<PokemonType, string> = {
+  Grass: '#09090b',
+  Fire: '#09090b',
+  Water: '#09090b',
+  Lightning: '#09090b',
+  Psychic: '#09090b',
+  Fighting: '#fff',
+  Darkness: '#fff',
+  Metal: '#fff',
+  Dragon: '#09090b',
+  Fairy: '#09090b',
+  Colorless: '#09090b',
+}
+
 export const SUPERTYPE_LABEL: Record<string, string> = {
   Pokémon: '포켓몬',
   Trainer: '트레이너',

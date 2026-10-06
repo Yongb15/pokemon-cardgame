@@ -1,4 +1,4 @@
-import { isPokemonType, SUPERTYPE_LABEL, TYPE_COLOR, TYPE_LABEL } from '../lib/pokemonTypes'
+import { isPokemonType, SUPERTYPE_LABEL, TYPE_COLOR, TYPE_LABEL, TYPE_TEXT } from '../lib/pokemonTypes'
 import type { Card } from '../types/card'
 import styles from './CardTile.module.css'
 
@@ -11,7 +11,7 @@ function TypeBadge({ card }: { card: Card }) {
   const type = card.types?.[0]
   if (type && isPokemonType(type)) {
     return (
-      <span className={styles.badge} style={{ background: TYPE_COLOR[type] }}>
+      <span className={styles.badge} style={{ background: TYPE_COLOR[type], color: TYPE_TEXT[type] }}>
         <span className={styles.badgeDot} aria-hidden="true" />
         {TYPE_LABEL[type]}
       </span>

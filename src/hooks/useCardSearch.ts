@@ -21,7 +21,12 @@ interface Result {
 
 const isAbort = (error: unknown) => error instanceof DOMException && error.name === 'AbortError'
 
-export function useCardSearch(filters: CardFilters, page: number) {
+/**
+ * Cards for the current filters and page. `mode` separates desktop pagination from mobile
+ * "load more", so switching between them starts from a fresh result instead of a stale stack.
+ * Status is 'invalid' (no request sent) when the search term can't be searched, e.g. Korean.
+ */
+export function useCardSearch(filters: CardFilters, page: number, mode: 'paged' | 'append') {
   const [result, setResult] = useState<Result | null>(null)
   const [slowKey, setSlowKey] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
@@ -29,9 +34,10 @@ export function useCardSearch(filters: CardFilters, page: number) {
 
   const q = toLuceneQuery(filters)
   const orderBy = SORT_OPTIONS[filters.sort].orderBy
-  const key = JSON.stringify([q, orderBy, page, reloadToken])
+  const key = JSON.stringify([q, orderBy, page, mode, reloadToken])
 
   useEffect(() => {
+    if (q === null) return
     const controller = new AbortController()
     loadMoreController.current?.abort()
     const slowTimer = setTimeout(() => setSlowKey(key), SLOW_AFTER_MS)
@@ -54,7 +60,7 @@ export function useCardSearch(filters: CardFilters, page: number) {
   }, [key, q, orderBy, page])
 
   const current = result?.key === key ? result : null
-  const status = current?.status ?? 'loading'
+  const status = q === null ? 'invalid' : (current?.status ?? 'loading')
 
   const retry = useCallback(() => setReloadToken((n) => n + 1), [])
 
@@ -67,7 +73,7 @@ export function useCardSearch(filters: CardFilters, page: number) {
       setResult((prev) => (prev?.key === key ? { ...prev, ...patch } : prev))
     update({ loadingMore: true, loadMoreError: null })
 
-    searchCards({ q, orderBy, page: nextPage, pageSize: PAGE_SIZE }, controller.signal)
+    searchCards({ q: q ?? '', orderBy, page: nextPage, pageSize: PAGE_SIZE }, controller.signal)
       .then((res) => {
         setResult((prev) =>
           prev?.key === key

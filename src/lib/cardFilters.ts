@@ -1,4 +1,4 @@
-import { isPokemonType, type PokemonType } from './pokemonTypes'
+import { POKEMON_TYPES, type PokemonType } from './pokemonTypes'
 
 export const SORT_OPTIONS = {
   newest: { label: '최신 세트순', orderBy: '-set.releaseDate,number' },
@@ -25,12 +25,36 @@ function isSortKey(value: string): value is SortKey {
   return value in SORT_OPTIONS
 }
 
+/** Collapse runs of whitespace and trim: what the URL stores and what the search box is compared with */
+export function cleanName(raw: string) {
+  return raw.replace(/\s+/g, ' ').trim()
+}
+
+const HANGUL = /[ㄱ-ㆎ가-힣]/
+// Characters the API accepts inside a quoted name (it answers 400 to `"`, `(`, `\` and non-Latin scripts).
+// Covers names like Farfetch'd, Mr. Mime, Porygon-Z, Nidoran♀, Flabébé, Type: Null.
+const UNSEARCHABLE = /[^\p{Script=Latin}\p{N} .'’:&!?,/♀♂-]/gu
+
+/** The part of the name the API can search for ('' if nothing usable is left) */
+export function searchableName(raw: string) {
+  return cleanName(raw.replace(UNSEARCHABLE, ' '))
+}
+
+/** Why a search term can't be sent as typed, or null if it can */
+export function nameIssue(raw: string): 'hangul' | 'unsupported' | null {
+  const name = cleanName(raw)
+  if (!name) return null
+  if (HANGUL.test(name)) return 'hangul'
+  return searchableName(name) ? null : 'unsupported'
+}
+
 export function filtersFromParams(params: URLSearchParams): CardFilters {
-  const type = params.get('type') ?? ''
+  const rawType = (params.get('type') ?? '').toLowerCase()
+  const type = POKEMON_TYPES.find((t) => t.toLowerCase() === rawType) ?? ''
   const sort = params.get('sort') ?? ''
   return {
-    name: params.get('q') ?? '',
-    type: isPokemonType(type) ? type : '',
+    name: cleanName(params.get('q') ?? ''),
+    type,
     set: params.get('set') ?? '',
     rarity: params.get('rarity') ?? '',
     sort: isSortKey(sort) ? sort : DEFAULT_FILTERS.sort,
@@ -44,7 +68,8 @@ export function pageFromParams(params: URLSearchParams) {
 
 export function filtersToParams(filters: CardFilters, page = 1) {
   const params = new URLSearchParams()
-  if (filters.name.trim()) params.set('q', filters.name.trim())
+  const name = cleanName(filters.name)
+  if (name) params.set('q', name)
   if (filters.type) params.set('type', filters.type)
   if (filters.set) params.set('set', filters.set)
   if (filters.rarity) params.set('rarity', filters.rarity)
@@ -58,10 +83,14 @@ function quote(value: string) {
   return `"${value.replace(/[\\"]/g, '\\$&')}"`
 }
 
-/** Build the API `q` parameter, e.g. `name:"char*" types:Fire set.id:sv3pt5` */
-export function toLuceneQuery(filters: CardFilters) {
+/**
+ * Build the API `q` parameter, e.g. `name:"char*" types:Fire set.id:"sv3pt5"`.
+ * Returns null when the search term can't be sent at all (see `nameIssue`).
+ */
+export function toLuceneQuery(filters: CardFilters): string | null {
+  if (nameIssue(filters.name)) return null
   const parts: string[] = []
-  const name = filters.name.trim().replace(/\*/g, '')
+  const name = searchableName(filters.name)
   if (name) parts.push(`name:${quote(`${name}*`)}`)
   if (filters.type) parts.push(`types:${filters.type}`)
   if (filters.set) parts.push(`set.id:${quote(filters.set)}`)
@@ -70,5 +99,5 @@ export function toLuceneQuery(filters: CardFilters) {
 }
 
 export function activeFilterCount(filters: CardFilters) {
-  return [filters.name.trim(), filters.type, filters.set, filters.rarity].filter(Boolean).length
+  return [cleanName(filters.name), filters.type, filters.set, filters.rarity].filter(Boolean).length
 }

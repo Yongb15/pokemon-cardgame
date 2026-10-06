@@ -20,7 +20,7 @@ export function SlowNotice() {
   return (
     <p className={styles.slow} role="status">
       <span className={styles.spinner} aria-hidden="true" />
-      응답이 늦어지고 있어요. 카드 서버가 느려 최대 20초 정도 걸릴 수 있어요.
+      응답이 늦어지고 있어요. 카드 서버가 느려 최대 25초 정도 걸릴 수 있어요.
     </p>
   )
 }
@@ -42,6 +42,49 @@ export function EmptyState({ query, onReset }: { query: string; onReset: () => v
       </p>
       <button type="button" className={styles.ghost} onClick={onReset}>
         필터 초기화
+      </button>
+    </div>
+  )
+}
+
+/** The search term can't be sent to the API (Korean, only symbols) or the API rejected it (400). */
+export function InvalidSearchState({
+  reason,
+  query,
+  onClear,
+}: {
+  reason: 'hangul' | 'unsupported' | 'rejected'
+  query: string
+  onClear: () => void
+}) {
+  const desc =
+    reason === 'hangul' ? (
+      <>
+        카드 이름은 영문으로만 검색할 수 있어요.
+        <br />
+        예: 피카츄 → Pikachu, 리자몽 → Charizard
+      </>
+    ) : (
+      <>
+        영문, 숫자와 일부 기호(' . - :)만 검색에 쓸 수 있어요.
+        <br />
+        검색어를 바꿔 다시 입력해 주세요.
+      </>
+    )
+  return (
+    <div className={styles.center} role="status">
+      <div className={styles.icon} aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="7" />
+          <path d="m20 20-3.5-3.5" />
+        </svg>
+      </div>
+      <h2 className={styles.title}>
+        {reason === 'hangul' ? `“${query}”은(는) 영문으로 검색해 주세요` : '검색어를 확인해 주세요'}
+      </h2>
+      <p className={styles.desc}>{desc}</p>
+      <button type="button" className={styles.ghost} onClick={onClear}>
+        검색어 지우기
       </button>
     </div>
   )
