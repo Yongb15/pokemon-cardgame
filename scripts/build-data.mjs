@@ -238,6 +238,14 @@ function koreanSpeciesName(name, speciesByName) {
   return translatePart(name, [], speciesByName)
 }
 
+// --- Source data fixes ---------------------------------------------------------------------------
+
+// Mistakes in pokemon-tcg-data, by card id
+const DATA_FIXES = {
+  // A Basic Pokémon (HP 50, Colorless) listed as a Trainer
+  'me55c-69': { supertype: 'Pokémon' },
+}
+
 // --- Format legality ------------------------------------------------------------------------------
 //
 // The source data stopped tracking rotation (F cards still say Standard "Legal", the newest sets
@@ -311,6 +319,7 @@ for (const [i, set] of sets.entries()) {
   process.stdout.write(`\r  cards ${i + 1}/${sets.length} ${set.id.padEnd(12)}`)
   const cards = await fetchJson(`${TCG_RAW}/cards/en/${set.id}.json`)
   for (const card of cards) {
+    Object.assign(card, DATA_FIXES[card.id])
     const nameKo = koreanName(card, species, speciesByName, trainerKo, gameNames)
     const evolvesFromKo = koreanSpeciesName(card.evolvesFrom, speciesByName)
     if (evolvesFromKo) card.evolvesFromKo = evolvesFromKo
