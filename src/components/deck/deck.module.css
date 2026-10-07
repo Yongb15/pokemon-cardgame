@@ -284,8 +284,8 @@
   position: relative;
 }
 
-.tileImage img,
-.tileImage > span {
+/* The image, or CardImg's "no image" placeholder: a class, not `> span`, so the badge isn't caught */
+.tileImg {
   width: 100%;
   height: auto;
   aspect-ratio: 245 / 342;
