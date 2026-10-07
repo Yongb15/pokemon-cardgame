@@ -1,0 +1,66 @@
+import { Link } from 'react-router'
+import { baseName } from '../../lib/cardText'
+import type { DetailTrail } from '../../pages/CardDetailPage'
+import type { Card, CardListItem } from '../../types/card'
+import CardImg from '../CardImg'
+import styles from './detail.module.css'
+
+interface Props {
+  card: Card
+  status: 'idle' | 'loading' | 'success' | 'error'
+  related?: { cards: CardListItem[]; totalCount: number }
+  onRetry: () => void
+  linkState?: DetailTrail
+}
+
+export default function RelatedCards({ card, status, related, onRetry, linkState }: Props) {
+  if (status === 'success' && !related?.cards.length) return null
+  const name = baseName(card.nameKo ?? card.name)
+
+  return (
+    <section className={`${styles.section} ${styles.related}`} aria-labelledby="related-heading">
+      <h2 id="related-heading" className={styles.sectionTitle}>
+        다른 {name} 카드
+        {status === 'success' && related && (
+          <Link className={styles.sectionLink} to={`/?q=${encodeURIComponent(name)}`}>
+            모두 보기 ›
+          </Link>
+        )}
+      </h2>
+
+      {status === 'error' ? (
+        <p className={styles.inlineError}>
+          관련 카드를 불러오지 못했어요.{' '}
+          <button type="button" onClick={onRetry}>
+            다시 시도
+          </button>
+        </p>
+      ) : (
+        <ul className={styles.relatedRow} aria-busy={status === 'loading' || undefined}>
+          {status === 'success' && related
+            ? related.cards.map((c) => (
+                <li key={c.id}>
+                  <Link className={styles.mini} to={`/cards/${encodeURIComponent(c.id)}`} state={linkState}>
+                    <CardImg
+                      src={c.images.small}
+                      fallback={c.images.fallbackSmall}
+                      alt=""
+                      loading="lazy"
+                      width={245}
+                      height={342}
+                    />
+                    <span className={styles.miniName}>{c.nameKo ?? c.name}</span>
+                    <span className={styles.miniSet}>{c.set.name}</span>
+                  </Link>
+                </li>
+              ))
+            : Array.from({ length: 6 }, (_, i) => (
+                <li key={i} aria-hidden="true">
+                  <div className={styles.miniSkeleton} />
+                </li>
+              ))}
+        </ul>
+      )}
+    </section>
+  )
+}
