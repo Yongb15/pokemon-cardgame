@@ -47,8 +47,8 @@ const isCount = (n: unknown): n is number => Number.isInteger(n) && (n as number
  */
 export const cleanDeckName = (name: string) =>
   name
+    .replace(/\s+/g, ' ') // tabs and newlines become spaces before the other controls go
     .replace(/(?!‍)[\p{Cc}\p{Cf}]/gu, '')
-    .replace(/\s+/g, ' ')
     .trim()
     .slice(0, MAX_DECK_NAME)
 
