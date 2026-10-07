@@ -29,7 +29,7 @@ export default function CardNeighbors({ prev, next, trail }: Props) {
       <span>
         <span className={styles.neighborLabel}>{dir === 'prev' ? '‹ 이전 카드' : '다음 카드 ›'}</span>
         <span className={styles.neighborName}>
-          <span className={styles.neighborNumber}>{formatCardNumber(card.number)}</span> {card.name}
+          <span className={styles.neighborNumber}>{formatCardNumber(card.number)}</span> {card.nameKo ?? card.name}
         </span>
       </span>
     </Link>

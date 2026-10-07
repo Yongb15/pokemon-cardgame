@@ -1,5 +1,5 @@
-// Pokémon TCG API v2 card shape (only the fields this app uses)
-// https://docs.pokemontcg.io/api-reference/cards/card-object
+// Card shape served by /api/cards (server/cardsApi.ts): the Pokémon TCG API v2 card object
+// (https://docs.pokemontcg.io/api-reference/cards/card-object) plus `nameKo`.
 
 export interface CardImages {
   small: string
@@ -44,6 +44,8 @@ export interface TypeModifier {
 export interface Card {
   id: string
   name: string
+  /** Official Korean name where one exists (Pokémon via PokéAPI, basic Energy) */
+  nameKo?: string
   supertype: string
   subtypes?: string[]
   hp?: string
@@ -64,37 +66,16 @@ export interface Card {
   legalities?: Partial<Record<'standard' | 'expanded' | 'unlimited', string>>
   set: CardSetSummary
   images: CardImages
-  tcgplayer?: TcgplayerInfo
-  cardmarket?: CardmarketInfo
 }
 
-export interface TcgplayerPrice {
-  low?: number | null
-  mid?: number | null
-  high?: number | null
-  market?: number | null
-  directLow?: number | null
-}
+/** What the list and related-cards sections get: a subset of the card, no large image */
+export type CardListItem = Pick<
+  Card,
+  'id' | 'name' | 'nameKo' | 'supertype' | 'subtypes' | 'hp' | 'types' | 'number' | 'rarity' | 'set'
+> & { images: Pick<CardImages, 'small'> }
 
-export interface TcgplayerInfo {
-  url: string
-  updatedAt: string
-  /** Keyed by printing: normal, holofoil, reverseHolofoil, 1stEditionHolofoil, ... */
-  prices?: Record<string, TcgplayerPrice>
-}
-
-export interface CardmarketInfo {
-  url: string
-  updatedAt: string
-  prices?: {
-    trendPrice?: number
-    lowPrice?: number
-    avg30?: number
-  }
-}
-
-/** The fields the related/neighbor lists ask for with `select=` */
-export type CardSummary = Pick<Card, 'id' | 'name' | 'number' | 'images'> & { set: Pick<CardSetSummary, 'id' | 'name'> }
+/** Previous/next card in a set */
+export type CardSummary = Pick<Card, 'id' | 'name' | 'nameKo' | 'number'> & { images: Pick<CardImages, 'small'> }
 
 export interface PagedResponse<T> {
   data: T[]

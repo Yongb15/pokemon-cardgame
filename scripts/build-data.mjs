@@ -49,12 +49,16 @@ function parseCsv(text) {
     for (let i = 0; i < line.length; i++) {
       const ch = line[i]
       if (quoted) {
-        if (ch === '"' && line[i + 1] === '"') (cell += '"'), i++
-        else if (ch === '"') quoted = false
+        if (ch === '"' && line[i + 1] === '"') {
+          cell += '"'
+          i++
+        } else if (ch === '"') quoted = false
         else cell += ch
       } else if (ch === '"') quoted = true
-      else if (ch === ',') cells.push(cell), (cell = '')
-      else cell += ch
+      else if (ch === ',') {
+        cells.push(cell)
+        cell = ''
+      } else cell += ch
     }
     cells.push(cell)
     rows.push(cells)
@@ -84,6 +88,8 @@ const PREFIX_KO = [
 ]
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+/** Matches `word` not glued to other letters: "Mew" in "Mew ex" but not in "Mewtwo" */
+const wholeWord = (word) => new RegExp(`(?<!\\p{L})${escapeRegExp(word)}(?!\\p{L})`, 'u')
 // Compare names ignoring spacing/punctuation: "Nidoran ♀" vs "Nidoran♀", "Mr Mime" vs "Mr. Mime"
 const loose = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}♀♂]/gu, '')
 
@@ -106,11 +112,11 @@ function koreanName(card, species) {
   // (mostly recent special sets) lack Pokédex numbers; fall back to species named in the card name.
   const candidates = card.nationalPokedexNumbers?.length
     ? card.nationalPokedexNumbers.map((n) => species.get(n)).filter(Boolean)
-    : speciesByName.filter(({ en }) => new RegExp(`(?<![\p{L}])${escapeRegExp(en)}(?![\p{L}])`, 'u').test(card.name))
+    : speciesByName.filter(({ en }) => wholeWord(en).test(card.name))
   const names = candidates.sort((a, b) => b.en.length - a.en.length)
 
   for (const { en, ko } of names) {
-    const exact = new RegExp(`(?<![\\p{L}])${escapeRegExp(en)}(?![\\p{L}])`, 'u')
+    const exact = wholeWord(en)
     if (exact.test(name)) {
       name = name.replace(exact, ko)
       translated = true

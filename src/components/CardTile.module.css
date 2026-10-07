@@ -49,6 +49,14 @@
   text-overflow: ellipsis;
 }
 
+.nameEn {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .sub {
   margin-top: 2px;
   font-size: 12px;

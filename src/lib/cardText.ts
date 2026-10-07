@@ -18,15 +18,6 @@ export const LEGALITY_FORMAT_LABEL = {
   unlimited: '언리미티드',
 } as const
 
-export const PRICE_VARIANT_LABEL: Record<string, string> = {
-  normal: '일반',
-  holofoil: '홀로',
-  reverseHolofoil: '리버스 홀로',
-  '1stEditionHolofoil': '초판 홀로',
-  '1stEditionNormal': '초판 일반',
-  unlimitedHolofoil: '언리미티드 홀로',
-}
-
 /** "6" → "#006"; non-numeric numbers like "TG05" or "SWSH001" stay as they are */
 export function formatCardNumber(number: string) {
   return /^\d+$/.test(number) ? `#${number.padStart(3, '0')}` : `#${number}`
@@ -38,12 +29,6 @@ export function formatDate(value: string, style: 'long' | 'short' = 'long') {
   if (!y || !m || !d) return value
   return style === 'long' ? `${y}년 ${m}월 ${d}일` : `${y}.${String(m).padStart(2, '0')}.${String(d).padStart(2, '0')}`
 }
-
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-const eur = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' })
-
-export const formatUsd = (value: number) => usd.format(value)
-export const formatEur = (value: number) => eur.format(value)
 
 /**
  * The name to search the list with for "other printings", dropping mechanic suffixes and
