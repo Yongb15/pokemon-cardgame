@@ -6,7 +6,6 @@
 //   GET /api/cards/:id/neighbors                                    previous/next card in its set
 //   GET /api/cards/:id/related?limit=                               other printings
 
-import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -43,6 +42,7 @@ interface Store {
   sets: Map<string, SetInfo>
   /** Card ids per set, in set-number order */
   setOrder: Map<string, string[]>
+  missingImages: Set<string>
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data')
@@ -57,12 +57,13 @@ const IMAGE_HOST = {
 /** Same file-name rule as scripts/build-images.mjs: unsafe characters become their hex code, so ids stay distinct ("ex10-?" → "ex10-_3f", "ex10-!" → "ex10-_21") */
 const imageName = (id: string) => id.replace(/[^\w.-]/g, (ch) => `_${ch.codePointAt(0)!.toString(16)}`)
 
-// Cards with no image anywhere (scripts/build-images.mjs): no URLs, so the app shows its placeholder
-// instead of the card back the image servers return
-const missingImages = new Set<string>(JSON.parse(readFileSync(path.join(DATA_DIR, 'missing-images.json'), 'utf8')))
-
-function images(setId: string, id: string, original: { small: string; large?: string }) {
-  if (missingImages.has(id)) return { small: '', large: '' }
+/**
+ * Hosted image URLs plus the originals as fallbacks. Cards with no image anywhere
+ * (data/missing-images.json from scripts/build-images.mjs) get no URLs, so the app shows its
+ * placeholder instead of the card back the image servers return.
+ */
+function images(store: Store, setId: string, id: string, original: { small: string; large?: string }) {
+  if (store.missingImages.has(id)) return { small: '', large: '' }
   return {
     small: `${IMAGE_HOST.sm}/${setId}/${imageName(id)}.webp`,
     large: `${IMAGE_HOST.lg}/${setId}/${imageName(id)}.webp`,
@@ -89,9 +90,10 @@ let storePromise: Promise<Store> | null = null
 /** Loaded once per server instance and kept in memory (≈5 MB). */
 function loadStore() {
   storePromise ??= (async () => {
-    const [index, sets] = await Promise.all([
+    const [index, sets, missingImages] = await Promise.all([
       readFile(path.join(DATA_DIR, 'index.json'), 'utf8').then((t) => JSON.parse(t) as IndexEntry[]),
       readFile(path.join(DATA_DIR, 'sets.json'), 'utf8').then((t) => JSON.parse(t) as SetInfo[]),
+      readFile(path.join(DATA_DIR, 'missing-images.json'), 'utf8').then((t) => JSON.parse(t) as string[]),
     ])
     const setMap = new Map(sets.map((s) => [s.id, s]))
     const setOrder = new Map<string, string[]>()
@@ -103,6 +105,7 @@ function loadStore() {
       byId: new Map(index.map((c) => [c.id, c])),
       sets: setMap,
       setOrder,
+      missingImages: new Set(missingImages),
     }
   })().catch((error: unknown) => {
     storePromise = null
@@ -151,7 +154,7 @@ function listItem(store: Store, c: IndexEntry) {
     number: c.number,
     rarity: c.rarity,
     set: setSummary(set),
-    images: images(c.set, c.id, { small: c.image }),
+    images: images(store, c.set, c.id, { small: c.image }),
   }
 }
 
@@ -248,7 +251,7 @@ async function card(id: string) {
   return json({
     data: {
       ...raw,
-      images: images(entry.set, id, raw.images as { small: string; large?: string }),
+      images: images(store, entry.set, id, raw.images as { small: string; large?: string }),
       set: { ...setSummary(set), printedTotal: set.printedTotal, total: set.total },
     },
   })
@@ -262,7 +265,7 @@ async function neighbors(id: string) {
   const i = order.indexOf(id)
   const summary = (otherId: string | undefined) => {
     const c = otherId && store.byId.get(otherId)
-    return c ? { id: c.id, name: c.name, ...(c.nameKo && { nameKo: c.nameKo }), number: c.number, images: images(c.set, c.id, { small: c.image }) } : null
+    return c ? { id: c.id, name: c.name, ...(c.nameKo && { nameKo: c.nameKo }), number: c.number, images: images(store, c.set, c.id, { small: c.image }) } : null
   }
   return json({ prev: summary(order[i - 1]), next: summary(order[i + 1]) })
 }
