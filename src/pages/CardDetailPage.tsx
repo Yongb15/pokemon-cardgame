@@ -125,6 +125,7 @@ export default function CardDetailPage() {
         </>
       )}
 
+      {notFound && <meta name="robots" content="noindex" />}
       {notFound && (
         <div className={styles.message}>
           <NotFoundState

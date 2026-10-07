@@ -1,17 +1,18 @@
 {
   "name": "pokemon-card-dex",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "node scripts/build-sitemap.mjs && tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "build:data": "node scripts/build-data.mjs"
+    "build:data": "node scripts/build-data.mjs",
+    "build:sitemap": "node scripts/build-sitemap.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

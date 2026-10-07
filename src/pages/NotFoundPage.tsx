@@ -15,6 +15,8 @@ export default function NotFoundPage() {
 
   return (
     <main className={styles.main}>
+      {/* The SPA answers every path with 200; keep unknown pages out of search results (React hoists this to <head>) */}
+      <meta name="robots" content="noindex" />
       <div className={styles.message}>
         <NotFoundState
           title="페이지를 찾을 수 없어요"
