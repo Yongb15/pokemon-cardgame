@@ -20,8 +20,9 @@
 ## 주요 기능
 
 - **한국어·영어 검색** — "리자몽", "메가 리자몽", "Charizard" 모두 검색. 띄어쓰기·대소문자·악센트(Flabébé) 무시
-- **한국어 카드 이름** — 포켓몬 카드는 공식 한국어 포켓몬 이름으로 번역(99.3%). 예) Charizard ex → 리자몽 ex, Misty's Gyarados → 이슬의 갸라도스
-- **트레이너스 카드 한국어 이름** — 게임 공식 아이템·장소명(Rare Candy → 이상한사탕, Prism Tower → 프리즘타워)과, 한국 공식 카드 검색에서 한 장씩 대조한 이름 사전(Arven → 페퍼, Professor's Research (Professor Sada) → 박사의 연구(올림박사))으로 1,123장 번역. 공식명을 확인하지 못한 카드는 영어 그대로
+- **모든 카드·세트·희귀도를 한국어로** — 20,635장 전부 한국어 이름으로 표시. 공식 이름 18,725장(포켓몬 17,342 · 트레이너스·에너지 1,383), 공식명을 확인하지 못한 1,910장은 직접 번역하고 상세 화면에 "비공식 번역"으로 표시. 세트 176개·희귀도 45종도 한국어(영어 세트명은 상세에 함께 표기)
+- **한국어 카드 이름** — 포켓몬 카드는 공식 한국어 포켓몬 이름으로 번역(99.5%). 예) Charizard ex → 리자몽 ex, Misty's Gyarados → 이슬의 갸라도스, Teal Mask Ogerpon ex → 오거폰 벽록의 가면 ex
+- **트레이너스 카드 한국어 이름** — 게임 공식 아이템·장소명(Rare Candy → 이상한사탕, Prism Tower → 프리즘타워)과, 한국 공식 카드 검색에서 한 장씩 대조한 이름 사전(Arven → 페퍼, Professor's Research (Professor Sada) → 박사의 연구(올림박사))으로 1,383장 번역
 - **덱 빌더** — 카드를 골라 60장 덱 구성(모바일은 "카드 찾기 | 덱" 탭)
   - 규칙 검사: 60장, 같은 이름 4장(기본 에너지 제외), 기본 포켓몬, ACE SPEC·찬란한 포켓몬 1장, 스탠다드(레귤레이션 H 이후)·익스팬디드 사용 가능 여부(언리미티드는 사용 가능 여부 검사 없음)
   - Pokémon TCG Live 덱 목록 붙여넣기로 가져오기, 같은 형식으로 내보내기
@@ -38,7 +39,7 @@
 |---|---|
 | 프론트엔드 | React 19, TypeScript, Vite 8, React Router 7, CSS Modules |
 | 서버 | Vercel Functions (`api/cards.ts`) |
-| 데이터 | 자체 보유 카드 데이터([pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)) + 공식 한국어 포켓몬·아이템·장소 이름([PokéAPI](https://github.com/PokeAPI/pokeapi)) + 트레이너스 이름 사전 |
+| 데이터 | 자체 보유 카드 데이터([pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)) + 공식 한국어 포켓몬·아이템·장소 이름([PokéAPI](https://github.com/PokeAPI/pokeapi)) + 공식 카드 검색과 대조한 이름 사전 + 자체 번역(비공식 표시) |
 | 덱 저장 | 브라우저 localStorage (버전 관리), 공유는 URL 쿼리 |
 | 이미지 | 자체 변환 WebP, GitHub Pages 호스팅 |
 | 배포 | Vercel (`main` → 정식, `develop` → 개발 버전) |
@@ -80,6 +81,7 @@
 ### 5. 공식 데이터가 없는 트레이너스 카드 이름
 포켓몬 이름과 달리 트레이너스 카드(서포트·아이템·스타디움)의 공식 한국어 이름은 공개 데이터가 없었습니다. 게임 아이템 이름을 그대로 붙이자 서포트 카드 "Black Belt"가 아이템 "검은띠"가 되는 오역도 생겼습니다.
 → 게임 공식명은 카드 종류별로만 쓰고(아이템명은 아이템·도구, 장소명은 스타디움), 나머지는 초안을 만든 뒤 qa가 한국 공식 카드 검색에서 한 장씩 대조해 **확인된 이름만** 넣었습니다(띄어쓰기까지 공식 표기). 초안의 절반 이상(약 59%)은 공식 검색에서 확인되지 않아 영어로 두었고, 처음 넣은 사전 항목도 다시 검증해 9건을 고치고 4건을 뺐습니다.
+→ 그래도 한국어·영어가 섞여 보기 불편하다는 피드백에, 남은 이름은 **직접 번역하되 "비공식 번역"으로 표시**하기로 했습니다(공식 이름과 구분). 이후 최근 세트의 번역 192개를 qa가 다시 공식 검색과 대조해(효과 문구까지 비교) 151개를 공식 이름으로 올렸고, 그 과정에서 기존 사전의 오류 2건(Atticus 비파 → 추명, Lacey 네리네 → 타로)도 찾아 고쳤습니다.
 
 ### 6. 덱 규칙의 스탠다드 판정
 원본 카드 데이터의 대회 사용 가능 여부가 갱신되지 않아, 이미 스탠다드에서 빠진 F 레귤레이션 카드는 "사용 가능", 최신 세트는 "사용 불가"로 나왔습니다(qa 발견).
@@ -137,7 +139,9 @@ node scripts/build-images.mjs <출력 폴더>   # 카드 이미지 WebP 생성 (
 api/cards.ts         Vercel Function 진입점
 server/cardsApi.ts   카드 API (개발 서버와 공유)
 scripts/             build-data.mjs(카드 데이터·한국어 이름·포맷), build-images.mjs(이미지),
-                     trainer-names-ko.json(트레이너스 이름 사전), build-og-image.mjs(링크 미리보기 이미지)
+                     trainer-names-ko.json(트레이너스 이름 사전), card-names-ko.json(공식 확인 이름·비공식 번역),
+                     set-names-ko.json(세트·시리즈), apply-verified-names.mjs(qa 대조 결과 반영),
+                     build-og-image.mjs(링크 미리보기 이미지)
 data/                생성된 카드 데이터
 docs/design/         디자인 시안
 src/
@@ -160,7 +164,10 @@ src/
 - [x] 정식 공개 v1.0.0 (`main`)
 - [x] v1.0.1 첫 화면 속도, 링크 미리보기 이미지
 - [x] 트레이너스 카드 한국어 이름 (공식 카드 검색과 대조)
-- [x] 덱 빌더 (M4) — `develop`에서 사용 가능, 정식 배포 예정(v1.1.0)
+- [x] v1.1.0 덱 빌더 (M4), 모든 카드·세트·희귀도 한국어
+- [ ] 카드 시세 — 판본(영문·일본·한글)·상태별 시세, 해외 시세 원화 환산
+- [ ] 로그인·회원가입 + DB (PostgreSQL) — 프론트엔드/백엔드 분리
+- [ ] 가상 포인트 경매 — 실시간 입찰, 포인트 장부, 동시 입찰 처리
 - [ ] 덱 통계(타입·종류별 장수), 카드 상세에서 바로 덱에 담기
 - [ ] 새 세트 데이터 추가 (원본 데이터 저장소가 2026-09 이후 갱신되지 않음)
 
@@ -168,7 +175,8 @@ src/
 
 - 카드 데이터: [PokemonTCG/pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)
 - 한국어 포켓몬·아이템·장소 이름: [PokéAPI](https://github.com/PokeAPI/pokeapi) (BSD-3-Clause)
-- 트레이너스 카드 한국어 이름: [포켓몬카드게임 공식 카드 검색](https://pokemoncard.co.kr/cards)에서 카드별로 직접 확인한 표기 (자동 수집하지 않음)
+- 트레이너스·특수 폼 카드 한국어 이름: [포켓몬카드게임 공식 카드 검색](https://pokemoncard.co.kr/cards)에서 카드별로 직접 확인한 표기 (자동 수집하지 않음)
+- 그 밖의 카드 이름과 세트 이름: 자체 번역 (사이트에 "비공식 번역"으로 표시)
 - 스탠다드 레귤레이션: [2026 Standard Format Rotation Announcement](https://www.pokemon.com/us/pokemon-news/2026-pokemon-tcg-standard-format-rotation-announcement)
 - 카드 이미지: Pokémon TCG API 이미지를 변환해 호스팅
 

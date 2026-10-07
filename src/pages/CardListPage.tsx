@@ -20,6 +20,7 @@ import {
   type CardFilters,
   type SortKey,
 } from '../lib/cardFilters'
+import { rarityLabel } from '../lib/cardText'
 import { TYPE_LABEL } from '../lib/pokemonTypes'
 import bundledRarities from '../data/rarities.json'
 import bundledSets from '../data/sets.json'
@@ -31,11 +32,14 @@ const SEARCH_DEBOUNCE_MS = 400
 /** Keep the API's newest-first order while grouping sets under their series */
 function groupBySeries(sets: CardSet[]) {
   const groups = new Map<string, CardSet[]>()
-  for (const set of sets) groups.set(set.series, [...(groups.get(set.series) ?? []), set])
+  for (const set of sets) groups.set(set.seriesKo, [...(groups.get(set.seriesKo) ?? []), set])
   return [...groups]
 }
 
 const FIRST_ROW = 6
+
+// In the order of their Korean labels, which is what the select shows
+const RARITIES = [...bundledRarities].sort((a, b) => rarityLabel(a).localeCompare(rarityLabel(b), 'ko'))
 
 export default function CardListPage() {
   const [params, setParams] = useUrlParams()
@@ -44,7 +48,7 @@ export default function CardListPage() {
   const isMobile = useMediaQuery('(max-width: 640px)')
   // Generated with the card data (scripts/build-data.mjs), so they always match it
   const sets: CardSet[] = bundledSets
-  const rarities: string[] = bundledRarities
+  const rarities = RARITIES
   // Phones start at page 1 (the URL is fixed up below), so a shared ?page=3 link doesn't fetch page 3 first
   const search = useCardSearch(filters, isMobile ? 1 : page, isMobile ? 'append' : 'paged')
   const [panelOpen, setPanelOpen] = useState(false)
@@ -128,7 +132,7 @@ export default function CardListPage() {
         <optgroup key={series} label={series}>
           {list.map((set) => (
             <option key={set.id} value={set.id}>
-              {set.name}
+              {set.nameKo}
             </option>
           ))}
         </optgroup>
@@ -142,7 +146,7 @@ export default function CardListPage() {
       {filters.rarity && !rarities.includes(filters.rarity) && <option value={filters.rarity}>{filters.rarity}</option>}
       {rarities.map((rarity) => (
         <option key={rarity} value={rarity}>
-          {rarity}
+          {rarityLabel(rarity)}
         </option>
       ))}
     </Select>
@@ -167,8 +171,8 @@ export default function CardListPage() {
   const activeChips = [
     filters.name && { key: 'name', label: `검색: ${filters.name}`, clear: clearName },
     filters.type && { key: 'type', label: `타입: ${TYPE_LABEL[filters.type]}`, clear: () => updateFilters({ type: '' }) },
-    filters.set && { key: 'set', label: `세트: ${selectedSet?.name ?? filters.set}`, clear: () => updateFilters({ set: '' }) },
-    filters.rarity && { key: 'rarity', label: `희귀도: ${filters.rarity}`, clear: () => updateFilters({ rarity: '' }) },
+    filters.set && { key: 'set', label: `세트: ${selectedSet?.nameKo ?? filters.set}`, clear: () => updateFilters({ set: '' }) },
+    filters.rarity && { key: 'rarity', label: `희귀도: ${rarityLabel(filters.rarity)}`, clear: () => updateFilters({ rarity: '' }) },
   ].filter((chip) => !!chip)
 
 

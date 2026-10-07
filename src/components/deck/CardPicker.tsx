@@ -156,7 +156,7 @@ export default function CardPicker({ format, counts, nameCounts, total, onChange
                   {label}
                 </p>
                 <p className={styles.tileSub}>
-                  {card.set.name} {formatCardNumber(card.number)}
+                  {card.set.nameKo} {formatCardNumber(card.number)}
                 </p>
                 <div className={styles.tileActions}>
                   <button

@@ -239,7 +239,7 @@ export function checkDeck(cards: DeckCard[], format: DeckFormat, info: Map<strin
   if (format !== 'unlimited') {
     const illegal = known.filter(({ card }) => !isBasicEnergy(card) && !card.formats?.includes(format))
     for (const { card } of illegal) {
-      checks.push({ ok: false, strong: `${displayName(card)} (${card.set.name} ${card.number})`, rest: ` — ${FORMATS[format]}에서 쓸 수 없어요` })
+      checks.push({ ok: false, strong: `${displayName(card)} (${card.set.nameKo} ${card.number})`, rest: ` — ${FORMATS[format]}에서 쓸 수 없어요` })
     }
     if (!illegal.length) checks.push({ ok: true, lead: `${FORMATS[format]}에서 사용 가능` })
   }

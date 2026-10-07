@@ -58,7 +58,7 @@ export default function DeckCardList({ cards, info, nameCounts, onChange, column
                       </Link>
                       <span className={styles.rowSub}>
                         {card.nameKo && <span lang="en">{card.name} · </span>}
-                        {card.set.name} {formatCardNumber(card.number)}
+                        {card.set.nameKo} {formatCardNumber(card.number)}
                       </span>
                     </div>
                     {onChange ? (

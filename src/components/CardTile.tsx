@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import CardImg from './CardImg'
-import { formatCardNumber } from '../lib/cardText'
+import { formatCardNumber, rarityLabel } from '../lib/cardText'
 import { isPokemonType, SUPERTYPE_LABEL, TYPE_COLOR, TYPE_LABEL, TYPE_TEXT } from '../lib/pokemonTypes'
 import type { CardListItem } from '../types/card'
 import styles from './CardTile.module.css'
@@ -46,7 +46,7 @@ export default function CardTile({ card, priority = false }: { card: CardListIte
           </p>
         )}
         <p className={styles.sub}>
-          {formatCardNumber(card.number)} · {card.set.name}
+          {formatCardNumber(card.number)} · {card.set.nameKo}
         </p>
         <div className={styles.row}>
           <TypeBadge card={card} />
@@ -57,7 +57,7 @@ export default function CardTile({ card, priority = false }: { card: CardListIte
             </span>
           )}
         </div>
-        {card.rarity && <p className={isRare ? `${styles.rarity} ${styles.rare}` : styles.rarity}>{card.rarity}</p>}
+        {card.rarity && <p className={isRare ? `${styles.rarity} ${styles.rare}` : styles.rarity}>{rarityLabel(card.rarity)}</p>}
       </div>
     </Link>
   )

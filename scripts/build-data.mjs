@@ -297,7 +297,13 @@ const gameNames = {
   items: new Map(await loadGameNames('item_names.csv')),
   places: new Map(await loadGameNames('location_names.csv')),
 }
-const trainerKo = JSON.parse(await readFile(path.join(root, 'scripts/trainer-names-ko.json'), 'utf8'))
+const readJson = async (file) => JSON.parse(await readFile(path.join(root, file), 'utf8'))
+const trainerKo = await readJson('scripts/trainer-names-ko.json')
+// Our own translations for names with no official Korean name (marked unofficial on the site),
+// and for the English sets, which have no Korean counterparts
+const cardNamesKo = await readJson('scripts/card-names-ko.json')
+const setNamesKo = await readJson('scripts/set-names-ko.json')
+const ownKey = (dict, key) => (key && Object.hasOwn(dict, key) ? dict[key] : undefined)
 
 console.log('Downloading sets…')
 const sets = (await fetchJson(`${TCG_RAW}/sets/en.json`)).sort((a, b) =>
@@ -314,6 +320,7 @@ let pokemonCards = 0
 let pokemonTranslated = 0
 let trainerCards = 0
 let trainerTranslated = 0
+let unofficialCards = 0
 const untranslated = new Map()
 
 for (const [i, set] of sets.entries()) {
@@ -321,17 +328,27 @@ for (const [i, set] of sets.entries()) {
   const cards = await fetchJson(`${TCG_RAW}/cards/en/${set.id}.json`)
   for (const card of cards) {
     if (Object.hasOwn(DATA_FIXES, card.id)) Object.assign(card, DATA_FIXES[card.id])
-    const nameKo = koreanName(card, species, speciesByName, trainerKo, gameNames)
-    const evolvesFromKo = koreanSpeciesName(card.evolvesFrom, speciesByName)
+    // `official`: full names checked against the official Korean card search, for names the rules
+    // above can't build (e.g. "오거폰 벽록의 가면", form after the name)
+    const officialKo =
+      ownKey(cardNamesKo.official, card.name) ?? koreanName(card, species, speciesByName, trainerKo, gameNames)
+    const nameKo = officialKo ?? ownKey(cardNamesKo.names, card.name)
+    const nameKoUnofficial = !officialKo && !!nameKo
+    const evolvesFromKo =
+      koreanSpeciesName(card.evolvesFrom, speciesByName) ?? ownKey(cardNamesKo.names, card.evolvesFrom)
     if (evolvesFromKo) card.evolvesFromKo = evolvesFromKo
     if (nameKo) card.nameKo = nameKo
+    if (nameKoUnofficial) {
+      card.nameKoUnofficial = true
+      unofficialCards++
+    }
+    if (!nameKo) untranslated.set(card.name, card.id)
     if (card.supertype === 'Pokémon') {
       pokemonCards++
-      if (nameKo) pokemonTranslated++
-      else untranslated.set(card.name, card.id)
+      if (officialKo) pokemonTranslated++
     } else {
       trainerCards++
-      if (nameKo) trainerTranslated++
+      if (officialKo) trainerTranslated++
     }
     if (card.rarity) rarities.add(card.rarity)
 
@@ -340,6 +357,7 @@ for (const [i, set] of sets.entries()) {
       id: card.id,
       name: card.name,
       ...(nameKo && { nameKo }),
+      ...(nameKoUnofficial && { nameKoUnofficial }),
       supertype: card.supertype,
       subtypes: card.subtypes,
       hp: card.hp,
@@ -361,6 +379,8 @@ const setsOut = sets.map((s) => ({
   id: s.id,
   name: s.name,
   series: s.series,
+  nameKo: ownKey(setNamesKo.sets, s.id) ?? s.name,
+  seriesKo: ownKey(setNamesKo.series, s.series) ?? s.series,
   // The set code in Pokémon TCG Live deck lists ("PAF"); a few subsets share their main set's
   ...(s.ptcgoCode && { code: s.ptcgoCode }),
   printedTotal: s.printedTotal,
@@ -378,7 +398,9 @@ await writeFile(
 // Client bundle: the filter selects
 await writeFile(
   path.join(root, 'src/data/sets.json'),
-  JSON.stringify(setsOut.map(({ id, name, series, code, releaseDate }) => ({ id, name, series, code, releaseDate }))).replace(/\},\{/g, '},\n{') + '\n',
+  JSON.stringify(
+    setsOut.map(({ id, name, nameKo, series, seriesKo, code, releaseDate }) => ({ id, name, nameKo, series, seriesKo, code, releaseDate })),
+  ).replace(/\},\{/g, '},\n{') + '\n',
 )
 await writeFile(path.join(root, 'src/data/rarities.json'), JSON.stringify([...rarities].sort(), null, 2) + '\n')
 
@@ -386,6 +408,7 @@ const pct = ((pokemonTranslated / pokemonCards) * 100).toFixed(1)
 console.log(`Done: ${index.length} cards in ${sets.length} sets`)
 console.log(`Korean names: ${pokemonTranslated}/${pokemonCards} Pokémon cards (${pct}%)`)
 console.log(`Korean names: ${trainerTranslated}/${trainerCards} Trainer and Energy cards`)
+console.log(`Our own translations (card-names-ko.json): ${unofficialCards} cards`)
 if (untranslated.size) {
   console.log(`Untranslated Pokémon names (${untranslated.size} distinct), e.g.:`)
   console.log([...untranslated].slice(0, 25).map(([n, id]) => `  ${n} (${id})`).join('\n'))
