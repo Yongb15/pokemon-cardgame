@@ -13,7 +13,9 @@ import NotFoundPage from './pages/NotFoundPage.tsx'
 // rendered, so the cards (and their images) show up sooner
 if (window.location.pathname === '/') {
   const params = new URLSearchParams(window.location.search)
-  prefetchSearchCards({ ...toSearchParams(filtersFromParams(params)), page: pageFromParams(params), pageSize: PAGE_SIZE })
+  // Phones ("load more") always start from page 1, like CardListPage
+  const page = window.matchMedia('(max-width: 640px)').matches ? 1 : pageFromParams(params)
+  prefetchSearchCards({ ...toSearchParams(filtersFromParams(params)), page, pageSize: PAGE_SIZE })
 }
 
 const router = createBrowserRouter([

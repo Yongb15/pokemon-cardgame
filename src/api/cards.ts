@@ -123,15 +123,10 @@ async function request<T>(path: string, params?: Params, signal?: AbortSignal): 
   const cached = responseCache.get(cacheKey)
   if (cached && cached.expires > Date.now()) return cached.data as T
 
+  // A prefetch already went through its retries, so its failure is final too (the error screen's
+  // retry button starts a fresh request)
   const pending = inflight.get(cacheKey)
-  if (pending) {
-    try {
-      return await untilAborted(pending as Promise<T>, signal)
-    } catch (error) {
-      if (signal?.aborted) throw error
-      // The prefetch failed: fall through to a request of our own (with its retries)
-    }
-  }
+  if (pending) return untilAborted(pending as Promise<T>, signal)
 
   const deadline = Date.now() + DEADLINE_MS
   for (let retry = 0; ; retry++) {
