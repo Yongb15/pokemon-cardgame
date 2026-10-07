@@ -53,8 +53,8 @@ const IMAGE_HOST = {
   lg: 'https://yongb15.github.io/pokemon-card-images-lg',
 }
 
-/** Same file-name rule as scripts/build-images.mjs ("ex10-?" → "ex10-_") */
-const imageName = (id: string) => id.replace(/[^\w.-]/g, '_')
+/** Same file-name rule as scripts/build-images.mjs: unsafe characters become their hex code, so ids stay distinct ("ex10-?" → "ex10-_3f", "ex10-!" → "ex10-_21") */
+const imageName = (id: string) => id.replace(/[^\w.-]/g, (ch) => `_${ch.codePointAt(0)!.toString(16)}`)
 
 function images(setId: string, id: string, original: { small: string; large?: string }) {
   return {
@@ -287,7 +287,9 @@ export async function handleCards(rest: string, params: URLSearchParams): Promis
     }
     if (segments.length === 0) return await search(params)
     const [id, sub, ...extra] = segments
-    if (extra.length || !/^[\w.-]+$/.test(id)) return notFound()
+    // The byId lookup is what guards file access (paths come only from trusted data); this check
+    // just rejects obvious junk early. "!" and "?" occur in real ids (Unown ex10-!, ex10-?).
+    if (extra.length || !/^[\w.!?-]+$/.test(id)) return notFound()
     if (!sub) return await card(id)
     if (sub === 'neighbors') return await neighbors(id)
     if (sub === 'related') return await related(id, params)

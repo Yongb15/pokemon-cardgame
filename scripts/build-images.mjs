@@ -30,9 +30,10 @@ export const SIZES = {
 
 const exists = (file) => stat(file).then(() => true, () => false)
 
-/** Card ids become file names and URLs: keep them to safe characters ("ex10-?" → "ex10-_").
+/** Card ids become file names and URLs: unsafe characters become their hex code so ids stay
+ *  distinct ("ex10-?" → "ex10-_3f", "ex10-!" → "ex10-_21").
  *  server/cardsApi.ts uses the same rule. */
-const imageName = (id) => id.replace(/[^\w.-]/g, '_')
+const imageName = (id) => id.replace(/[^\w.-]/g, (ch) => `_${ch.codePointAt(0).toString(16)}`)
 
 async function download(url) {
   for (let attempt = 1; ; attempt++) {
