@@ -10,3 +10,6 @@ export async function GET(request: Request) {
   url.searchParams.delete('path')
   return handleCards(rest, url.searchParams)
 }
+
+// HEAD gets the same headers (cache checks, link previews)
+export const HEAD = GET

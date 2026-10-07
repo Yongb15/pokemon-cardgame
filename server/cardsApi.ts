@@ -162,6 +162,23 @@ const SORTS = {
   number: (s: Store) => (a: IndexEntry, b: IndexEntry) => numberOrder.compare(a.number, b.number) || SORTS.newest(s)(a, b),
 } as const
 
+type SortKey = keyof typeof SORTS
+type StoreCard = Store['cards'][number]
+
+// Sorting 20k cards per request is the expensive part of a search, and requests that miss the
+// edge cache (any new query string) would pay it every time. Sort each order once per instance.
+const sortedCache = new Map<SortKey, StoreCard[]>()
+function sortedCards(store: Store, key: SortKey) {
+  let sorted = sortedCache.get(key)
+  if (!sorted) {
+    sorted = [...store.cards].sort(SORTS[key](store))
+    sortedCache.set(key, sorted)
+  }
+  return sorted
+}
+
+const MAX_NAME_LENGTH = 50
+
 const CACHE = 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800'
 
 function json(body: unknown, status = 200) {
@@ -189,10 +206,12 @@ async function search(params: URLSearchParams) {
   const page = intParam(params, 'page', 1)
   const pageSize = intParam(params, 'pageSize', 24, 250)
   if (page === null || pageSize === null) return badRequest('page는 1 이상, pageSize는 1~250 사이의 정수여야 합니다.')
-  const sortKey = (params.get('sort') ?? 'newest') as keyof typeof SORTS
-  if (!(sortKey in SORTS)) return badRequest('알 수 없는 정렬입니다.')
+  const sortKey = params.get('sort') ?? 'newest'
+  // Own keys only: `in` would accept "constructor", "__proto__" and friends
+  if (!Object.hasOwn(SORTS, sortKey)) return badRequest('알 수 없는 정렬입니다.')
 
   const rawName = params.get('name') ?? ''
+  if (rawName.length > MAX_NAME_LENGTH) return badRequest(`검색어는 ${MAX_NAME_LENGTH}자 이하여야 합니다.`)
   const name = normalize(rawName)
   // Only punctuation ("!!!"): nothing can match, rather than silently ignoring the search
   if (rawName.trim() && !name) return json({ data: [], page, pageSize, count: 0, totalCount: 0 })
@@ -200,14 +219,14 @@ async function search(params: URLSearchParams) {
   const set = params.get('set')
   const rarity = params.get('rarity')
 
-  const matches = store.cards.filter(
+  // Filtering a pre-sorted list keeps its order
+  const matches = sortedCards(store, sortKey as SortKey).filter(
     (c) =>
       (!name || c.search.includes(name)) &&
       (!type || c.types?.includes(type)) &&
       (!set || c.set === set) &&
       (!rarity || c.rarity === rarity),
   )
-  matches.sort(SORTS[sortKey](store))
   const start = (page - 1) * pageSize
   const data = matches.slice(start, start + pageSize).map((c) => listItem(store, c))
   return json({ data, page, pageSize, count: data.length, totalCount: matches.length })
@@ -252,8 +271,7 @@ async function related(id: string, params: URLSearchParams) {
   // Pokédex numbers are sometimes incomplete in the data), Trainers and Energy: the exact name.
   const single = entry.dex?.length === 1 && !entry.name.includes(' & ')
   const dex = single ? entry.dex![0] : undefined
-  const same = store.cards.filter((c) => c.id !== id && (dex ? c.dex?.includes(dex) : c.name === entry.name))
-  same.sort(SORTS.newest(store))
+  const same = sortedCards(store, 'newest').filter((c) => c.id !== id && (dex ? c.dex?.includes(dex) : c.name === entry.name))
   return json({ data: same.slice(0, limit).map((c) => listItem(store, c)), totalCount: same.length })
 }
 

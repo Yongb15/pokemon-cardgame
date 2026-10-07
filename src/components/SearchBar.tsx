@@ -37,6 +37,7 @@ export default function SearchBar({ value, onChange, placeholder }: Props) {
       <input
         ref={inputRef}
         id="card-search"
+        maxLength={50}
         type="search"
         value={value}
         placeholder={placeholder}
