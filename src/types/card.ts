@@ -2,8 +2,12 @@
 // (https://docs.pokemontcg.io/api-reference/cards/card-object) plus `nameKo`.
 
 export interface CardImages {
+  /** Self-hosted WebP (scripts/build-images.mjs) */
   small: string
   large: string
+  /** Original Pokémon TCG image URLs, used if a hosted copy fails to load */
+  fallbackSmall?: string
+  fallbackLarge?: string
 }
 
 export interface CardSetSummary {
@@ -16,6 +20,8 @@ export interface CardSetSummary {
   images: {
     symbol: string
     logo: string
+    fallbackSymbol?: string
+    fallbackLogo?: string
   }
 }
 
@@ -73,10 +79,12 @@ export interface Card {
 export type CardListItem = Pick<
   Card,
   'id' | 'name' | 'nameKo' | 'supertype' | 'subtypes' | 'hp' | 'types' | 'number' | 'rarity' | 'set'
-> & { images: Pick<CardImages, 'small'> }
+> & { images: Pick<CardImages, 'small' | 'fallbackSmall'> }
 
 /** Previous/next card in a set */
-export type CardSummary = Pick<Card, 'id' | 'name' | 'nameKo' | 'number'> & { images: Pick<CardImages, 'small'> }
+export type CardSummary = Pick<Card, 'id' | 'name' | 'nameKo' | 'number'> & {
+  images: Pick<CardImages, 'small' | 'fallbackSmall'>
+}
 
 export interface PagedResponse<T> {
   data: T[]

@@ -22,8 +22,12 @@ export const DEFAULT_FILTERS: CardFilters = { name: '', type: '', set: '', rarit
 
 export const PAGE_SIZE = 24
 
+/** Longest search term the API accepts (longer is a 400) */
+export const MAX_NAME_LENGTH = 50
+
 function isSortKey(value: string): value is SortKey {
-  return value in SORT_OPTIONS
+  // Own keys only, like the server: `in` would accept "constructor", "toString", ...
+  return Object.hasOwn(SORT_OPTIONS, value)
 }
 
 /** Collapse runs of whitespace and trim: what the URL stores and what the search box is compared with */
@@ -36,7 +40,8 @@ export function filtersFromParams(params: URLSearchParams): CardFilters {
   const type = POKEMON_TYPES.find((t) => t.toLowerCase() === rawType) ?? ''
   const sort = params.get('sort') ?? ''
   return {
-    name: cleanName(params.get('q') ?? ''),
+    // A shared link may carry a longer term than the search box allows: trim it rather than fail
+    name: cleanName(params.get('q') ?? '').slice(0, MAX_NAME_LENGTH),
     type,
     set: params.get('set') ?? '',
     rarity: params.get('rarity') ?? '',

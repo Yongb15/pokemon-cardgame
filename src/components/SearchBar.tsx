@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { MAX_NAME_LENGTH } from '../lib/cardFilters'
 import styles from './SearchBar.module.css'
 
 interface Props {
@@ -37,6 +38,7 @@ export default function SearchBar({ value, onChange, placeholder }: Props) {
       <input
         ref={inputRef}
         id="card-search"
+        maxLength={MAX_NAME_LENGTH}
         type="search"
         value={value}
         placeholder={placeholder}

@@ -1,0 +1,10 @@
+/* Takes the image's own class for size and shape; only the look of an empty card is added */
+.missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 245 / 342;
+  background: var(--skeleton);
+  color: var(--text-muted);
+  font-size: 12px;
+}

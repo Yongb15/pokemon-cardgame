@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { formatCardNumber } from '../../lib/cardText'
 import type { DetailTrail } from '../../pages/CardDetailPage'
 import type { CardSummary } from '../../types/card'
+import CardImg from '../CardImg'
 import styles from './detail.module.css'
 
 interface Props {
@@ -25,7 +26,14 @@ export default function CardNeighbors({ prev, next, trail }: Props) {
       replace
       rel={dir}
     >
-      <img src={card.images.small} alt="" loading="lazy" />
+      <CardImg
+        src={card.images.small}
+        fallback={card.images.fallbackSmall}
+        alt=""
+        loading="lazy"
+        width={245}
+        height={342}
+      />
       <span>
         <span className={styles.neighborLabel}>{dir === 'prev' ? '‹ 이전 카드' : '다음 카드 ›'}</span>
         <span className={styles.neighborName}>

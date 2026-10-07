@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { baseName } from '../../lib/cardText'
 import type { DetailTrail } from '../../pages/CardDetailPage'
 import type { Card, CardListItem } from '../../types/card'
+import CardImg from '../CardImg'
 import styles from './detail.module.css'
 
 interface Props {
@@ -40,7 +41,14 @@ export default function RelatedCards({ card, status, related, onRetry, linkState
             ? related.cards.map((c) => (
                 <li key={c.id}>
                   <Link className={styles.mini} to={`/cards/${encodeURIComponent(c.id)}`} state={linkState}>
-                    <img src={c.images.small} alt="" loading="lazy" width={245} height={342} />
+                    <CardImg
+                      src={c.images.small}
+                      fallback={c.images.fallbackSmall}
+                      alt=""
+                      loading="lazy"
+                      width={245}
+                      height={342}
+                    />
                     <span className={styles.miniName}>{c.nameKo ?? c.name}</span>
                     <span className={styles.miniSet}>{c.set.name}</span>
                   </Link>

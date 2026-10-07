@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { formatDate, LEGALITY_FORMAT_LABEL } from '../../lib/cardText'
 import type { Card } from '../../types/card'
+import CardImg from '../CardImg'
 import EnergyIcon from '../EnergyIcon'
 import styles from './detail.module.css'
 
@@ -72,11 +73,17 @@ export function CardInfo({ card }: { card: Card }) {
         카드 정보
       </h2>
       <div className={styles.setBox}>
-        <img className={styles.setLogo} src={card.set.images.logo} alt={`${card.set.name} 로고`} loading="lazy" />
+        <CardImg
+          className={styles.setLogo}
+          src={card.set.images.logo}
+          fallback={card.set.images.fallbackLogo}
+          alt={`${card.set.name} 로고`}
+          loading="lazy"
+        />
         <dl className={styles.facts}>
           <dt>세트</dt>
           <dd>
-            <img className={styles.setSymbol} src={card.set.images.symbol} alt="" />
+            <CardImg className={styles.setSymbol} src={card.set.images.symbol} fallback={card.set.images.fallbackSymbol} alt="" />
             <Link to={`/?set=${encodeURIComponent(card.set.id)}`}>{card.set.name}</Link>
             <span className={styles.muted}>· {card.set.series}</span>
           </dd>
