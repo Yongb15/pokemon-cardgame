@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router'
 import CardImg from '../components/CardImg'
 import ImportDialog from '../components/deck/ImportDialog'
 import { useDecks } from '../hooks/useDecks'
@@ -26,6 +26,13 @@ export default function DeckListPage() {
   const navigate = useNavigate()
   const [importing, setImporting] = useState(false)
   const [saveError, setSaveError] = useState(false)
+  const headingRef = useRef<HTMLHeadingElement>(null)
+  const focusHeading = (useLocation().state as { focusHeading?: boolean } | null)?.focusHeading
+
+  // After deleting a deck the editor is gone: start keyboard focus at the top of the list
+  useEffect(() => {
+    if (focusHeading) headingRef.current?.focus()
+  }, [focusHeading])
 
   useEffect(() => {
     document.title = '내 덱 · Pokémon Card Dex'
@@ -58,7 +65,9 @@ export default function DeckListPage() {
     <main className={styles.main}>
       <div className={styles.pageHead}>
         <div>
-          <h1 className={styles.title}>내 덱</h1>
+          <h1 ref={headingRef} tabIndex={-1} className={styles.title}>
+            내 덱
+          </h1>
           <p className={styles.subtitle}>덱은 이 브라우저에만 저장돼요. 다른 기기에서 보려면 공유 링크를 쓰세요.</p>
         </div>
         {decks.length > 0 && actions}

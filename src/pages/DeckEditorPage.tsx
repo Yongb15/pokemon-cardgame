@@ -126,7 +126,8 @@ function Editor({ deck }: { deck: Deck }) {
     if (!window.confirm(`“${deck.name}” 덱을 삭제할까요? 되돌릴 수 없어요.`)) return
     try {
       deleteDeck(deck.id)
-      navigate('/decks', { replace: true })
+      // The list page moves focus to its heading, so keyboard users don't land on <body>
+      navigate('/decks', { replace: true, state: { focusHeading: true } })
     } catch {
       setNotice({ kind: 'error', text: '삭제하지 못했어요. 브라우저 저장소를 사용할 수 없어요.' })
     }

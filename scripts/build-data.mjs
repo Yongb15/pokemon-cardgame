@@ -238,6 +238,24 @@ function koreanSpeciesName(name, speciesByName) {
   return translatePart(name, [], speciesByName)
 }
 
+// --- Format legality ------------------------------------------------------------------------------
+//
+// The source data stopped tracking rotation (F cards still say Standard "Legal", the newest sets
+// say "Not Legal" or nothing), so Standard goes by regulation mark. 2026-27 Standard, from
+// 2026-04-10: H and later (G rotated out).
+// https://www.pokemon.com/us/pokemon-news/2026-pokemon-tcg-standard-format-rotation-announcement
+const FIRST_STANDARD_MARK = 'H'
+
+/** "s" legal in Standard, "e" in Expanded; basic Energy is legal everywhere, bans in the data still count */
+function legalFlags(card) {
+  const basicEnergy = card.supertype === 'Energy' && !!card.subtypes?.includes('Basic')
+  const recent = !!card.regulationMark && card.regulationMark >= FIRST_STANDARD_MARK
+  const standard = card.legalities?.standard !== 'Banned' && (basicEnergy || recent)
+  // Expanded (Black & White onward) doesn't rotate; recent sets the data hasn't caught up with count too
+  const expanded = card.legalities?.expanded !== 'Banned' && (basicEnergy || recent || card.legalities?.expanded === 'Legal')
+  return (standard ? 's' : '') + (expanded ? 'e' : '')
+}
+
 // --- Build ------------------------------------------------------------------------------------
 
 console.log('Downloading Korean species names…')
@@ -322,7 +340,7 @@ for (const [i, set] of sets.entries()) {
       set: set.id,
       image: card.images.small,
       // Formats the card is legal in, for the deck builder: "s" standard, "e" expanded
-      legal: (card.legalities?.standard === 'Legal' ? 's' : '') + (card.legalities?.expanded === 'Legal' ? 'e' : ''),
+      legal: legalFlags(card),
     })
   }
   await writeFile(path.join(root, `data/cards/${set.id}.json`), JSON.stringify(cards))

@@ -223,15 +223,15 @@ export function checkDeck(cards: DeckCard[], format: DeckFormat, info: Map<strin
   else checks.push({ ok: false, lead: '기본 포켓몬이 없어요' })
 
   const limitOne = [
-    { tag: 'ACE SPEC', label: 'ACE SPEC은' },
-    { tag: 'Radiant', label: '찬란한 포켓몬은' },
+    { tag: 'ACE SPEC', label: 'ACE SPEC' },
+    { tag: 'Radiant', label: '찬란한 포켓몬' },
   ]
   let limitsOk = true
   for (const { tag, label } of limitOne) {
     const n = known.filter(({ card }) => card.subtypes?.includes(tag)).reduce((s, { count }) => s + count, 0)
     if (n > 1) {
       limitsOk = false
-      checks.push({ ok: false, strong: `${tag} ${n}장`, rest: ` — ${label} 덱에 1장만 넣을 수 있어요` })
+      checks.push({ ok: false, strong: `${label} ${n}장`, rest: ' — 덱에 1장만 넣을 수 있어요' })
     }
   }
   if (limitsOk) checks.push({ ok: true, lead: 'ACE SPEC · 찬란한 포켓몬 각 1장까지' })
