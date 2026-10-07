@@ -35,6 +35,8 @@ function groupBySeries(sets: CardSet[]) {
   return [...groups]
 }
 
+const FIRST_ROW = 6
+
 export default function CardListPage() {
   const [params, setParams] = useUrlParams()
   const filters = useMemo(() => filtersFromParams(params), [params])
@@ -268,8 +270,9 @@ export default function CardListPage() {
         )}
         {status === 'success' && search.cards.length > 0 && (
           <CardGrid>
-            {search.cards.map((card) => (
-              <CardTile key={card.id} card={card} />
+            {search.cards.map((card, index) => (
+              // The widest grid has 6 columns: those cover the first row on every screen size
+              <CardTile key={card.id} card={card} priority={index < FIRST_ROW} />
             ))}
           </CardGrid>
         )}
