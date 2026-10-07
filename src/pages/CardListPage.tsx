@@ -219,6 +219,7 @@ export default function CardListPage() {
       )}
 
       <section ref={resultsRef} className={styles.results} aria-labelledby="result-count" tabIndex={-1}>
+        <h2 className="visually-hidden">검색 결과</h2>
         <div className={styles.resultBar}>
           <p id="result-count" aria-live="polite">
             {status === 'invalid' || rejected ? (
