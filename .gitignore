@@ -30,3 +30,7 @@ public/sitemap.xml
 .env
 .env.*
 !.env.example
+
+# Vercel CLI link (project/org ids) and private keys
+.vercel
+*.pem
