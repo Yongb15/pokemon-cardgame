@@ -17,7 +17,8 @@
 ## 주요 기능
 
 - **한국어·영어 검색** — "리자몽", "메가 리자몽", "Charizard" 모두 검색. 띄어쓰기·대소문자·악센트(Flabébé) 무시
-- **한국어 카드 이름** — 공식 한국어 포켓몬 이름으로 번역(포켓몬 카드 99.3%). 예) Charizard ex → 리자몽 ex, Misty's Gyarados → 이슬의 갸라도스
+- **한국어 카드 이름** — 공식 한국어 포켓몬 이름으로 번역(포켓몬 카드 99.3%). 예) Charizard ex → 리자몽 ex, Misty's Gyarados → 이슬의 갸라도스. 트레이너스 카드는 게임 공식 아이템·장소명과 인물명 사전으로 번역(Rare Candy → 이상한사탕, Arven → 페퍼)
+- **덱 빌더** — 카드를 골라 60장 덱 구성, 규칙 검사(60장, 같은 이름 4장, 기본 포켓몬, ACE SPEC·찬란한 포켓몬 1장, 스탠다드/익스팬디드 사용 가능 여부), Pokémon TCG Live 덱 목록 가져오기·내보내기, 링크로 공유. 로그인 없이 브라우저에 저장
 - **필터와 정렬** — 타입·세트·희귀도 필터, 최신/오래된 세트순·이름순·번호순, 상태는 URL에 저장(새로고침·공유·뒤로 가기 유지)
 - **카드 상세** — 큰 이미지 뷰어, 기술·특성(에너지 비용), 약점·저항력·후퇴, 세트 정보, 대회 사용 가능 여부, 같은 세트의 이전/다음 카드, 같은 포켓몬의 다른 카드
 - **탐색 흐름 유지** — 상세에서 돌아오면 필터·페이지·스크롤 위치(모바일 "더 보기"로 쌓은 목록 포함) 복원
@@ -102,7 +103,8 @@ node scripts/build-images.mjs <출력 폴더>   # 카드 이미지 WebP 생성 (
 
 | 요청 | 설명 |
 |---|---|
-| `GET /api/cards?name=&type=&set=&rarity=&sort=&page=&pageSize=` | 검색 (`sort`: newest, oldest, name, number / `pageSize` 최대 250) |
+| `GET /api/cards?name=&type=&set=&rarity=&supertype=&format=&sort=&page=&pageSize=` | 검색 (`sort`: newest, oldest, name, number / `supertype`: Pokémon, Trainer, Energy / `format`: standard, expanded / `pageSize` 최대 250) |
+| `GET /api/cards/batch?ids=a,b,c` | 여러 카드를 한 번에 (최대 60개, 덱 빌더용) |
 | `GET /api/cards/:id` | 카드 상세 |
 | `GET /api/cards/:id/neighbors` | 같은 세트의 이전/다음 카드 |
 | `GET /api/cards/:id/related?limit=` | 같은 포켓몬(또는 같은 이름)의 다른 카드 |
@@ -121,7 +123,9 @@ src/
 ├─ data/             필터용 세트·희귀도 목록 (생성됨)
 ├─ hooks/            useCardSearch, useApiResource, useUrlParams 등
 ├─ lib/              필터 ↔ URL ↔ API 변환, 표시 문구
-├─ pages/            CardListPage, CardDetailPage, NotFoundPage
+├─ components/deck/  덱 빌더 (카드 선택, 덱 목록, 규칙 검사, 가져오기·내보내기)
+├─ pages/            CardListPage, CardDetailPage, DeckListPage, DeckEditorPage, SharedDeckPage
+├─ lib/deck.ts       덱 저장·규칙·PTCG Live 텍스트·공유 링크
 └─ types/            카드 타입
 ```
 
@@ -130,7 +134,9 @@ src/
 - [x] 카드 목록·검색·필터, 카드 상세, 배포
 - [x] 자체 데이터·이미지 호스팅, 한국어 이름·검색
 - [x] 정식 공개 v1.0.0 (`main`)
-- [ ] 덱 빌더
+- [x] v1.0.1 첫 화면 속도, 링크 미리보기 이미지
+- [ ] 트레이너스 카드 한국어 이름 확대 (공식 카드 검색과 대조 중)
+- [ ] 덱 빌더 (M4, 개발 중)
 
 ## 출처
 
