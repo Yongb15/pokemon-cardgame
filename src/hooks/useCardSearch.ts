@@ -35,6 +35,25 @@ export function useCardSearch(filters: CardFilters, page: number, mode: 'paged' 
   const q = toLuceneQuery(filters)
   const orderBy = SORT_OPTIONS[filters.sort].orderBy
   const key = JSON.stringify([q, orderBy, page, mode, reloadToken])
+  const stackKey = `card-dex:stack:${JSON.stringify([q, orderBy])}`
+
+  /**
+   * Phones stack pages with "load more". Coming back from a card's detail page, rebuild the
+   * same stack from cached pages so the list (and scroll position) is where the user left it.
+   */
+  const restoreStack = useCallback((): Omit<Result, 'key' | 'status' | 'error' | 'loadingMore' | 'loadMoreError'> | null => {
+    if (mode !== 'append' || page !== 1 || q === null) return null
+    let lastPage = 0
+    try {
+      lastPage = Number(sessionStorage.getItem(stackKey))
+    } catch {
+      return null // storage blocked
+    }
+    if (!(lastPage > 1)) return null
+    const pages = Array.from({ length: lastPage }, (_, i) => peekSearchCards({ q, orderBy, page: i + 1, pageSize: PAGE_SIZE }))
+    if (pages.some((p) => !p)) return null
+    return { cards: pages.flatMap((p) => p!.data), totalCount: pages.at(-1)!.totalCount, lastPage }
+  }, [mode, page, q, orderBy, stackKey])
 
   useEffect(() => {
     if (q === null) return
@@ -45,7 +64,12 @@ export function useCardSearch(filters: CardFilters, page: number, mode: 'paged' 
 
     searchCards({ q, orderBy, page, pageSize: PAGE_SIZE }, controller.signal)
       .then((res) => {
-        setResult({ ...base, status: 'success', cards: res.data, totalCount: res.totalCount, error: null })
+        const stack = restoreStack()
+        setResult(
+          stack
+            ? { ...base, ...stack, status: 'success', error: null }
+            : { ...base, status: 'success', cards: res.data, totalCount: res.totalCount, error: null },
+        )
       })
       .catch((error: unknown) => {
         if (isAbort(error)) return
@@ -57,12 +81,14 @@ export function useCardSearch(filters: CardFilters, page: number, mode: 'paged' 
       controller.abort()
       clearTimeout(slowTimer)
     }
-  }, [key, q, orderBy, page])
+  }, [key, q, orderBy, page, restoreStack])
 
   // A page seen recently (e.g. coming back from a card's detail page) renders on the first paint,
   // so scroll restoration has the full grid to land on instead of a skeleton.
   const current = useMemo<Result | null>(() => {
     if (result?.key === key) return result
+    const stack = restoreStack()
+    if (stack) return { key, ...stack, status: 'success', error: null, loadingMore: false, loadMoreError: null }
     const cached = q !== null ? peekSearchCards({ q, orderBy, page, pageSize: PAGE_SIZE }) : undefined
     if (!cached) return null
     return {
@@ -75,7 +101,7 @@ export function useCardSearch(filters: CardFilters, page: number, mode: 'paged' 
       loadingMore: false,
       loadMoreError: null,
     }
-  }, [result, key, q, orderBy, page])
+  }, [result, key, q, orderBy, page, restoreStack])
   const status = q === null ? 'invalid' : (current?.status ?? 'loading')
 
   const retry = useCallback(() => setReloadToken((n) => n + 1), [])
@@ -91,6 +117,11 @@ export function useCardSearch(filters: CardFilters, page: number, mode: 'paged' 
 
     searchCards({ q: q ?? '', orderBy, page: nextPage, pageSize: PAGE_SIZE }, controller.signal)
       .then((res) => {
+        try {
+          sessionStorage.setItem(stackKey, String(nextPage))
+        } catch {
+          // storage blocked: the stack just won't survive a trip to a detail page
+        }
         setResult((prev) =>
           prev?.key === key
             ? {
@@ -107,7 +138,7 @@ export function useCardSearch(filters: CardFilters, page: number, mode: 'paged' 
         if (isAbort(error)) return
         update({ loadingMore: false, loadMoreError: error as Error })
       })
-  }, [current, key, q, orderBy])
+  }, [current, key, q, orderBy, stackKey])
 
   useEffect(() => () => loadMoreController.current?.abort(), [])
 

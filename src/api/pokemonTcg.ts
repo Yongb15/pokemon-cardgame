@@ -183,9 +183,13 @@ export async function getSetNeighbors(card: Card, signal?: AbortSignal) {
 }
 
 /** Other printings of the same Pokémon (by Pokédex number) or the same Trainer/Energy (by name). */
+/** Quote a value for the API's Lucene syntax; parentheses etc. must be escaped even inside quotes */
+const luceneQuote = (value: string) => `"${value.replace(/[+\-&|!(){}[\]^"~*?:\\/]/g, '\\$&')}"`
+
 export async function getRelatedCards(card: Card, limit: number, signal?: AbortSignal) {
-  const dex = card.nationalPokedexNumbers?.[0]
-  const q = dex ? `nationalPokedexNumbers:${dex}` : `name:"${card.name.replace(/[\\"]/g, '\\$&')}"`
+  // One Pokémon: every printing of it. TAG TEAM / multi-Pokémon cards and Trainers: the exact name.
+  const dex = card.nationalPokedexNumbers?.length === 1 ? card.nationalPokedexNumbers[0] : undefined
+  const q = dex ? `nationalPokedexNumbers:${dex}` : `name:${luceneQuote(card.name)}`
   const res = await request<PagedResponse<CardSummary>>(
     '/cards',
     { q: `${q} -id:"${card.id}"`, orderBy: '-set.releaseDate,number', select: SUMMARY_FIELDS, pageSize: limit },

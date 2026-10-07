@@ -140,19 +140,15 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .layout {
     grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
     gap: 32px;
   }
 }
 
-@media (max-width: 640px) {
-  .main {
-    padding-top: 16px;
-    padding-bottom: 40px;
-  }
-
+/* Below this the info column gets too narrow beside the image: stack them */
+@media (max-width: 800px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
     gap: 24px;
@@ -162,6 +158,13 @@
   .skeletonImage {
     width: 260px;
     margin: 0 auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding-top: 16px;
+    padding-bottom: 40px;
   }
 
   .name {

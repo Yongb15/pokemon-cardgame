@@ -1,26 +1,27 @@
 import { Link } from 'react-router'
 import { formatCardNumber } from '../../lib/cardText'
+import type { DetailTrail } from '../../pages/CardDetailPage'
 import type { CardSummary } from '../../types/card'
 import styles from './detail.module.css'
 
 interface Props {
   prev: CardSummary | null
   next: CardSummary | null
-  /** Carried along so "카드 목록" can still go back in history */
-  fromList: boolean
+  /** Carried along unchanged (these links replace the entry) so "카드 목록" still goes back in history */
+  trail: DetailTrail
 }
 
 /**
  * Previous / next card in the same set. These replace the history entry, so the browser's back
  * button (and "카드 목록") returns to the list instead of stepping through every card viewed.
  */
-export default function CardNeighbors({ prev, next, fromList }: Props) {
+export default function CardNeighbors({ prev, next, trail }: Props) {
   if (!prev && !next) return null
   const link = (card: CardSummary, dir: 'prev' | 'next') => (
     <Link
       className={dir === 'next' ? `${styles.neighbor} ${styles.neighborNext}` : styles.neighbor}
       to={`/cards/${encodeURIComponent(card.id)}`}
-      state={{ fromList }}
+      state={trail}
       replace
       rel={dir}
     >
