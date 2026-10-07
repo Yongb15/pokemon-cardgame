@@ -45,7 +45,8 @@ export default function CardListPage() {
   // Generated with the card data (scripts/build-data.mjs), so they always match it
   const sets: CardSet[] = bundledSets
   const rarities: string[] = bundledRarities
-  const search = useCardSearch(filters, page, isMobile ? 'append' : 'paged')
+  // Phones start at page 1 (the URL is fixed up below), so a shared ?page=3 link doesn't fetch page 3 first
+  const search = useCardSearch(filters, isMobile ? 1 : page, isMobile ? 'append' : 'paged')
   const [panelOpen, setPanelOpen] = useState(false)
   const resultsRef = useRef<HTMLElement>(null)
 
