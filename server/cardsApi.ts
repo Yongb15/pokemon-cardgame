@@ -53,6 +53,8 @@ function normalize(text: string) {
   return text
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
+    // NFKD also splits Hangul syllables into jamo ("리" would match "릴"); put them back together
+    .normalize('NFC')
     .toLowerCase()
     .replace(/[^\p{L}\p{N}]/gu, '')
 }
@@ -145,20 +147,24 @@ function json(body: unknown, status = 200) {
 const notFound = (message = '카드를 찾을 수 없습니다.') => json({ error: { message, code: 404 } }, 404)
 const badRequest = (message: string) => json({ error: { message, code: 400 } }, 400)
 
-function intParam(params: URLSearchParams, name: string, fallback: number, max: number) {
+/** A positive integer up to `max`, or null (→ 400) for anything else */
+function intParam(params: URLSearchParams, name: string, fallback: number, max = Number.MAX_SAFE_INTEGER) {
   const value = Number(params.get(name) ?? fallback)
-  return Number.isInteger(value) && value >= 1 ? Math.min(value, max) : null
+  return Number.isInteger(value) && value >= 1 && value <= max ? value : null
 }
 
 async function search(params: URLSearchParams) {
   const store = await loadStore()
-  const page = intParam(params, 'page', 1, 10_000)
+  const page = intParam(params, 'page', 1)
   const pageSize = intParam(params, 'pageSize', 24, 250)
-  if (page === null || pageSize === null) return badRequest('page와 pageSize는 1 이상의 정수여야 합니다.')
+  if (page === null || pageSize === null) return badRequest('page는 1 이상, pageSize는 1~250 사이의 정수여야 합니다.')
   const sortKey = (params.get('sort') ?? 'newest') as keyof typeof SORTS
   if (!(sortKey in SORTS)) return badRequest('알 수 없는 정렬입니다.')
 
-  const name = normalize(params.get('name') ?? '')
+  const rawName = params.get('name') ?? ''
+  const name = normalize(rawName)
+  // Only punctuation ("!!!"): nothing can match, rather than silently ignoring the search
+  if (rawName.trim() && !name) return json({ data: [], page, pageSize, count: 0, totalCount: 0 })
   const type = params.get('type')
   const set = params.get('set')
   const rarity = params.get('rarity')
@@ -204,10 +210,11 @@ async function related(id: string, params: URLSearchParams) {
   const entry = store.byId.get(id)
   if (!entry) return notFound()
   const limit = intParam(params, 'limit', 6, 24)
-  if (limit === null) return badRequest('limit은 1 이상의 정수여야 합니다.')
-  // A single Pokémon: every printing of it (by Pokédex number). TAG TEAM / multi-Pokémon cards,
-  // Trainers and Energy: the exact same name.
-  const dex = entry.dex?.length === 1 ? entry.dex[0] : undefined
+  if (limit === null) return badRequest('limit은 1~24 사이의 정수여야 합니다.')
+  // A single Pokémon: every printing of it (by Pokédex number). TAG TEAM cards ("A & B", whose
+  // Pokédex numbers are sometimes incomplete in the data), Trainers and Energy: the exact name.
+  const single = entry.dex?.length === 1 && !entry.name.includes(' & ')
+  const dex = single ? entry.dex![0] : undefined
   const same = store.cards.filter((c) => c.id !== id && (dex ? c.dex?.includes(dex) : c.name === entry.name))
   same.sort(SORTS.newest(store))
   return json({ data: same.slice(0, limit).map((c) => listItem(store, c)), totalCount: same.length })
@@ -215,8 +222,14 @@ async function related(id: string, params: URLSearchParams) {
 
 /** Routes a request under /api/cards. `rest` is the path after /api/cards ('' for the search). */
 export async function handleCards(rest: string, params: URLSearchParams): Promise<Response> {
-  const segments = rest.split('/').filter(Boolean).map(decodeURIComponent)
   try {
+    // Vercel's rewrite hands us a decoded path, the dev server an encoded one
+    let segments = rest.split('/').filter(Boolean)
+    try {
+      segments = segments.map(decodeURIComponent)
+    } catch {
+      // already decoded and contains a literal "%": use as is
+    }
     if (segments.length === 0) return await search(params)
     const [id, sub, ...extra] = segments
     if (extra.length || !/^[\w.-]+$/.test(id)) return notFound()

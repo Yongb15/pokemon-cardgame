@@ -172,8 +172,11 @@ export default function CardDetailPage() {
                 <TypeBadges card={card} />
                 <span className={styles.subtitle}>{subtitle}</span>
                 {card.evolvesFrom && (
-                  <Link className={styles.evolves} to={`/?q=${encodeURIComponent(card.evolvesFrom)}`}>
-                    ← {card.evolvesFrom}에서 진화
+                  <Link
+                    className={styles.evolves}
+                    to={`/?q=${encodeURIComponent(card.evolvesFromKo ?? card.evolvesFrom)}`}
+                  >
+                    ← {card.evolvesFromKo ?? card.evolvesFrom}에서 진화
                   </Link>
                 )}
               </div>

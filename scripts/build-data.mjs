@@ -67,25 +67,55 @@ function parseCsv(text) {
 }
 
 // --- Korean names -----------------------------------------------------------------------------
+//
+// Policy: translate a name only when every part of it can be translated with confidence.
+// A card keeps its English name rather than getting a half-translated mix like "Erika's 뚜벅쵸".
 
 const TYPE_KO = {
   Grass: '풀', Fire: '불꽃', Water: '물', Lightning: '번개', Psychic: '초', Fighting: '격투',
   Darkness: '악', Metal: '강철', Dragon: '드래곤', Fairy: '페어리', Colorless: '무색',
 }
 
-// Prefixes that mark a form or a mechanic on Pokémon card names
+// Trainer-owned Pokémon ("Misty's Gyarados" → "이슬의 갸라도스"): official Korean trainer names
+const OWNER_KO = {
+  'Team Rocket': '로켓단', Rocket: '로켓단', 'Team Magma': '마그마단', 'Team Aqua': '아쿠아단',
+  Erika: '민화', Misty: '이슬', Brock: '웅', Sabrina: '초련', Blaine: '강연', 'Lt. Surge': '마티스',
+  Koga: '독수', Giovanni: '비주기', N: 'N', Hop: '호브', Ethan: '광', Cynthia: '난천', Iono: '모야모',
+  Lillie: '릴리에', Larry: '청목', Marnie: '마리', Arven: '페퍼', Steven: '성호', Ash: '지우', Lance: '목호',
+}
+
+// Leading form / mechanic words. `join: true` attaches to the name ("메가리자몽", "화이트큐레무").
 const PREFIX_KO = [
-  ['Mega ', '메가'],
-  ['Alolan ', '알로라 '],
-  ['Galarian ', '가라르 '],
-  ['Hisuian ', '히스이 '],
-  ['Paldean ', '팔데아 '],
-  ['Radiant ', '찬란한 '],
-  ['Shining ', '빛나는 '],
-  ['Dark ', '다크 '],
-  ['Light ', '라이트 '],
-  ["Team Rocket's ", '로켓단의 '],
+  ['Mega', '메가', true],
+  ['Primal', '원시', true],
+  ['Ultra', '울트라', true],
+  ['White', '화이트', true],
+  ['Black', '블랙', true],
+  ['Alolan', '알로라'],
+  ['Galarian', '가라르'],
+  ['Hisuian', '히스이'],
+  ['Paldean', '팔데아'],
+  ['Radiant', '찬란한'],
+  ['Shining', '빛나는'],
+  ['Dark', '다크'],
+  ['Light', '라이트'],
+  ['Origin Forme', '오리진폼'],
+  ['Single Strike', '일격'],
+  ['Rapid Strike', '연격'],
+  ['Ice Rider', '백마'],
+  ['Shadow Rider', '흑마'],
+  ['Bloodmoon', '붉은달'],
 ]
+
+// Forms whose Korean name is a single word
+const WHOLE_KO = {
+  'Heat Rotom': '히트로토무', 'Wash Rotom': '워시로토무', 'Frost Rotom': '프로스트로토무',
+  'Fan Rotom': '스핀로토무', 'Mow Rotom': '커트로토무',
+}
+
+// Mechanic suffixes and short codes that stay as printed: ex, GX, VMAX, LV.X, "Garchomp C", "Unown A", "M"
+const KEEP_LATIN = new Set(['ex', 'EX', 'GX', 'V', 'VMAX', 'VSTAR', 'V-UNION', 'BREAK', 'LV.X', 'LEGEND', 'Prime', 'Star'])
+const isKeptLatin = (word) => KEEP_LATIN.has(word) || /^[A-Z]{1,2}$/.test(word)
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 /** Matches `word` not glued to other letters: "Mew" in "Mew ex" but not in "Mewtwo" */
@@ -93,12 +123,77 @@ const wholeWord = (word) => new RegExp(`(?<!\\p{L})${escapeRegExp(word)}(?!\\p{L
 // Compare names ignoring spacing/punctuation: "Nidoran ♀" vs "Nidoran♀", "Mr Mime" vs "Mr. Mime"
 const loose = (s) => s.toLowerCase().replace(/[^\p{L}\p{N}♀♂]/gu, '')
 
+/** One Pokémon name (no "&"), e.g. "Misty's Rapid Strike Urshifu VMAX" */
+function translatePart(part, hints, speciesByName) {
+  let rest = part.trim()
+  let owner = ''
+  const possessive = rest.match(/^(.+?)'s\s+/)
+  if (possessive) {
+    const ko = OWNER_KO[possessive[1]]
+    if (!ko) return null
+    owner = `${ko}의 `
+    rest = rest.slice(possessive[0].length)
+  }
+
+  let prefix = ''
+  for (let changed = true; changed; ) {
+    changed = false
+    for (const [en, ko, join] of PREFIX_KO) {
+      if (rest.startsWith(`${en} `)) {
+        prefix += join ? ko : `${ko} `
+        rest = rest.slice(en.length + 1)
+        changed = true
+      }
+    }
+  }
+
+  let translated = false
+  for (const [en, ko] of Object.entries(WHOLE_KO)) {
+    if (wholeWord(en).test(rest)) {
+      rest = rest.replace(wholeWord(en), ko)
+      translated = true
+    }
+  }
+
+  if (!translated) {
+    // The card's Pokédex numbers first (they can be wrong in the source), then every species
+    const candidates = [...hints, ...speciesByName].filter(({ en }) => wholeWord(en).test(rest))
+    candidates.sort((a, b) => b.en.length - a.en.length)
+    if (candidates.length) {
+      rest = rest.replace(wholeWord(candidates[0].en), candidates[0].ko)
+      translated = true
+    } else {
+      // Spacing/punctuation differences, e.g. "Nidoran ♀" for the species "Nidoran♀"
+      const words = rest.split(' ')
+      outer: for (let len = Math.min(3, words.length); len >= 1; len--) {
+        for (let i = 0; i + len <= words.length; i++) {
+          const match = hints.find(({ en }) => loose(words.slice(i, i + len).join(' ')) === loose(en))
+          if (match) {
+            words.splice(i, len, match.ko)
+            rest = words.join(' ')
+            translated = true
+            break outer
+          }
+        }
+      }
+    }
+  }
+  if (!translated) return null
+
+  // Anything English left besides mechanic suffixes means a form we don't know: don't mix
+  const leftover = (rest.match(/[A-Za-z][A-Za-z.'-]*/g) ?? []).map((w) => w.replace(/^-/, ''))
+  if (!leftover.every(isKeptLatin)) return null
+
+  // "메가" + "리자몽" joins; other prefixes keep their space
+  return owner + prefix + rest
+}
+
 /**
- * "Charizard ex" → "리자몽 ex", "Mega Charizard X ex" → "메가리자몽 X ex",
- * "Pikachu & Zekrom-GX" → "피카츄 & 제크로무-GX", "Basic Fire Energy" → "기본 불꽃 에너지".
- * Returns null when no part of the name could be translated.
+ * "Charizard ex" → "리자몽 ex", "Mega Charizard Y ex" → "메가리자몽 Y ex",
+ * "Pikachu & Zekrom-GX" → "피카츄 & 제크로무-GX", "Misty's Gyarados" → "이슬의 갸라도스",
+ * "Basic Fire Energy" → "기본 불꽃 에너지". Returns null unless the whole name translates.
  */
-function koreanName(card, species) {
+function koreanName(card, species, speciesByName) {
   if (card.supertype === 'Energy') {
     const m = card.name.match(/^(?:Basic )?(\w+) Energy$/)
     if (m && TYPE_KO[m[1]]) return `기본 ${TYPE_KO[m[1]]} 에너지`
@@ -106,41 +201,15 @@ function koreanName(card, species) {
   }
   if (card.supertype !== 'Pokémon') return null
 
-  let name = card.name
-  let translated = false
-  // Longest English names first so "Nidoran♀" wins over a shorter overlapping name. A few cards
-  // (mostly recent special sets) lack Pokédex numbers; fall back to species named in the card name.
-  const candidates = card.nationalPokedexNumbers?.length
-    ? card.nationalPokedexNumbers.map((n) => species.get(n)).filter(Boolean)
-    : speciesByName.filter(({ en }) => wholeWord(en).test(card.name))
-  const names = candidates.sort((a, b) => b.en.length - a.en.length)
+  const hints = (card.nationalPokedexNumbers ?? []).map((n) => species.get(n)).filter(Boolean)
+  const parts = card.name.split(' & ').map((part) => translatePart(part, hints, speciesByName))
+  return parts.every(Boolean) ? parts.join(' & ') : null
+}
 
-  for (const { en, ko } of names) {
-    const exact = wholeWord(en)
-    if (exact.test(name)) {
-      name = name.replace(exact, ko)
-      translated = true
-      continue
-    }
-    // Spacing/punctuation differences, e.g. "Nidoran ♀" for the species "Nidoran♀"
-    const words = name.split(' ')
-    for (let len = Math.min(3, words.length); len >= 1 && !translated; len--) {
-      for (let i = 0; i + len <= words.length; i++) {
-        if (loose(words.slice(i, i + len).join(' ')) === loose(en)) {
-          words.splice(i, len, ko)
-          name = words.join(' ')
-          translated = true
-          break
-        }
-      }
-    }
-  }
-  if (!translated) return null
-
-  for (const [en, ko] of PREFIX_KO) {
-    if (name.startsWith(en)) name = ko + name.slice(en.length)
-  }
-  return name
+/** "Charmeleon" → "리자드" for the "evolves from" line (a plain species name, sometimes a form) */
+function koreanSpeciesName(name, speciesByName) {
+  if (!name) return null
+  return translatePart(name, [], speciesByName)
 }
 
 // --- Build ------------------------------------------------------------------------------------
@@ -176,7 +245,9 @@ for (const [i, set] of sets.entries()) {
   process.stdout.write(`\r  cards ${i + 1}/${sets.length} ${set.id.padEnd(12)}`)
   const cards = await fetchJson(`${TCG_RAW}/cards/en/${set.id}.json`)
   for (const card of cards) {
-    const nameKo = koreanName(card, species)
+    const nameKo = koreanName(card, species, speciesByName)
+    const evolvesFromKo = koreanSpeciesName(card.evolvesFrom, speciesByName)
+    if (evolvesFromKo) card.evolvesFromKo = evolvesFromKo
     if (nameKo) card.nameKo = nameKo
     if (card.supertype === 'Pokémon') {
       pokemonCards++

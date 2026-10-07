@@ -51,6 +51,7 @@ export interface Card {
   hp?: string
   types?: string[]
   evolvesFrom?: string
+  evolvesFromKo?: string
   abilities?: Ability[]
   attacks?: Attack[]
   weaknesses?: TypeModifier[]
