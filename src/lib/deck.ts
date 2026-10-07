@@ -45,12 +45,16 @@ const isCount = (n: unknown): n is number => Number.isInteger(n) && (n as number
  * Collapses spacing and drops invisible control/format characters (e.g. U+202E, which flips the
  * text after it so "gnp.exe" reads "exe.png"), keeping the zero-width joiner emoji are built with
  */
-export const cleanDeckName = (name: string) =>
-  name
+export function cleanDeckName(name: string) {
+  const clean = name
     .replace(/\s+/g, ' ') // tabs and newlines become spaces before the other controls go
     .replace(/(?!‍)[\p{Cc}\p{Cf}]/gu, '')
+    .replace(/ {2,}/g, ' ') // "a <ZWSP> b" left two spaces
     .trim()
     .slice(0, MAX_DECK_NAME)
+  // Nothing visible left (only joiners): treat as no name, so callers fall back to a default
+  return /^[\s‍]*$/.test(clean) ? '' : clean
+}
 
 /** Merges duplicate ids, drops invalid entries and caps the number of distinct cards */
 export function sanitizeCards(raw: unknown): DeckCard[] {
