@@ -238,6 +238,32 @@ function koreanSpeciesName(name, speciesByName) {
   return translatePart(name, [], speciesByName)
 }
 
+// --- Source data fixes ---------------------------------------------------------------------------
+
+// Mistakes in pokemon-tcg-data, by card id
+const DATA_FIXES = {
+  // A Basic Pokémon (HP 50, Colorless) listed as a Trainer
+  'me55c-69': { supertype: 'Pokémon' },
+}
+
+// --- Format legality ------------------------------------------------------------------------------
+//
+// The source data stopped tracking rotation (F cards still say Standard "Legal", the newest sets
+// say "Not Legal" or nothing), so Standard goes by regulation mark. 2026-27 Standard, from
+// 2026-04-10: H and later (G rotated out).
+// https://www.pokemon.com/us/pokemon-news/2026-pokemon-tcg-standard-format-rotation-announcement
+const FIRST_STANDARD_MARK = 'H'
+
+/** "s" legal in Standard, "e" in Expanded; basic Energy is legal everywhere, bans in the data still count */
+function legalFlags(card) {
+  const basicEnergy = card.supertype === 'Energy' && !!card.subtypes?.includes('Basic')
+  const recent = !!card.regulationMark && card.regulationMark >= FIRST_STANDARD_MARK
+  const standard = card.legalities?.standard !== 'Banned' && (basicEnergy || recent)
+  // Expanded (Black & White onward) doesn't rotate; recent sets the data hasn't caught up with count too
+  const expanded = card.legalities?.expanded !== 'Banned' && (basicEnergy || recent || card.legalities?.expanded === 'Legal')
+  return (standard ? 's' : '') + (expanded ? 'e' : '')
+}
+
 // --- Build ------------------------------------------------------------------------------------
 
 console.log('Downloading Korean species names…')
@@ -293,6 +319,7 @@ for (const [i, set] of sets.entries()) {
   process.stdout.write(`\r  cards ${i + 1}/${sets.length} ${set.id.padEnd(12)}`)
   const cards = await fetchJson(`${TCG_RAW}/cards/en/${set.id}.json`)
   for (const card of cards) {
+    if (Object.hasOwn(DATA_FIXES, card.id)) Object.assign(card, DATA_FIXES[card.id])
     const nameKo = koreanName(card, species, speciesByName, trainerKo, gameNames)
     const evolvesFromKo = koreanSpeciesName(card.evolvesFrom, speciesByName)
     if (evolvesFromKo) card.evolvesFromKo = evolvesFromKo
@@ -321,6 +348,8 @@ for (const [i, set] of sets.entries()) {
       dex: card.nationalPokedexNumbers,
       set: set.id,
       image: card.images.small,
+      // Formats the card is legal in, for the deck builder: "s" standard, "e" expanded
+      legal: legalFlags(card),
     })
   }
   await writeFile(path.join(root, `data/cards/${set.id}.json`), JSON.stringify(cards))
@@ -331,6 +360,8 @@ const setsOut = sets.map((s) => ({
   id: s.id,
   name: s.name,
   series: s.series,
+  // The set code in Pokémon TCG Live deck lists ("PAF"); a few subsets share their main set's
+  ...(s.ptcgoCode && { code: s.ptcgoCode }),
   printedTotal: s.printedTotal,
   total: s.total,
   releaseDate: s.releaseDate,
@@ -346,7 +377,7 @@ await writeFile(
 // Client bundle: the filter selects
 await writeFile(
   path.join(root, 'src/data/sets.json'),
-  JSON.stringify(setsOut.map(({ id, name, series, releaseDate }) => ({ id, name, series, releaseDate }))).replace(/\},\{/g, '},\n{') + '\n',
+  JSON.stringify(setsOut.map(({ id, name, series, code, releaseDate }) => ({ id, name, series, code, releaseDate }))).replace(/\},\{/g, '},\n{') + '\n',
 )
 await writeFile(path.join(root, 'src/data/rarities.json'), JSON.stringify([...rarities].sort(), null, 2) + '\n')
 
