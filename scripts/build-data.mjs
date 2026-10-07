@@ -81,7 +81,7 @@ const TYPE_KO = {
 const OWNER_KO = {
   'Team Rocket': '로켓단', Rocket: '로켓단', 'Team Magma': '마그마단', 'Team Aqua': '아쿠아단',
   Erika: '민화', Misty: '이슬', Brock: '웅', Sabrina: '초련', Blaine: '강연', 'Lt. Surge': '마티스',
-  Koga: '독수', Giovanni: '비주기', N: 'N', Hop: '호브', Ethan: '광', Cynthia: '난천', Iono: '모야모',
+  Koga: '독수', Giovanni: '비주기', N: 'N', Hop: '호브', Ethan: '심향', Cynthia: '난천', Iono: '모야모',
   Lillie: '릴리에', Larry: '청목', Marnie: '마리', Arven: '페퍼', Steven: '성호', Ash: '지우', Lance: '목호',
 }
 
