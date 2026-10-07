@@ -150,6 +150,10 @@ export interface CardSearchParams {
   type?: string
   set?: string
   rarity?: string
+  /** "Pokémon", "Trainer" or "Energy" */
+  supertype?: string
+  /** Only cards legal in this format ("standard", "expanded") */
+  format?: string
   sort?: string
   page?: number
   pageSize?: number
@@ -188,6 +192,20 @@ export async function getCard(id: string, signal?: AbortSignal) {
 /** The cards right before and after this one in its set's order */
 export function getSetNeighbors(id: string, signal?: AbortSignal) {
   return request<{ prev: CardSummary | null; next: CardSummary | null }>(`${cardPath(id)}/neighbors`, undefined, signal)
+}
+
+const BATCH_SIZE = 60
+
+/** Several cards by id (a deck's cards). Unknown ids are left out. */
+export async function getCardsBatch(ids: string[], signal?: AbortSignal) {
+  const unique = [...new Set(ids)]
+  const chunks = Array.from({ length: Math.ceil(unique.length / BATCH_SIZE) }, (_, i) =>
+    unique.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE),
+  )
+  const results = await Promise.all(
+    chunks.map((chunk) => request<{ data: CardListItem[] }>('/batch', { ids: chunk.join(',') }, signal)),
+  )
+  return results.flatMap((r) => r.data)
 }
 
 /** Other printings of the same Pokémon, or other cards with the same name */

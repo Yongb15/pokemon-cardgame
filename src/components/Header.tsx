@@ -14,6 +14,7 @@ function Logo() {
 export default function Header() {
   const { pathname } = useLocation()
   const onCards = pathname === '/' || pathname.startsWith('/cards/')
+  const onDecks = pathname === '/decks' || pathname.startsWith('/decks/')
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
@@ -28,9 +29,9 @@ export default function Header() {
           <span className={styles.soon}>
             세트 <span className={styles.tag}>준비 중</span>
           </span>
-          <span className={styles.soon}>
-            덱 빌더 <span className={styles.tag}>준비 중</span>
-          </span>
+          <Link className={onDecks ? styles.active : undefined} to="/decks" aria-current={onDecks ? 'page' : undefined}>
+            덱 빌더
+          </Link>
         </nav>
       </div>
     </header>

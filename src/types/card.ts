@@ -79,7 +79,11 @@ export interface Card {
 export type CardListItem = Pick<
   Card,
   'id' | 'name' | 'nameKo' | 'supertype' | 'subtypes' | 'hp' | 'types' | 'number' | 'rarity' | 'set'
-> & { images: Pick<CardImages, 'small' | 'fallbackSmall'> }
+> & {
+  images: Pick<CardImages, 'small' | 'fallbackSmall'>
+  /** Formats besides Unlimited the card is legal in ("standard", "expanded") */
+  formats?: string[]
+}
 
 /** Previous/next card in a set */
 export type CardSummary = Pick<Card, 'id' | 'name' | 'nameKo' | 'number'> & {

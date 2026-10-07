@@ -7,6 +7,9 @@ import { prefetchSearchCards } from './api/cards.ts'
 import { filtersFromParams, PAGE_SIZE, pageFromParams, toSearchParams } from './lib/cardFilters.ts'
 import CardDetailPage from './pages/CardDetailPage.tsx'
 import CardListPage from './pages/CardListPage.tsx'
+import DeckEditorPage from './pages/DeckEditorPage.tsx'
+import DeckListPage from './pages/DeckListPage.tsx'
+import SharedDeckPage from './pages/SharedDeckPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
 
 // The list is the usual landing page: ask for its first page now rather than after React has
@@ -24,6 +27,9 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <CardListPage /> },
       { path: 'cards/:id', element: <CardDetailPage /> },
+      { path: 'decks', element: <DeckListPage /> },
+      { path: 'decks/shared', element: <SharedDeckPage /> },
+      { path: 'decks/:deckId', element: <DeckEditorPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

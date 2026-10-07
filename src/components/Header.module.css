@@ -62,6 +62,11 @@
   }
 
   .nav {
+    gap: 18px;
+  }
+
+  /* Phones: just the two working sections */
+  .soon {
     display: none;
   }
 }
