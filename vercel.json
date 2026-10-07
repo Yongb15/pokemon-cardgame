@@ -4,10 +4,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/tcg.ts": { "maxDuration": 20 }
+    "api/cards.ts": { "includeFiles": "data/**", "maxDuration": 10 }
   },
   "rewrites": [
-    { "source": "/api/tcg/:path*", "destination": "/api/tcg?path=:path*" },
+    { "source": "/api/cards/:path*", "destination": "/api/cards?path=:path*" },
     { "source": "/((?!assets/|api/).*)", "destination": "/index.html" }
   ],
   "headers": [
