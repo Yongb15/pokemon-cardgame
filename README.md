@@ -37,6 +37,7 @@
   - API가 거부하는 문자(한글, " ( 등)는 요청 전에 걸러내고, 한글 검색에는 영문 검색 안내를 표시
 - **URL 상태**: 검색어·필터·페이지가 주소에 저장되어 새로고침, 링크 공유, 뒤로 가기가 그대로 동작
 - **불안정한 API 대응**: 요청의 상당수가 500/502로 실패하는 API라 다음을 적용
+  - 같은 출처 프록시(Vercel Function `api/tcg.ts`)가 API 가까이에서 먼저 재시도하고, 성공 응답은 Vercel 엣지에 1시간 캐시(모든 방문자가 공유)
   - 일시적 오류는 최대 4회 재시도(지수 백오프), 요청 전체 마감 시간 25초
   - 성공한 응답은 10분간 메모리에 캐시
   - 세트·희귀도 목록은 앱에 스냅샷(src/data)을 포함해 API가 멈춰도 필터가 동작하고, 최신 목록은 백그라운드로 받아 하루 동안 localStorage에 캐시
@@ -65,15 +66,14 @@ npm run lint      # 린트
 ### API 키 (선택)
 
 키 없이도 동작하지만, 키를 넣으면 요청 한도가 늘어납니다.
-[dev.pokemontcg.io](https://dev.pokemontcg.io)에서 무료로 발급받은 뒤 `.env.example`을 `.env.local`로 복사해 값을 채우세요.
-
-```
-VITE_POKEMON_TCG_API_KEY=발급받은_키
-```
+[dev.pokemontcg.io](https://dev.pokemontcg.io)에서 무료로 발급받아 Vercel 프로젝트의 **Settings → Environment Variables**에
+`POKEMON_TCG_API_KEY`로 등록하세요. 키는 서버 함수(`api/tcg.ts`)에서만 쓰이고 브라우저로 전달되지 않습니다.
 
 ## 폴더 구조
 
 ```
+api/
+└─ tcg.ts        # Vercel Function: Pokémon TCG API 프록시 (재시도, 엣지 캐시, API 키 보관)
 src/
 ├─ api/          # Pokémon TCG API 클라이언트 (재시도, 타임아웃, 캐시)
 ├─ components/   # Header, SearchBar, TypeFilter, CardTile, Pagination, 상태 화면 등 (CSS Modules)

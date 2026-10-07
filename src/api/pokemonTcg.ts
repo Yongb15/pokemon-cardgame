@@ -1,13 +1,11 @@
 import type { Card, CardSet, PagedResponse } from '../types/card'
 
-const BASE_URL = 'https://api.pokemontcg.io/v2'
+// Same-origin proxy (api/tcg.ts on Vercel, vite.config.ts proxy in dev) in front of
+// https://api.pokemontcg.io/v2. It retries upstream failures and holds the optional API key.
+const BASE_URL = '/api/tcg'
 
-// Optional: the API works without a key, a key only raises the rate limit.
-const API_KEY = import.meta.env.VITE_POKEMON_TCG_API_KEY as string | undefined
-
-// The API intermittently answers 500/502 (and those responses lack CORS headers,
-// so the browser reports them as a network TypeError), so retry transient failures
-// within an overall deadline. Healthy responses can still take 10s+.
+// The upstream API intermittently answers 500/502. The proxy retries first; if it still gives
+// up we retry here too, within an overall deadline. Healthy responses can still take 10s+.
 const ATTEMPT_TIMEOUT_MS = 15_000
 const DEADLINE_MS = 25_000
 // 500s usually come back in under a second, so several quick retries are cheap.
@@ -68,7 +66,7 @@ async function attempt<T>(url: URL, timeoutMs: number, signal?: AbortSignal): Pr
 
   let res: Response
   try {
-    res = await fetch(url, { headers: API_KEY ? { 'X-Api-Key': API_KEY } : undefined, signal: combined })
+    res = await fetch(url, { signal: combined })
   } catch (error) {
     throw toApiError(error, '카드 서버에 연결하지 못했습니다.')
   }
@@ -98,7 +96,7 @@ async function request<T>(
   params?: Record<string, string | number | undefined>,
   signal?: AbortSignal,
 ): Promise<T> {
-  const url = new URL(BASE_URL + path)
+  const url = new URL(BASE_URL + path, window.location.origin)
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== undefined && value !== '') url.searchParams.set(key, String(value))
   }
