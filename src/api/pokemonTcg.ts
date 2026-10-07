@@ -1,13 +1,11 @@
 import type { Card, CardSet, PagedResponse } from '../types/card'
 
-const BASE_URL = 'https://api.pokemontcg.io/v2'
+// Same-origin proxy (api/tcg.ts on Vercel, vite.config.ts proxy in dev) in front of
+// https://api.pokemontcg.io/v2. It retries upstream failures and holds the optional API key.
+const BASE_URL = '/api/tcg'
 
-// Optional: the API works without a key, a key only raises the rate limit.
-const API_KEY = import.meta.env.VITE_POKEMON_TCG_API_KEY as string | undefined
-
-// The API intermittently answers 500/502 (and those responses lack CORS headers,
-// so the browser reports them as a network TypeError), so retry transient failures
-// within an overall deadline. Healthy responses can still take 10s+.
+// The upstream API intermittently answers 500/502. The proxy retries first; if it still gives
+// up we retry here too, within an overall deadline. Healthy responses can still take 10s+.
 const ATTEMPT_TIMEOUT_MS = 15_000
 const DEADLINE_MS = 25_000
 // 500s usually come back in under a second, so several quick retries are cheap.
@@ -21,11 +19,14 @@ const responseCache = new Map<string, { expires: number; data: unknown }>()
 export class ApiError extends Error {
   /** HTTP status, or undefined for network errors, timeouts and unreadable bodies */
   readonly status?: number
+  /** The proxy's own "upstream unavailable" answer, given after it has already retried */
+  readonly fromProxy: boolean
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, fromProxy = false) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.fromProxy = fromProxy
   }
 
   get isNotFound() {
@@ -34,8 +35,10 @@ export class ApiError extends Error {
 }
 
 function isRetryable(error: unknown) {
-  if (error instanceof ApiError) return error.status === undefined || error.status >= 500 || error.status === 429
-  return false
+  if (!(error instanceof ApiError)) return false
+  // The proxy already retried upstream for ~12s before giving up; trying again only multiplies load
+  if (error.fromProxy) return false
+  return error.status === undefined || error.status >= 500 || error.status === 429
 }
 
 /** Resolves after `ms`, or rejects with the signal's reason as soon as it aborts. */
@@ -68,7 +71,7 @@ async function attempt<T>(url: URL, timeoutMs: number, signal?: AbortSignal): Pr
 
   let res: Response
   try {
-    res = await fetch(url, { headers: API_KEY ? { 'X-Api-Key': API_KEY } : undefined, signal: combined })
+    res = await fetch(url, { signal: combined })
   } catch (error) {
     throw toApiError(error, '카드 서버에 연결하지 못했습니다.')
   }
@@ -83,6 +86,10 @@ async function attempt<T>(url: URL, timeoutMs: number, signal?: AbortSignal): Pr
 
 async function errorFromResponse(res: Response) {
   if (res.status === 404) return new ApiError('카드를 찾을 수 없습니다.', 404)
+  // api/tcg.ts marks its give-up response with X-Upstream-Status
+  if (res.status === 502 && res.headers.has('X-Upstream-Status')) {
+    return new ApiError('카드 서버가 응답하지 않습니다.', 502, true)
+  }
   let detail = ''
   try {
     const body = (await res.json()) as { error?: { message?: string } }
@@ -98,7 +105,7 @@ async function request<T>(
   params?: Record<string, string | number | undefined>,
   signal?: AbortSignal,
 ): Promise<T> {
-  const url = new URL(BASE_URL + path)
+  const url = new URL(BASE_URL + path, window.location.origin)
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== undefined && value !== '') url.searchParams.set(key, String(value))
   }
