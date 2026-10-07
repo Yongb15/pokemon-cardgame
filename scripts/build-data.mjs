@@ -328,7 +328,10 @@ for (const [i, set] of sets.entries()) {
   const cards = await fetchJson(`${TCG_RAW}/cards/en/${set.id}.json`)
   for (const card of cards) {
     if (Object.hasOwn(DATA_FIXES, card.id)) Object.assign(card, DATA_FIXES[card.id])
-    const officialKo = koreanName(card, species, speciesByName, trainerKo, gameNames)
+    // `official`: full names checked against the official Korean card search, for names the rules
+    // above can't build (e.g. "오거폰 벽록의 가면", form after the name)
+    const officialKo =
+      ownKey(cardNamesKo.official, card.name) ?? koreanName(card, species, speciesByName, trainerKo, gameNames)
     const nameKo = officialKo ?? ownKey(cardNamesKo.names, card.name)
     const nameKoUnofficial = !officialKo && !!nameKo
     const evolvesFromKo =
