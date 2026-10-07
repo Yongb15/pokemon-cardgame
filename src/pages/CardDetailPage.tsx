@@ -105,11 +105,15 @@ export default function CardDetailPage() {
             <span className={styles.sep} aria-hidden="true">
               /
             </span>
-            <Link to={`/?set=${encodeURIComponent(card.set.id)}`}>{card.set.nameKo}</Link>
+            <Link to={`/?set=${encodeURIComponent(card.set.id)}`} title={card.set.nameKo}>
+              {card.set.nameKo}
+            </Link>
             <span className={styles.sep} aria-hidden="true">
               /
             </span>
-            <span aria-current="page">{card.nameKo ?? card.name}</span>
+            <span aria-current="page" title={card.nameKo ?? card.name}>
+              {card.nameKo ?? card.name}
+            </span>
           </>
         )}
       </nav>

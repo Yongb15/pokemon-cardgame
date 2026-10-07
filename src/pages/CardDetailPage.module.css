@@ -5,18 +5,32 @@
   padding: 28px var(--gutter) 64px;
 }
 
+/* Always one line: long Korean set and card names are cut with an ellipsis, so the page doesn't
+   shift when the web font replaces the wider fallback (QA: CLS 0.25 from a 2 → 1 line rewrap) */
 .crumbs {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-width: 0;
   font-size: 14px;
   color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.crumbs > * {
+  flex: none;
 }
 
 .crumbs a {
   color: inherit;
+}
+
+.crumbs > a:not(.back),
+.crumbs [aria-current='page'] {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .crumbs [aria-current='page'] {
