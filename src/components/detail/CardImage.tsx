@@ -19,6 +19,15 @@ export default function CardImage({ card }: { card: Card }) {
     dialogRef.current?.showModal()
   }
 
+  // No image anywhere (data/missing-images.json): show the placeholder, nothing to zoom into
+  if (!card.images.large && !card.images.fallbackLarge) {
+    return (
+      <div className={styles.imageColumn}>
+        <CardImg className={styles.cardImage} src="" alt={`${card.name} 카드 이미지 없음`} />
+      </div>
+    )
+  }
+
   return (
     <div className={styles.imageColumn}>
       <button type="button" className={styles.imageButton} onClick={open}>

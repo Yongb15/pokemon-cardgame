@@ -26,7 +26,14 @@ export default function CardNeighbors({ prev, next, trail }: Props) {
       replace
       rel={dir}
     >
-      <CardImg src={card.images.small} fallback={card.images.fallbackSmall} alt="" loading="lazy" />
+      <CardImg
+        src={card.images.small}
+        fallback={card.images.fallbackSmall}
+        alt=""
+        loading="lazy"
+        width={245}
+        height={342}
+      />
       <span>
         <span className={styles.neighborLabel}>{dir === 'prev' ? '‹ 이전 카드' : '다음 카드 ›'}</span>
         <span className={styles.neighborName}>

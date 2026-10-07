@@ -26,7 +26,8 @@ export const PAGE_SIZE = 24
 export const MAX_NAME_LENGTH = 50
 
 function isSortKey(value: string): value is SortKey {
-  return value in SORT_OPTIONS
+  // Own keys only, like the server: `in` would accept "constructor", "toString", ...
+  return Object.hasOwn(SORT_OPTIONS, value)
 }
 
 /** Collapse runs of whitespace and trim: what the URL stores and what the search box is compared with */
