@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { baseName } from '../../lib/cardText'
+import type { DetailTrail } from '../../pages/CardDetailPage'
 import type { Card, CardSummary } from '../../types/card'
 import styles from './detail.module.css'
 
@@ -8,9 +9,10 @@ interface Props {
   status: 'idle' | 'loading' | 'success' | 'error'
   related?: { cards: CardSummary[]; totalCount: number }
   onRetry: () => void
+  linkState?: DetailTrail
 }
 
-export default function RelatedCards({ card, status, related, onRetry }: Props) {
+export default function RelatedCards({ card, status, related, onRetry, linkState }: Props) {
   if (status === 'success' && !related?.cards.length) return null
   const name = baseName(card.name)
 
@@ -37,7 +39,7 @@ export default function RelatedCards({ card, status, related, onRetry }: Props) 
           {status === 'success' && related
             ? related.cards.map((c) => (
                 <li key={c.id}>
-                  <Link className={styles.mini} to={`/cards/${encodeURIComponent(c.id)}`}>
+                  <Link className={styles.mini} to={`/cards/${encodeURIComponent(c.id)}`} state={linkState}>
                     <img src={c.images.small} alt="" loading="lazy" width={245} height={342} />
                     <span className={styles.miniName}>{c.name}</span>
                     <span className={styles.miniSet}>{c.set.name}</span>

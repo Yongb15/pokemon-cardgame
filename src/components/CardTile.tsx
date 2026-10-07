@@ -22,7 +22,7 @@ export default function CardTile({ card }: { card: Card }) {
 
   return (
     // `fromList` lets the detail page go back with history (keeping filters and scroll)
-    <Link className={styles.card} to={`/cards/${encodeURIComponent(card.id)}`} state={{ fromList: true }}>
+    <Link className={styles.card} to={`/cards/${encodeURIComponent(card.id)}`} state={{ fromList: true, depth: 1 }}>
       <img
         className={styles.image}
         src={card.images.small}

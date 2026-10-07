@@ -46,9 +46,15 @@ export const formatUsd = (value: number) => usd.format(value)
 export const formatEur = (value: number) => eur.format(value)
 
 /**
- * The name to search the list with for "other printings", dropping mechanic suffixes:
- * "Charizard ex" → "Charizard", "Pikachu VMAX" → "Pikachu".
+ * The name to search the list with for "other printings", dropping mechanic suffixes and
+ * parenthesized variants: "Charizard ex" → "Charizard", "Zekrom-GX" → "Zekrom",
+ * "Professor's Research (Professor Magnolia)" → "Professor's Research".
  */
 export function baseName(name: string) {
-  return name.replace(/(\s+(ex|EX|GX|V|VMAX|VSTAR|V-UNION|BREAK|LV\.X|Prime|LEGEND|δ|◇|☆|Star))+$/u, '').trim() || name
+  return (
+    name
+      .replace(/\s*\(.*\)\s*$/u, '')
+      .replace(/((\s+|-)(ex|EX|GX|V|VMAX|VSTAR|V-UNION|BREAK|LV\.X|Prime|LEGEND|δ|◇|☆|Star))+$/u, '')
+      .trim() || name
+  )
 }

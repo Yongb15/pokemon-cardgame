@@ -15,6 +15,12 @@ import { isPokemonType, SUPERTYPE_LABEL, TYPE_COLOR, TYPE_LABEL, TYPE_TEXT } fro
 import type { Card } from '../types/card'
 import styles from './CardDetailPage.module.css'
 
+/** Router state carried between the list and detail pages */
+export interface DetailTrail {
+  fromList?: boolean
+  depth?: number
+}
+
 const RELATED_LIMIT = 6
 const SITE_TITLE = 'Pokémon Card Dex'
 
@@ -50,7 +56,9 @@ export default function CardDetailPage() {
   const { id = '' } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const fromList = Boolean((location.state as { fromList?: boolean } | null)?.fromList)
+  const trail = (location.state as DetailTrail | null) ?? {}
+  // How many history entries back the list is (1 when opened from the list; +1 per related card)
+  const listDepth = trail.fromList ? (trail.depth ?? 1) : 0
 
   const cardResource = useApiResource(`card:${id}`, (signal) => getCard(id, signal))
   const card = cardResource.data
@@ -59,17 +67,22 @@ export default function CardDetailPage() {
   const related = useApiResource(card ? `related:${card.id}` : null, (signal) =>
     getRelatedCards(card!, RELATED_LIMIT, signal),
   )
+  const notFound = cardResource.error instanceof ApiError && cardResource.error.isNotFound
 
   useEffect(() => {
-    document.title = card ? `${card.name} · ${SITE_TITLE}` : SITE_TITLE
+    document.title = card
+      ? `${card.name} · ${SITE_TITLE}`
+      : notFound
+        ? `카드를 찾을 수 없어요 · ${SITE_TITLE}`
+        : SITE_TITLE
     return () => {
       document.title = SITE_TITLE
     }
-  }, [card])
+  }, [card, notFound])
 
   // Back to the list the user came from (filters, page and scroll intact); otherwise to the start
-  const backLink = fromList ? (
-    <button type="button" className={styles.back} onClick={() => navigate(-1)}>
+  const backLink = listDepth ? (
+    <button type="button" className={styles.back} onClick={() => navigate(-listDepth)}>
       ‹ 카드 목록
     </button>
   ) : (
@@ -78,7 +91,6 @@ export default function CardDetailPage() {
     </Link>
   )
 
-  const notFound = cardResource.error instanceof ApiError && cardResource.error.isNotFound
   const subtitle = card
     ? [SUPERTYPE_LABEL[card.supertype] ?? card.supertype, ...(card.subtypes ?? []).map((s) => SUBTYPE_LABEL[s] ?? s)].join(
         ' · ',
@@ -168,10 +180,17 @@ export default function CardDetailPage() {
           </div>
 
           {neighbors.status === 'success' && neighbors.data && (
-            <CardNeighbors prev={neighbors.data.prev} next={neighbors.data.next} fromList={fromList} />
+            <CardNeighbors prev={neighbors.data.prev} next={neighbors.data.next} trail={trail} />
           )}
 
-          <RelatedCards card={card} status={related.status} related={related.data} onRetry={related.retry} />
+          <RelatedCards
+            card={card}
+            status={related.status}
+            related={related.data}
+            onRetry={related.retry}
+            // Opening a related card adds a history entry, so the list is one more step back
+            linkState={trail.fromList ? { fromList: true, depth: listDepth + 1 } : undefined}
+          />
         </>
       )}
     </main>

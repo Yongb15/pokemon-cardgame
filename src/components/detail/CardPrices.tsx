@@ -4,12 +4,18 @@ import styles from './detail.module.css'
 
 const has = (value: number | null | undefined): value is number => typeof value === 'number' && value > 0
 
-/** The first printing with a usable price, in the order TCGplayer lists them */
+// The card's main printing first; reverse holos are a variant, not the card's headline price
+const VARIANT_PREFERENCE = ['normal', 'holofoil', '1stEditionHolofoil', '1stEditionNormal', 'unlimitedHolofoil', 'reverseHolofoil']
+const preference = (variant: string) => {
+  const i = VARIANT_PREFERENCE.indexOf(variant)
+  return i === -1 ? VARIANT_PREFERENCE.length : i
+}
+
+/** The preferred printing that has a usable price */
 function pickTcgplayer(prices: Record<string, TcgplayerPrice> | undefined) {
-  for (const [variant, price] of Object.entries(prices ?? {})) {
-    if (has(price.market) || has(price.mid)) return { variant, price }
-  }
-  return null
+  const usable = Object.entries(prices ?? {}).filter(([, price]) => has(price.market) || has(price.mid))
+  usable.sort(([a], [b]) => preference(a) - preference(b))
+  return usable.length ? { variant: usable[0][0], price: usable[0][1] } : null
 }
 
 export default function CardPrices({ card }: { card: Card }) {
