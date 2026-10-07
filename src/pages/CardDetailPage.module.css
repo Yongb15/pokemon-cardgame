@@ -33,6 +33,12 @@
   text-overflow: ellipsis;
 }
 
+/* The set gives up its room first, so the card name stays readable (QA C-1) */
+.crumbs > a:not(.back) {
+  flex-shrink: 1000;
+  min-width: 2.5em;
+}
+
 .crumbs [aria-current='page'] {
   color: var(--text-h);
   font-weight: 600;
