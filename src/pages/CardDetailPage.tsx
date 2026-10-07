@@ -105,7 +105,7 @@ export default function CardDetailPage() {
             <span className={styles.sep} aria-hidden="true">
               /
             </span>
-            <Link to={`/?set=${encodeURIComponent(card.set.id)}`}>{card.set.name}</Link>
+            <Link to={`/?set=${encodeURIComponent(card.set.id)}`}>{card.set.nameKo}</Link>
             <span className={styles.sep} aria-hidden="true">
               /
             </span>
@@ -181,6 +181,12 @@ export default function CardDetailPage() {
                   </Link>
                 )}
               </div>
+              {card.nameKoUnofficial && (
+                <p className={styles.unofficial}>
+                  <span className={styles.unofficialTag}>비공식 번역</span>
+                  공식 한글 이름을 확인하지 못한 카드라 직접 번역한 이름이에요.
+                </p>
+              )}
 
               <CardAttacks card={card} />
               <CardRules card={card} />

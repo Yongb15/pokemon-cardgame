@@ -1,0 +1,448 @@
+/* Shared pieces of the deck builder: buttons, rule checklist, card rows, picker, dialogs */
+
+.button {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.button:hover:not(:disabled) {
+  border-color: var(--text-muted);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.primary {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: var(--on-accent);
+}
+
+.primary:hover:not(:disabled) {
+  border-color: var(--accent-strong);
+  filter: brightness(0.92); /* darker, so the text keeps its contrast */
+}
+
+/* Rule checklist */
+.checks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.checks li {
+  position: relative;
+  padding-left: 24px;
+}
+
+.checks li::before {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 15px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.ok::before {
+  content: '✓';
+  color: var(--ok);
+  font-size: 13px !important;
+}
+
+.bad {
+  color: var(--bad);
+}
+
+.bad::before {
+  content: '!';
+  background: var(--bad);
+  color: var(--surface);
+}
+
+/* Card rows, grouped by kind */
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+}
+
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+
+.groupTitle {
+  margin-bottom: 6px;
+  padding-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.groupEmpty {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  padding: 5px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rowImage {
+  width: 34px;
+  height: auto;
+  flex: none;
+  border-radius: 3px;
+  font-size: 0; /* the "no image" placeholder text doesn't fit */
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rowName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-h);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowName:hover {
+  text-decoration: underline;
+}
+
+.rowSub {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stepper {
+  flex: none;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+}
+
+.stepper button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: none;
+  color: var(--text-h);
+  font-size: 16px;
+}
+
+.stepper button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.qty {
+  min-width: 22px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+/* Card picker */
+.picker {
+  min-width: 0;
+}
+
+.kinds {
+  margin: 14px 0 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.kind {
+  padding: 6px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.kind[aria-pressed='true'] {
+  border-color: var(--text-h);
+  background: var(--text-h);
+  color: var(--bg);
+}
+
+.pickerCount {
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.pickerCount b {
+  color: var(--text-h);
+}
+
+.pickerEmpty,
+.pickerError {
+  padding: 48px 16px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.pickerError button {
+  margin-top: 12px;
+}
+
+.pickerErrorText {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--bad);
+}
+
+.tiles {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .tiles {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .tiles {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+}
+
+.tile {
+  min-width: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.tileImage {
+  position: relative;
+}
+
+/* The image, or CardImg's "no image" placeholder: a class, not `> span`, so the badge isn't caught */
+.tileImg {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 245 / 342;
+  border-radius: 6px;
+  background: var(--skeleton);
+}
+
+.badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: var(--accent-strong);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+}
+
+.tileName {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tileSub {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tileActions {
+  margin-top: auto;
+  padding-top: 8px;
+  display: flex;
+  gap: 6px;
+}
+
+.tileActions .button {
+  height: 34px;
+  padding: 0 10px;
+}
+
+.add {
+  flex: 1;
+}
+
+.more {
+  margin-top: 24px;
+  text-align: center;
+}
+
+/* Dialogs */
+.dialog {
+  width: min(600px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 24px 48px -12px rgb(0 0 0 / 0.4);
+}
+
+.dialog::backdrop {
+  background: rgb(9 9 11 / 0.5);
+}
+
+.dialogBody {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialogTitle {
+  font-size: 20px;
+}
+
+.dialogDesc {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.textarea {
+  width: 100%;
+  height: 240px;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: 13px/1.6 ui-monospace, Consolas, monospace;
+  resize: vertical;
+}
+
+.dialogStatus {
+  min-height: 20px;
+  font-size: 13px;
+}
+
+.dialogActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.importResult {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 14px;
+}
+
+.okText {
+  color: var(--ok);
+}
+
+.problemText {
+  color: var(--warn-text);
+}
+
+.problems {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.problems span {
+  display: inline-block;
+  min-width: 40px;
+  font-weight: 600;
+  color: var(--warn-text);
+}
+
+.problems code {
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}

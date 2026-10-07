@@ -1,7 +1,8 @@
 // The card API, answered from the data built by scripts/build-data.mjs.
 // Shared by the Vercel Function (api/cards.ts) and the Vite dev server (vite.config.ts).
 //
-//   GET /api/cards?name=&type=&set=&rarity=&sort=&page=&pageSize=   search
+//   GET /api/cards?name=&type=&set=&rarity=&supertype=&format=&sort=&page=&pageSize=   search
+//   GET /api/cards/batch?ids=a,b,c                                  several cards at once (deck builder)
 //   GET /api/cards/:id                                              one card, full details
 //   GET /api/cards/:id/neighbors                                    previous/next card in its set
 //   GET /api/cards/:id/related?limit=                               other printings
@@ -13,6 +14,8 @@ interface IndexEntry {
   id: string
   name: string
   nameKo?: string
+  /** nameKo is our own translation, not an official Korean name */
+  nameKoUnofficial?: boolean
   supertype: string
   subtypes?: string[]
   hp?: string
@@ -22,12 +25,16 @@ interface IndexEntry {
   dex?: number[]
   set: string
   image: string
+  /** "s" legal in Standard, "e" in Expanded */
+  legal?: string
 }
 
 interface SetInfo {
   id: string
   name: string
+  nameKo: string
   series: string
+  seriesKo: string
   printedTotal?: number
   total?: number
   releaseDate: string
@@ -129,7 +136,9 @@ function setSummary(set: SetInfo) {
   return {
     id: set.id,
     name: set.name,
+    nameKo: set.nameKo,
     series: set.series,
+    seriesKo: set.seriesKo,
     releaseDate: set.releaseDate,
     images: {
       logo: `${hosted}/logo.png`,
@@ -147,6 +156,7 @@ function listItem(store: Store, c: IndexEntry) {
     id: c.id,
     name: c.name,
     ...(c.nameKo && { nameKo: c.nameKo }),
+    ...(c.nameKoUnofficial && { nameKoUnofficial: true }),
     supertype: c.supertype,
     subtypes: c.subtypes,
     hp: c.hp,
@@ -155,8 +165,16 @@ function listItem(store: Store, c: IndexEntry) {
     rarity: c.rarity,
     set: setSummary(set),
     images: images(store, c.set, c.id, { small: c.image }),
+    formats: formats(c),
   }
 }
+
+/** Formats a card can be played in besides Unlimited */
+const formats = (c: IndexEntry) =>
+  [c.legal?.includes('s') && 'standard', c.legal?.includes('e') && 'expanded'].filter(Boolean) as string[]
+
+const SUPERTYPES = ['Pokémon', 'Trainer', 'Energy']
+const FORMAT_FLAG: Record<string, string> = { standard: 's', expanded: 'e' }
 
 const SORTS = {
   newest: (s: Store) => (a: IndexEntry, b: IndexEntry) =>
@@ -227,6 +245,11 @@ async function search(params: URLSearchParams) {
   const type = params.get('type')
   const set = params.get('set')
   const rarity = params.get('rarity')
+  const supertype = params.get('supertype')
+  if (supertype && !SUPERTYPES.includes(supertype)) return badRequest('알 수 없는 카드 종류입니다.')
+  const format = params.get('format')
+  if (format && !Object.hasOwn(FORMAT_FLAG, format)) return badRequest('알 수 없는 포맷입니다.')
+  const formatFlag = format ? FORMAT_FLAG[format] : null
 
   // Filtering a pre-sorted list keeps its order
   const matches = sortedCards(store, sortKey as SortKey).filter(
@@ -234,7 +257,9 @@ async function search(params: URLSearchParams) {
       (!name || c.search.includes(name)) &&
       (!type || c.types?.includes(type)) &&
       (!set || c.set === set) &&
-      (!rarity || c.rarity === rarity),
+      (!rarity || c.rarity === rarity) &&
+      (!supertype || c.supertype === supertype) &&
+      (!formatFlag || !!c.legal?.includes(formatFlag)),
   )
   const start = (page - 1) * pageSize
   const data = matches.slice(start, start + pageSize).map((c) => listItem(store, c))
@@ -284,6 +309,21 @@ async function related(id: string, params: URLSearchParams) {
   return json({ data: same.slice(0, limit).map((c) => listItem(store, c)), totalCount: same.length })
 }
 
+const MAX_BATCH = 60
+// "!" and "?" occur in real ids (Unown ex10-!, ex10-?)
+const ID_PATTERN = /^[\w.!?-]+$/
+
+/** The cards of a deck in one request: ?ids=a,b,c (up to 60 distinct ids) */
+async function batch(params: URLSearchParams) {
+  const ids = [...new Set((params.get('ids') ?? '').split(',').filter(Boolean))]
+  if (!ids.length || ids.length > MAX_BATCH || !ids.every((id) => id.length <= 40 && ID_PATTERN.test(id))) {
+    return badRequest(`ids는 쉼표로 구분한 카드 id 1~${MAX_BATCH}개여야 합니다.`)
+  }
+  const store = await loadStore()
+  const found = ids.map((id) => store.byId.get(id)).filter((c): c is IndexEntry => !!c)
+  return json({ data: found.map((c) => listItem(store, c)), missing: ids.filter((id) => !store.byId.has(id)) })
+}
+
 /** Routes a request under /api/cards. `rest` is the path after /api/cards ('' for the search). */
 export async function handleCards(rest: string, params: URLSearchParams): Promise<Response> {
   try {
@@ -295,10 +335,11 @@ export async function handleCards(rest: string, params: URLSearchParams): Promis
       // already decoded and contains a literal "%": use as is
     }
     if (segments.length === 0) return await search(params)
+    if (segments.length === 1 && segments[0] === 'batch') return await batch(params)
     const [id, sub, ...extra] = segments
     // The byId lookup is what guards file access (paths come only from trusted data); this check
-    // just rejects obvious junk early. "!" and "?" occur in real ids (Unown ex10-!, ex10-?).
-    if (extra.length || !/^[\w.!?-]+$/.test(id)) return notFound()
+    // just rejects obvious junk early.
+    if (extra.length || !ID_PATTERN.test(id)) return notFound()
     if (!sub) return await card(id)
     if (sub === 'neighbors') return await neighbors(id)
     if (sub === 'related') return await related(id, params)

@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { formatDate, LEGALITY_FORMAT_LABEL } from '../../lib/cardText'
+import { formatDate, LEGALITY_FORMAT_LABEL, rarityLabel } from '../../lib/cardText'
 import type { Card } from '../../types/card'
 import CardImg from '../CardImg'
 import EnergyIcon from '../EnergyIcon'
@@ -77,14 +77,21 @@ export function CardInfo({ card }: { card: Card }) {
           className={styles.setLogo}
           src={card.set.images.logo}
           fallback={card.set.images.fallbackLogo}
-          alt={`${card.set.name} 로고`}
+          alt={`${card.set.nameKo} 로고`}
         />
         <dl className={styles.facts}>
           <dt>세트</dt>
           <dd>
             <CardImg className={styles.setSymbol} src={card.set.images.symbol} fallback={card.set.images.fallbackSymbol} alt="" />
-            <Link to={`/?set=${encodeURIComponent(card.set.id)}`}>{card.set.name}</Link>
-            <span className={styles.muted}>· {card.set.series}</span>
+            <Link to={`/?set=${encodeURIComponent(card.set.id)}`}>{card.set.nameKo}</Link>
+            <span className={styles.muted}>· {card.set.seriesKo}</span>
+            {/* Set names are our translations of the English ones: show the printed name too */}
+            {card.set.nameKo !== card.set.name && (
+              <span className={styles.muted} lang="en">
+                {' '}
+                ({card.set.name})
+              </span>
+            )}
           </dd>
           <dt>번호</dt>
           <dd>
@@ -94,7 +101,7 @@ export function CardInfo({ card }: { card: Card }) {
           {card.rarity && (
             <>
               <dt>희귀도</dt>
-              <dd className={/rare|legend/i.test(card.rarity) ? styles.rare : undefined}>{card.rarity}</dd>
+              <dd className={/rare|legend/i.test(card.rarity) ? styles.rare : undefined}>{rarityLabel(card.rarity)}</dd>
             </>
           )}
           <dt>발매일</dt>

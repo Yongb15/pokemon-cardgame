@@ -10,9 +10,18 @@
   --accent: #e3350d;
   --accent-soft: #fdece8;
   --accent-text: #b8290a; /* accent text on --accent-soft, 5.5:1 */
+  /* Filled accent (buttons, badges) and the text on it: 4.97:1 */
+  --accent-strong: #d4300b;
+  --on-accent: #fff;
   --rare: #b45309;
   --shadow-hover: 0 12px 24px -8px rgb(0 0 0 / 0.18);
   --skeleton: #ececef;
+  /* Deck rule checks: passed / needs attention */
+  --ok: #15803d;
+  --ok-soft: #dcfce7;
+  --bad: #b91c1c;
+  --warn-text: #92400e;
+  --warn-soft: #fef3c7;
 
   --sans: 'Noto Sans KR', system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif;
   --page-width: 1200px;
@@ -38,9 +47,16 @@
     --accent: #ff5a36;
     --accent-soft: rgb(255 90 54 / 0.15);
     --accent-text: #ffb4a3;
+    --accent-strong: #ff5a36;
+    --on-accent: #18181b; /* white on the light dark-mode accent is only 3.1:1 */
     --rare: #f59e0b;
     --shadow-hover: 0 12px 24px -8px rgb(0 0 0 / 0.6);
     --skeleton: #34343a;
+    --ok: #4ade80;
+    --ok-soft: rgb(74 222 128 / 0.14);
+    --bad: #f87171;
+    --warn-text: #fbbf24;
+    --warn-soft: rgb(251 191 36 / 0.14);
   }
 }
 
@@ -81,7 +97,8 @@ img {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
   color: inherit;
 }

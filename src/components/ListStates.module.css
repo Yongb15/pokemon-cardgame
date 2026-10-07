@@ -143,8 +143,8 @@
 
 .primary {
   border: 0;
-  background: var(--accent);
-  color: #fff;
+  background: var(--accent-strong);
+  color: var(--on-accent);
 }
 
 .ghost {
