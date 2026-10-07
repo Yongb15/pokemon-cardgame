@@ -5,7 +5,8 @@
 //
 // Sources, pinned to commits so the output is reproducible:
 // - PokemonTCG/pokemon-tcg-data — the data behind the Pokémon TCG API (cards and sets)
-// - PokeAPI/pokeapi (BSD-3-Clause) — official Korean Pokémon species names
+// - PokeAPI/pokeapi (BSD-3-Clause) — official Korean Pokémon species, item and location names
+// - scripts/trainer-names-ko.json — Korean names for the Trainer cards PokéAPI doesn't cover
 //
 // Output (committed):
 // - data/index.json         compact list of every card, for search and the list page
@@ -13,7 +14,7 @@
 // - src/data/sets.json      sets for the set filter (bundled into the client)
 // - src/data/rarities.json  rarities for the rarity filter (bundled into the client)
 
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -193,17 +194,42 @@ function translatePart(part, hints, speciesByName) {
  * "Pikachu & Zekrom-GX" → "피카츄 & 제크로무-GX", "Misty's Gyarados" → "이슬의 갸라도스",
  * "Basic Fire Energy" → "기본 불꽃 에너지". Returns null unless the whole name translates.
  */
-function koreanName(card, species, speciesByName) {
+function koreanName(card, species, speciesByName, trainerKo, gameNames) {
   if (card.supertype === 'Energy') {
+    // Only basic Energy: the old Special "Darkness Energy" / "Metal Energy" share the name pattern
+    if (!card.subtypes?.includes('Basic')) return null
     const m = card.name.match(/^(?:Basic )?(\w+) Energy$/)
     if (m && TYPE_KO[m[1]]) return `기본 ${TYPE_KO[m[1]]} 에너지`
     return null
   }
-  if (card.supertype !== 'Pokémon') return null
+  if (card.supertype !== 'Pokémon') return koreanTrainerName(card, trainerKo, gameNames)
 
   const hints = (card.nationalPokedexNumbers ?? []).map((n) => species.get(n)).filter(Boolean)
   const parts = card.name.split(' & ').map((part) => translatePart(part, hints, speciesByName))
   return parts.every(Boolean) ? parts.join(' & ') : null
+}
+
+/**
+ * Trainer cards: our dictionary first (card names can differ from the games), then the games'
+ * official names — item names for Items and Tools, place names for Stadiums (so the Supporter
+ * "Black Belt" doesn't become the held item). "Professor's Research (Professor Oak)" keeps its
+ * variant only when that translates too.
+ */
+function koreanTrainerName({ name, subtypes = [] }, trainerKo, gameNames) {
+  const variant = name.match(/^(.+?) \((.+)\)$/)
+  const base = variant ? variant[1] : name
+  const official = subtypes.includes('Stadium')
+    ? gameNames.places
+    : // Early sets print no Trainer kind; those are almost all items
+      !subtypes.length || subtypes.some((t) => t === 'Item' || t.startsWith('Pokémon Tool'))
+      ? gameNames.items
+      : null
+  const own = (dict, key) => (Object.hasOwn(dict, key) ? dict[key] : undefined) // not "constructor" etc.
+  if (trainerKo.exclude.includes(base)) return null
+  const ko = own(trainerKo.names, base) ?? own(trainerKo.people, base) ?? official?.get(base.toLowerCase())
+  if (!ko) return null
+  const variantKo = variant && own(trainerKo.people, variant[2])
+  return variantKo ? `${ko} (${variantKo})` : ko
 }
 
 /** "Charmeleon" → "리자드" for the "evolves from" line (a plain species name, sometimes a form) */
@@ -227,25 +253,47 @@ for (const [id, entry] of species) if (!entry.ko || !entry.en) species.delete(id
 const speciesByName = [...species.values()]
 console.log(`  ${species.size} species with English and Korean names`)
 
+/** English name (lowercase) → Korean name, from one of PokéAPI's *_names.csv files */
+async function loadGameNames(file) {
+  const byId = new Map()
+  for (const [id, lang, name] of parseCsv(await fetchText(`${POKEAPI_RAW}/${file}`)).slice(1)) {
+    if (lang !== KO && lang !== EN) continue
+    const entry = byId.get(id) ?? {}
+    entry[lang === KO ? 'ko' : 'en'] = name
+    byId.set(id, entry)
+  }
+  return [...byId.values()].filter((e) => e.en && e.ko).map((e) => [e.en.toLowerCase(), e.ko])
+}
+console.log('Downloading item and location names…')
+// Items ("Rare Candy" → "이상한사탕") and places for Stadiums ("Prism Tower" → "프리즘타워")
+const gameNames = {
+  items: new Map(await loadGameNames('item_names.csv')),
+  places: new Map(await loadGameNames('location_names.csv')),
+}
+const trainerKo = JSON.parse(await readFile(path.join(root, 'scripts/trainer-names-ko.json'), 'utf8'))
+
 console.log('Downloading sets…')
 const sets = (await fetchJson(`${TCG_RAW}/sets/en.json`)).sort((a, b) =>
   a.releaseDate === b.releaseDate ? a.id.localeCompare(b.id) : a.releaseDate < b.releaseDate ? 1 : -1,
 )
 
-await rm(path.join(root, 'data'), { recursive: true, force: true })
+// Only the per-set files: data/missing-images.json comes from build-images.mjs
+await rm(path.join(root, 'data/cards'), { recursive: true, force: true })
 await mkdir(path.join(root, 'data/cards'), { recursive: true })
 
 const index = []
 const rarities = new Set()
 let pokemonCards = 0
 let pokemonTranslated = 0
+let trainerCards = 0
+let trainerTranslated = 0
 const untranslated = new Map()
 
 for (const [i, set] of sets.entries()) {
   process.stdout.write(`\r  cards ${i + 1}/${sets.length} ${set.id.padEnd(12)}`)
   const cards = await fetchJson(`${TCG_RAW}/cards/en/${set.id}.json`)
   for (const card of cards) {
-    const nameKo = koreanName(card, species, speciesByName)
+    const nameKo = koreanName(card, species, speciesByName, trainerKo, gameNames)
     const evolvesFromKo = koreanSpeciesName(card.evolvesFrom, speciesByName)
     if (evolvesFromKo) card.evolvesFromKo = evolvesFromKo
     if (nameKo) card.nameKo = nameKo
@@ -253,6 +301,9 @@ for (const [i, set] of sets.entries()) {
       pokemonCards++
       if (nameKo) pokemonTranslated++
       else untranslated.set(card.name, card.id)
+    } else {
+      trainerCards++
+      if (nameKo) trainerTranslated++
     }
     if (card.rarity) rarities.add(card.rarity)
 
@@ -302,6 +353,7 @@ await writeFile(path.join(root, 'src/data/rarities.json'), JSON.stringify([...ra
 const pct = ((pokemonTranslated / pokemonCards) * 100).toFixed(1)
 console.log(`Done: ${index.length} cards in ${sets.length} sets`)
 console.log(`Korean names: ${pokemonTranslated}/${pokemonCards} Pokémon cards (${pct}%)`)
+console.log(`Korean names: ${trainerTranslated}/${trainerCards} Trainer and Energy cards`)
 if (untranslated.size) {
   console.log(`Untranslated Pokémon names (${untranslated.size} distinct), e.g.:`)
   console.log([...untranslated].slice(0, 25).map(([n, id]) => `  ${n} (${id})`).join('\n'))
