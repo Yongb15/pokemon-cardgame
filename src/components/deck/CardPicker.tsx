@@ -137,6 +137,7 @@ export default function CardPicker({ format, counts, nameCounts, total, onChange
               <li key={card.id} className={styles.tile}>
                 <div className={styles.tileImage}>
                   <CardImg
+                    className={styles.tileImg}
                     src={card.images.small}
                     fallback={card.images.fallbackSmall}
                     alt=""
