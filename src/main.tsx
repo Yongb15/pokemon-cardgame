@@ -3,9 +3,20 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import './index.css'
 import App from './App.tsx'
+import { prefetchSearchCards } from './api/cards.ts'
+import { filtersFromParams, PAGE_SIZE, pageFromParams, toSearchParams } from './lib/cardFilters.ts'
 import CardDetailPage from './pages/CardDetailPage.tsx'
 import CardListPage from './pages/CardListPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
+
+// The list is the usual landing page: ask for its first page now rather than after React has
+// rendered, so the cards (and their images) show up sooner
+if (window.location.pathname === '/') {
+  const params = new URLSearchParams(window.location.search)
+  // Phones ("load more") always start from page 1, like CardListPage
+  const page = window.matchMedia('(max-width: 640px)').matches ? 1 : pageFromParams(params)
+  prefetchSearchCards({ ...toSearchParams(filtersFromParams(params)), page, pageSize: PAGE_SIZE })
+}
 
 const router = createBrowserRouter([
   {

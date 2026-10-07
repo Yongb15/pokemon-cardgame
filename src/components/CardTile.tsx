@@ -18,7 +18,8 @@ function TypeBadge({ card }: { card: CardListItem }) {
   return <span className={`${styles.badge} ${styles.neutral}`}>{SUPERTYPE_LABEL[card.supertype] ?? card.supertype}</span>
 }
 
-export default function CardTile({ card }: { card: CardListItem }) {
+/** `priority`: the tile is likely in the first row on screen, so its image loads right away */
+export default function CardTile({ card, priority = false }: { card: CardListItem; priority?: boolean }) {
   const isRare = /rare|legend/i.test(card.rarity ?? '')
 
   return (
@@ -31,7 +32,8 @@ export default function CardTile({ card }: { card: CardListItem }) {
         alt="" /* the name below labels the link */
         width={245}
         height={342}
-        loading="lazy"
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : undefined}
         decoding="async"
       />
       <div className={styles.meta}>

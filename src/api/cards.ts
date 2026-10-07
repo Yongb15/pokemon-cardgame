@@ -13,6 +13,8 @@ const RETRY_BASE_DELAY_MS = 400
 // Successful responses are reused for a while so back/forward and repeated filters are instant.
 const CACHE_TTL_MS = 10 * 60_000
 const responseCache = new Map<string, { expires: number; data: unknown }>()
+// Prefetches still on the wire, so the page that needs the data joins them instead of asking again
+const inflight = new Map<string, Promise<unknown>>()
 
 export class ApiError extends Error {
   /** HTTP status, or undefined for network errors, timeouts and unreadable bodies */
@@ -104,11 +106,27 @@ function peek<T>(path: string, params?: Params): T | undefined {
   return cached && cached.expires > Date.now() ? (cached.data as T) : undefined
 }
 
+/** Waits for `promise`, but gives up (with the abort reason) as soon as `signal` aborts */
+function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal) {
+  if (!signal) return promise
+  return new Promise<T>((resolve, reject) => {
+    if (signal.aborted) return reject(signal.reason)
+    const onAbort = () => reject(signal.reason)
+    signal.addEventListener('abort', onAbort, { once: true })
+    promise.then(resolve, reject).finally(() => signal.removeEventListener('abort', onAbort))
+  })
+}
+
 async function request<T>(path: string, params?: Params, signal?: AbortSignal): Promise<T> {
   const url = buildUrl(path, params)
   const cacheKey = url.toString()
   const cached = responseCache.get(cacheKey)
   if (cached && cached.expires > Date.now()) return cached.data as T
+
+  // A prefetch already went through its retries, so its failure is final too (the error screen's
+  // retry button starts a fresh request)
+  const pending = inflight.get(cacheKey)
+  if (pending) return untilAborted(pending as Promise<T>, signal)
 
   const deadline = Date.now() + DEADLINE_MS
   for (let retry = 0; ; retry++) {
@@ -141,6 +159,18 @@ const searchParams = ({ page = 1, pageSize = 24, ...rest }: CardSearchParams): P
 
 export function searchCards(params: CardSearchParams, signal?: AbortSignal) {
   return request<PagedResponse<CardListItem>>('', searchParams(params), signal)
+}
+
+/**
+ * Starts a search before anything renders (see main.tsx), so the first list request overlaps
+ * with loading the app instead of waiting for it. A later identical `searchCards` joins it.
+ */
+export function prefetchSearchCards(params: CardSearchParams) {
+  const key = buildUrl('', searchParams(params)).toString()
+  if (inflight.has(key)) return
+  const promise = request('', searchParams(params))
+  inflight.set(key, promise)
+  promise.catch(() => {}).finally(() => inflight.delete(key))
 }
 
 /** The cached result of an identical `searchCards` call, so a revisited page can render at once */

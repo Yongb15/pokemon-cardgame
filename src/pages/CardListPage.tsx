@@ -35,6 +35,8 @@ function groupBySeries(sets: CardSet[]) {
   return [...groups]
 }
 
+const FIRST_ROW = 6
+
 export default function CardListPage() {
   const [params, setParams] = useUrlParams()
   const filters = useMemo(() => filtersFromParams(params), [params])
@@ -43,7 +45,8 @@ export default function CardListPage() {
   // Generated with the card data (scripts/build-data.mjs), so they always match it
   const sets: CardSet[] = bundledSets
   const rarities: string[] = bundledRarities
-  const search = useCardSearch(filters, page, isMobile ? 'append' : 'paged')
+  // Phones start at page 1 (the URL is fixed up below), so a shared ?page=3 link doesn't fetch page 3 first
+  const search = useCardSearch(filters, isMobile ? 1 : page, isMobile ? 'append' : 'paged')
   const [panelOpen, setPanelOpen] = useState(false)
   const resultsRef = useRef<HTMLElement>(null)
 
@@ -268,8 +271,9 @@ export default function CardListPage() {
         )}
         {status === 'success' && search.cards.length > 0 && (
           <CardGrid>
-            {search.cards.map((card) => (
-              <CardTile key={card.id} card={card} />
+            {search.cards.map((card, index) => (
+              // The widest grid has 6 columns: those cover the first row on every screen size
+              <CardTile key={card.id} card={card} priority={index < FIRST_ROW} />
             ))}
           </CardGrid>
         )}
