@@ -22,8 +22,14 @@
 - [x] 로딩 / 결과 없음 / 오류 / 응답 지연 상태
 - [x] 반응형 레이아웃 / 다크 모드
 - [ ] 카드 상세 페이지
-- [ ] 배포 (Vercel)
+- [x] 배포 (Vercel, develop 미리보기)
 - [ ] 덱 빌더
+
+## 데모
+
+**https://pokemon-card-dex-git-develop-dydqls-projects.vercel.app** (develop 브랜치, push할 때마다 자동 배포)
+
+정식 주소 https://pokemon-card-dex-green.vercel.app 은 `main` 브랜치 기준이라, 기능이 완성되어 `main`에 병합된 뒤에 열립니다.
 
 ## 주요 기능
 
