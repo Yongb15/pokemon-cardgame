@@ -2,7 +2,7 @@
 
 포켓몬 트레이딩 카드 게임(TCG)의 카드 **20,635장**을 한국어·영어로 검색하고 상세 정보를 볼 수 있는 웹 카드 도감입니다.
 
-**🔗 데모: https://pokemon-card-dex-git-develop-dydqls-projects.vercel.app**
+**🔗 https://pokemon-card-dex-green.vercel.app**  ·  개발 버전(develop): [pokemon-card-dex-git-develop-dydqls-projects.vercel.app](https://pokemon-card-dex-git-develop-dydqls-projects.vercel.app)
 
 <table>
   <tr>
@@ -31,7 +31,7 @@
 | 서버 | Vercel Functions (`api/cards.ts`) |
 | 데이터 | 자체 보유 카드 데이터([pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)) + 공식 한국어 이름([PokéAPI](https://github.com/PokeAPI/pokeapi)) |
 | 이미지 | 자체 변환 WebP, GitHub Pages 호스팅 |
-| 배포 | Vercel (`develop` → 데모, `main` → 정식) |
+| 배포 | Vercel (`main` → 정식, `develop` → 개발 버전) |
 | 도구 | Figma, oxlint, Chrome DevTools, Lighthouse, Notion |
 
 ## 구조
@@ -92,7 +92,7 @@ Node.js 20.19 이상 또는 22.12 이상이 필요합니다.
 ```bash
 npm install
 npm run dev          # 개발 서버 (기본 http://localhost:5173, /api/cards 포함)
-npm run build        # 타입 검사 + 프로덕션 빌드
+npm run build        # sitemap 생성 + 타입 검사 + 프로덕션 빌드
 npm run lint         # 린트
 npm run build:data   # 카드 데이터 다시 생성 (data/, src/data/)
 node scripts/build-images.mjs <출력 폴더>   # 카드 이미지 WebP 생성 (재실행하면 이어서 진행)
@@ -129,7 +129,7 @@ src/
 
 - [x] 카드 목록·검색·필터, 카드 상세, 배포
 - [x] 자체 데이터·이미지 호스팅, 한국어 이름·검색
-- [ ] 정식 공개 (`main`)
+- [x] 정식 공개 v1.0.0 (`main`)
 - [ ] 덱 빌더
 
 ## 출처

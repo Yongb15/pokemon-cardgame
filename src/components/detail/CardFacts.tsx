@@ -78,7 +78,6 @@ export function CardInfo({ card }: { card: Card }) {
           src={card.set.images.logo}
           fallback={card.set.images.fallbackLogo}
           alt={`${card.set.name} 로고`}
-          loading="lazy"
         />
         <dl className={styles.facts}>
           <dt>세트</dt>
