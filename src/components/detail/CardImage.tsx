@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import type { Card } from '../../types/card'
+import CardImg from '../CardImg'
 import styles from './detail.module.css'
 
 /** The large card image, with a full-screen viewer (native <dialog>: Esc and focus handled for us). */
@@ -18,9 +19,10 @@ export default function CardImage({ card }: { card: Card }) {
   return (
     <div className={styles.imageColumn}>
       <button type="button" className={styles.imageButton} onClick={open}>
-        <img
+        <CardImg
           className={styles.cardImage}
           src={card.images.large}
+          fallback={card.images.fallbackLarge}
           alt={`${card.name} 카드 이미지`}
           width={734}
           height={1024}
@@ -41,7 +43,12 @@ export default function CardImage({ card }: { card: Card }) {
         // A click on the backdrop (the dialog element itself, outside the image) closes it
         onClick={(event) => event.target === event.currentTarget && dialogRef.current?.close()}
       >
-        <img src={card.images.large} alt={`${card.name} 카드 이미지 (확대)`} />
+        {/* The viewer shows the original high-resolution image while it exists; our copy otherwise */}
+        <CardImg
+          src={card.images.fallbackLarge ?? card.images.large}
+          fallback={card.images.large}
+          alt={`${card.name} 카드 이미지 (확대)`}
+        />
         <form method="dialog">
           <button type="submit" className={styles.viewerClose} aria-label="닫기" autoFocus>
             ✕

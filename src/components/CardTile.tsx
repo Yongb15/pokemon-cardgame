@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import CardImg from './CardImg'
 import { formatCardNumber } from '../lib/cardText'
 import { isPokemonType, SUPERTYPE_LABEL, TYPE_COLOR, TYPE_LABEL, TYPE_TEXT } from '../lib/pokemonTypes'
 import type { CardListItem } from '../types/card'
@@ -23,9 +24,10 @@ export default function CardTile({ card }: { card: CardListItem }) {
   return (
     // `fromList` lets the detail page go back with history (keeping filters and scroll)
     <Link className={styles.card} to={`/cards/${encodeURIComponent(card.id)}`} state={{ fromList: true, depth: 1 }}>
-      <img
+      <CardImg
         className={styles.image}
         src={card.images.small}
+        fallback={card.images.fallbackSmall}
         alt="" /* the name below labels the link */
         width={245}
         height={342}

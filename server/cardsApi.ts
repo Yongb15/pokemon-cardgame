@@ -45,6 +45,22 @@ interface Store {
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data')
+
+// Card images we host ourselves (scripts/build-images.mjs → GitHub Pages), so they outlive the
+// Pokémon TCG API. The original URLs ride along as a fallback for any image we don't have.
+const IMAGE_HOST = {
+  sm: 'https://yongb15.github.io/pokemon-card-images-sm',
+  lg: 'https://yongb15.github.io/pokemon-card-images-lg',
+}
+
+function images(setId: string, id: string, original: { small: string; large?: string }) {
+  return {
+    small: `${IMAGE_HOST.sm}/${setId}/${id}.webp`,
+    large: `${IMAGE_HOST.lg}/${setId}/${id}.webp`,
+    fallbackSmall: original.small,
+    fallbackLarge: original.large ?? original.small,
+  }
+}
 const numberOrder = new Intl.Collator('en', { numeric: true })
 const koOrder = new Intl.Collator('ko', { numeric: true })
 
@@ -97,7 +113,19 @@ function loadSetCards(setId: string) {
 }
 
 function setSummary(set: SetInfo) {
-  return { id: set.id, name: set.name, series: set.series, releaseDate: set.releaseDate, images: set.images }
+  const hosted = `${IMAGE_HOST.sm}/_sets/${set.id}`
+  return {
+    id: set.id,
+    name: set.name,
+    series: set.series,
+    releaseDate: set.releaseDate,
+    images: {
+      logo: `${hosted}/logo.png`,
+      symbol: `${hosted}/symbol.png`,
+      fallbackLogo: set.images.logo,
+      fallbackSymbol: set.images.symbol,
+    },
+  }
 }
 
 /** The shape the list page renders (a subset of the full card) */
@@ -114,7 +142,7 @@ function listItem(store: Store, c: IndexEntry) {
     number: c.number,
     rarity: c.rarity,
     set: setSummary(set),
-    images: { small: c.image },
+    images: images(c.set, c.id, { small: c.image }),
   }
 }
 
@@ -189,7 +217,13 @@ async function card(id: string) {
   const raw = (await loadSetCards(entry.set)).find((c) => c.id === id)
   if (!raw) return notFound()
   const set = store.sets.get(entry.set)!
-  return json({ data: { ...raw, set: { ...setSummary(set), printedTotal: set.printedTotal, total: set.total } } })
+  return json({
+    data: {
+      ...raw,
+      images: images(entry.set, id, raw.images as { small: string; large?: string }),
+      set: { ...setSummary(set), printedTotal: set.printedTotal, total: set.total },
+    },
+  })
 }
 
 async function neighbors(id: string) {
@@ -200,7 +234,7 @@ async function neighbors(id: string) {
   const i = order.indexOf(id)
   const summary = (otherId: string | undefined) => {
     const c = otherId && store.byId.get(otherId)
-    return c ? { id: c.id, name: c.name, ...(c.nameKo && { nameKo: c.nameKo }), number: c.number, images: { small: c.image } } : null
+    return c ? { id: c.id, name: c.name, ...(c.nameKo && { nameKo: c.nameKo }), number: c.number, images: images(c.set, c.id, { small: c.image }) } : null
   }
   return json({ prev: summary(order[i - 1]), next: summary(order[i + 1]) })
 }
