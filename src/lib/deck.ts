@@ -41,7 +41,16 @@ export const isDeckFormat = (value: unknown): value is DeckFormat =>
 
 const isCount = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= MAX_COUNT
 
-export const cleanDeckName = (name: string) => name.replace(/\s+/g, ' ').trim().slice(0, MAX_DECK_NAME)
+/**
+ * Collapses spacing and drops invisible control/format characters (e.g. U+202E, which flips the
+ * text after it so "gnp.exe" reads "exe.png"), keeping the zero-width joiner emoji are built with
+ */
+export const cleanDeckName = (name: string) =>
+  name
+    .replace(/(?!‍)[\p{Cc}\p{Cf}]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, MAX_DECK_NAME)
 
 /** Merges duplicate ids, drops invalid entries and caps the number of distinct cards */
 export function sanitizeCards(raw: unknown): DeckCard[] {
@@ -278,7 +287,7 @@ export function parseDeckList(input: string) {
     problems.push({ line: 0, text: '', reason: `목록이 너무 길어요 (최대 ${MAX_IMPORT_LENGTH.toLocaleString()}자)` })
     return { lines, problems }
   }
-  const rows = input.split(/\r?\n/)
+  const rows = input.split(/\r\n|\r|\n/)
   if (rows.length > MAX_IMPORT_LINES) {
     problems.push({ line: 0, text: '', reason: `줄이 너무 많아요 (최대 ${MAX_IMPORT_LINES}줄)` })
     return { lines, problems }
@@ -358,7 +367,9 @@ export function deckFromShareParams(params: URLSearchParams): Pick<Deck, 'name' 
   if (!isDeckFormat(format) || !raw) return null
   const entries = raw.split(',').map((part) => {
     const star = part.lastIndexOf('*')
-    return { id: part.slice(0, star), count: Number(part.slice(star + 1)) }
+    const count = part.slice(star + 1)
+    // Plain digits only: Number() would also accept "1e1", "0x0A" or " 4"
+    return { id: part.slice(0, star), count: /^\d{1,2}$/.test(count) ? Number(count) : NaN }
   })
   // Any unreadable entry means the link was cut or edited: refuse it rather than show part of it
   if (entries.some((e) => !ID_PATTERN.test(e.id) || !isCount(e.count))) return null
