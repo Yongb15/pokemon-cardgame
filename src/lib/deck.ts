@@ -50,8 +50,8 @@ export function cleanDeckName(name: string) {
     .replace(/\s+/g, ' ') // tabs and newlines become spaces before the other controls go
     .replace(/(?!‍)[\p{Cc}\p{Cf}]/gu, '')
     .replace(/ {2,}/g, ' ') // "a <ZWSP> b" left two spaces
-    .trim()
     .slice(0, MAX_DECK_NAME)
+    .trim() // after cutting, so a space at the 50th character doesn't stay at the end
   // Nothing visible left (only joiners): treat as no name, so callers fall back to a default
   return /^[\s‍]*$/.test(clean) ? '' : clean
 }
