@@ -229,7 +229,8 @@ function koreanTrainerName({ name, subtypes = [] }, trainerKo, gameNames) {
   const ko = own(trainerKo.names, base) ?? own(trainerKo.people, base) ?? official?.get(base.toLowerCase())
   if (!ko) return null
   const variantKo = variant && own(trainerKo.people, variant[2])
-  return variantKo ? `${ko} (${variantKo})` : ko
+  // Korean cards print the variant without a space: "박사의 연구(올림박사)"
+  return variantKo ? `${ko}(${variantKo})` : ko
 }
 
 /** "Charmeleon" → "리자드" for the "evolves from" line (a plain species name, sometimes a form) */
