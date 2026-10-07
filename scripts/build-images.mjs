@@ -30,6 +30,10 @@ export const SIZES = {
 
 const exists = (file) => stat(file).then(() => true, () => false)
 
+/** Card ids become file names and URLs: keep them to safe characters ("ex10-?" → "ex10-_").
+ *  server/cardsApi.ts uses the same rule. */
+const imageName = (id) => id.replace(/[^\w.-]/g, '_')
+
 async function download(url) {
   for (let attempt = 1; ; attempt++) {
     try {
@@ -49,7 +53,7 @@ for (const file of setFiles) {
   const setId = file.replace(/\.json$/, '')
   for (const card of JSON.parse(await readFile(path.join(root, 'data/cards', file), 'utf8'))) {
     // Prefer the large image; fall back to the small one if a card has no large image
-    jobs.push({ setId, id: card.id, url: card.images.large ?? card.images.small })
+    jobs.push({ setId, id: card.id, urls: [card.images.large, card.images.small].filter(Boolean) })
   }
 }
 
@@ -60,14 +64,23 @@ const started = Date.now()
 
 async function work(job) {
   const targets = Object.entries(SIZES).map(([size, opts]) => ({
-    file: path.join(outDir, size, job.setId, `${job.id}.webp`),
+    file: path.join(outDir, size, job.setId, `${imageName(job.id)}.webp`),
     opts,
   }))
   if ((await Promise.all(targets.map((t) => exists(t.file)))).every(Boolean)) {
     skipped++
     return
   }
-  const source = await download(job.url)
+  // Some cards have no large image on the original server (404): use the small one instead
+  let source
+  for (const [i, url] of job.urls.entries()) {
+    try {
+      source = await download(url)
+      break
+    } catch (error) {
+      if (i === job.urls.length - 1) throw error
+    }
+  }
   for (const { file, opts } of targets) {
     await mkdir(path.dirname(file), { recursive: true })
     await writeFile(file, await sharp(source).resize({ width: opts.width, withoutEnlargement: true }).webp({ quality: opts.quality }).toBuffer())
@@ -82,7 +95,7 @@ await Promise.all(
       try {
         await work(job)
       } catch (error) {
-        failed.push({ id: job.id, url: job.url, error: String(error) })
+        failed.push({ id: job.id, urls: job.urls, error: String(error) })
       }
       done++
       if (done % 250 === 0 || done === jobs.length) {

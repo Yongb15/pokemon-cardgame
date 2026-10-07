@@ -1,4 +1,5 @@
 import { useState, type ImgHTMLAttributes } from 'react'
+import styles from './CardImg.module.css'
 
 interface Props extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   src: string
@@ -6,18 +7,32 @@ interface Props extends Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> {
   fallback?: string
 }
 
-/** A card image that falls back to the original source if our hosted copy is missing. */
-export default function CardImg({ src, fallback, onError, ...props }: Props) {
-  // Track which src failed rather than a boolean, so a new card (new src) starts fresh
-  const [failedSrc, setFailedSrc] = useState<string | null>(null)
-  const useFallback = fallback && failedSrc === src
+/**
+ * A card image that falls back to the original source if our hosted copy is missing, and to a
+ * "no image" placeholder if that fails too (a few cards have no image anywhere).
+ */
+export default function CardImg({ src, fallback, onError, className, alt, ...props }: Props) {
+  // Remember which src the failures belong to, so a new card (new src) starts fresh
+  const [failed, setFailed] = useState<{ src: string; count: number } | null>(null)
+  const failures = failed?.src === src ? failed.count : 0
+  const current = failures === 0 ? src : failures === 1 && fallback ? fallback : null
+
+  if (current === null) {
+    return (
+      <span className={className ? `${className} ${styles.missing}` : styles.missing} role="img" aria-label={alt || '이미지 없음'}>
+        이미지 없음
+      </span>
+    )
+  }
 
   return (
     <img
       {...props}
-      src={useFallback ? fallback : src}
+      className={className}
+      alt={alt}
+      src={current}
       onError={(event) => {
-        if (fallback && failedSrc !== src) setFailedSrc(src)
+        setFailed({ src, count: failures + 1 })
         onError?.(event)
       }}
     />

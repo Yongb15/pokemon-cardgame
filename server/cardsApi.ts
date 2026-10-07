@@ -53,10 +53,13 @@ const IMAGE_HOST = {
   lg: 'https://yongb15.github.io/pokemon-card-images-lg',
 }
 
+/** Same file-name rule as scripts/build-images.mjs ("ex10-?" → "ex10-_") */
+const imageName = (id: string) => id.replace(/[^\w.-]/g, '_')
+
 function images(setId: string, id: string, original: { small: string; large?: string }) {
   return {
-    small: `${IMAGE_HOST.sm}/${setId}/${id}.webp`,
-    large: `${IMAGE_HOST.lg}/${setId}/${id}.webp`,
+    small: `${IMAGE_HOST.sm}/${setId}/${imageName(id)}.webp`,
+    large: `${IMAGE_HOST.lg}/${setId}/${imageName(id)}.webp`,
     fallbackSmall: original.small,
     fallbackLarge: original.large ?? original.small,
   }
