@@ -19,11 +19,14 @@ const responseCache = new Map<string, { expires: number; data: unknown }>()
 export class ApiError extends Error {
   /** HTTP status, or undefined for network errors, timeouts and unreadable bodies */
   readonly status?: number
+  /** The proxy's own "upstream unavailable" answer, given after it has already retried */
+  readonly fromProxy: boolean
 
-  constructor(message: string, status?: number) {
+  constructor(message: string, status?: number, fromProxy = false) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.fromProxy = fromProxy
   }
 
   get isNotFound() {
@@ -32,8 +35,10 @@ export class ApiError extends Error {
 }
 
 function isRetryable(error: unknown) {
-  if (error instanceof ApiError) return error.status === undefined || error.status >= 500 || error.status === 429
-  return false
+  if (!(error instanceof ApiError)) return false
+  // The proxy already retried upstream for ~12s before giving up; trying again only multiplies load
+  if (error.fromProxy) return false
+  return error.status === undefined || error.status >= 500 || error.status === 429
 }
 
 /** Resolves after `ms`, or rejects with the signal's reason as soon as it aborts. */
@@ -81,6 +86,10 @@ async function attempt<T>(url: URL, timeoutMs: number, signal?: AbortSignal): Pr
 
 async function errorFromResponse(res: Response) {
   if (res.status === 404) return new ApiError('카드를 찾을 수 없습니다.', 404)
+  // api/tcg.ts marks its give-up response with X-Upstream-Status
+  if (res.status === 502 && res.headers.has('X-Upstream-Status')) {
+    return new ApiError('카드 서버가 응답하지 않습니다.', 502, true)
+  }
   let detail = ''
   try {
     const body = (await res.json()) as { error?: { message?: string } }

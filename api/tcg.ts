@@ -8,8 +8,9 @@
 
 const UPSTREAM = 'https://api.pokemontcg.io/v2'
 
-// Only the read-only endpoints the app uses; this is not an open proxy.
-const ALLOWED_PATH = /^(cards|sets)(\/[\w.-]+)?$|^(rarities|types|subtypes|supertypes)$/
+// Only the read-only endpoints the app uses; this is not an open proxy. An id segment can't
+// start with a dot, so "cards/.." can't resolve to another upstream path.
+const ALLOWED_PATH = /^(cards|sets)(\/[\w-][\w.-]*)?$|^(rarities|types|subtypes|supertypes)$/
 
 // Stay well under the browser's per-attempt timeout (15s) so the client sees our answer.
 const DEADLINE_MS = 12_000
@@ -41,6 +42,9 @@ export async function GET(request: Request) {
 
   incoming.searchParams.delete('path')
   const target = new URL(`${UPSTREAM}/${path}`)
+  if (target.pathname !== `/v2/${path}`) {
+    return json({ error: { message: 'Not found', code: 404 } }, 404, CACHE_CLIENT_ERROR)
+  }
   target.search = incoming.searchParams.toString()
 
   const apiKey = process.env.POKEMON_TCG_API_KEY
