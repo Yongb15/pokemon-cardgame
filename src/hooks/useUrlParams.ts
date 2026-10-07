@@ -1,28 +1,24 @@
-import { useCallback, useMemo, useSyncExternalStore } from 'react'
-
-function subscribe(onChange: () => void) {
-  window.addEventListener('popstate', onChange)
-  return () => window.removeEventListener('popstate', onChange)
-}
-
-const getSearch = () => window.location.search
+import { useCallback, useEffect, useRef } from 'react'
+import { useSearchParams } from 'react-router'
 
 /**
- * Query-string state without a router. `push` adds a history entry (filter/page changes,
- * so the back button works); `replace` doesn't (typing in the search box).
+ * Query-string state. `push` adds a history entry (filter/page changes, so the back button
+ * works); `replace` doesn't (typing in the search box, URL clean-ups).
  */
 export function useUrlParams() {
-  const search = useSyncExternalStore(subscribe, getSearch)
+  const [params, setSearchParams] = useSearchParams()
 
-  const setParams = useCallback((params: URLSearchParams, mode: 'push' | 'replace' = 'push') => {
-    const query = params.toString()
-    const url = `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`
-    if (url === `${window.location.pathname}${window.location.search}${window.location.hash}`) return
-    window.history[mode === 'push' ? 'pushState' : 'replaceState'](null, '', url)
-    // pushState/replaceState don't fire popstate; notify subscribers ourselves
-    window.dispatchEvent(new PopStateEvent('popstate'))
+  // Keep `setParams` stable: effects that call it must not re-run just because the URL changed.
+  const setSearchParamsRef = useRef(setSearchParams)
+  useEffect(() => {
+    setSearchParamsRef.current = setSearchParams
+  }, [setSearchParams])
+
+  const setParams = useCallback((next: URLSearchParams, mode: 'push' | 'replace' = 'push') => {
+    if (next.toString() === new URLSearchParams(window.location.search).toString()) return
+    // Filter changes keep the scroll position; page changes scroll to the results themselves
+    setSearchParamsRef.current(next, { replace: mode === 'replace', preventScrollReset: true })
   }, [])
 
-  const params = useMemo(() => new URLSearchParams(search), [search])
   return [params, setParams] as const
 }

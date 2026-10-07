@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+import { Link } from 'react-router'
 import { ApiError } from '../api/pokemonTcg'
 import CardGrid from './CardGrid'
 import styles from './ListStates.module.css'
@@ -20,7 +22,7 @@ export function SlowNotice() {
   return (
     <p className={styles.slow} role="status">
       <span className={styles.spinner} aria-hidden="true" />
-      응답이 늦어지고 있어요. 카드 서버가 느려 최대 25초 정도 걸릴 수 있어요.
+      응답이 늦어지고 있어요. 카드 서버가 느려 조금 더 걸릴 수 있으니 잠시만 기다려 주세요.
     </p>
   )
 }
@@ -86,6 +88,25 @@ export function InvalidSearchState({
       <button type="button" className={styles.ghost} onClick={onClear}>
         검색어 지우기
       </button>
+    </div>
+  )
+}
+
+/** A missing card or an unknown address */
+export function NotFoundState({ title, description }: { title: string; description: ReactNode }) {
+  return (
+    <div className={styles.center} role="status">
+      <div className={styles.icon} aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.4M12 16.5v.01" />
+        </svg>
+      </div>
+      <h2 className={styles.title}>{title}</h2>
+      <p className={styles.desc}>{description}</p>
+      <Link className={styles.ghost} to="/">
+        카드 목록으로
+      </Link>
     </div>
   )
 }

@@ -11,6 +11,8 @@ export interface CardSetSummary {
   name: string
   series: string
   releaseDate: string
+  printedTotal?: number
+  total?: number
   images: {
     symbol: string
     logo: string
@@ -28,6 +30,12 @@ export interface Attack {
   text: string
 }
 
+export interface Ability {
+  name: string
+  text: string
+  type: string
+}
+
 export interface TypeModifier {
   type: string
   value: string
@@ -41,6 +49,7 @@ export interface Card {
   hp?: string
   types?: string[]
   evolvesFrom?: string
+  abilities?: Ability[]
   attacks?: Attack[]
   weaknesses?: TypeModifier[]
   resistances?: TypeModifier[]
@@ -50,9 +59,42 @@ export interface Card {
   artist?: string
   rarity?: string
   flavorText?: string
+  nationalPokedexNumbers?: number[]
+  regulationMark?: string
+  legalities?: Partial<Record<'standard' | 'expanded' | 'unlimited', string>>
   set: CardSetSummary
   images: CardImages
+  tcgplayer?: TcgplayerInfo
+  cardmarket?: CardmarketInfo
 }
+
+export interface TcgplayerPrice {
+  low?: number | null
+  mid?: number | null
+  high?: number | null
+  market?: number | null
+  directLow?: number | null
+}
+
+export interface TcgplayerInfo {
+  url: string
+  updatedAt: string
+  /** Keyed by printing: normal, holofoil, reverseHolofoil, 1stEditionHolofoil, ... */
+  prices?: Record<string, TcgplayerPrice>
+}
+
+export interface CardmarketInfo {
+  url: string
+  updatedAt: string
+  prices?: {
+    trendPrice?: number
+    lowPrice?: number
+    avg30?: number
+  }
+}
+
+/** The fields the related/neighbor lists ask for with `select=` */
+export type CardSummary = Pick<Card, 'id' | 'name' | 'number' | 'images'> & { set: Pick<CardSetSummary, 'id' | 'name'> }
 
 export interface PagedResponse<T> {
   data: T[]

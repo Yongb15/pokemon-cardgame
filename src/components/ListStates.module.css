@@ -148,6 +148,9 @@
 }
 
 .ghost {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
   border: 1px solid var(--border-strong);
   background: var(--surface);
   color: var(--text-h);

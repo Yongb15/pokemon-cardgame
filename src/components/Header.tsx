@@ -1,3 +1,4 @@
+import { Link, useLocation } from 'react-router'
 import styles from './Header.module.css'
 
 function Logo() {
@@ -11,17 +12,19 @@ function Logo() {
 }
 
 export default function Header() {
+  const { pathname } = useLocation()
+  const onCards = pathname === '/' || pathname.startsWith('/cards/')
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
-        <a className={styles.logo} href="/">
+        <Link className={styles.logo} to="/">
           <Logo />
           Card Dex
-        </a>
+        </Link>
         <nav className={styles.nav} aria-label="주요 메뉴">
-          <a className={styles.active} href="/" aria-current="page">
+          <Link className={onCards ? styles.active : undefined} to="/" aria-current={onCards ? 'page' : undefined}>
             카드
-          </a>
+          </Link>
           <span className={styles.soon}>
             세트 <span className={styles.tag}>준비 중</span>
           </span>

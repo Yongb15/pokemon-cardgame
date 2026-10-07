@@ -1,4 +1,4 @@
-import type { Card, CardSet, PagedResponse } from '../types/card'
+import type { Card, CardSet, CardSummary, PagedResponse } from '../types/card'
 
 // Same-origin proxy (api/tcg.ts on Vercel, vite.config.ts proxy in dev) in front of
 // https://api.pokemontcg.io/v2. It retries upstream failures and holds the optional API key.
@@ -100,16 +100,28 @@ async function errorFromResponse(res: Response) {
   return new ApiError(`Pokémon TCG API ${res.status}${detail ? `: ${detail}` : ''}`, res.status)
 }
 
-async function request<T>(
-  path: string,
-  params?: Record<string, string | number | undefined>,
-  signal?: AbortSignal,
-): Promise<T> {
+type Params = Record<string, string | number | undefined>
+
+function buildUrl(path: string, params?: Params) {
   const url = new URL(BASE_URL + path, window.location.origin)
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== undefined && value !== '') url.searchParams.set(key, String(value))
   }
+  return url
+}
 
+/** A still-fresh cached response, without making a request */
+function peek<T>(path: string, params?: Params): T | undefined {
+  const cached = responseCache.get(buildUrl(path, params).toString())
+  return cached && cached.expires > Date.now() ? (cached.data as T) : undefined
+}
+
+async function request<T>(
+  path: string,
+  params?: Params,
+  signal?: AbortSignal,
+): Promise<T> {
+  const url = buildUrl(path, params)
   const cacheKey = url.toString()
   const cached = responseCache.get(cacheKey)
   if (cached && cached.expires > Date.now()) return cached.data as T
@@ -142,9 +154,48 @@ export function searchCards({ q, page = 1, pageSize = 24, orderBy }: CardQuery =
   return request<PagedResponse<Card>>('/cards', { q, page, pageSize, orderBy }, signal)
 }
 
+/** The cached result of an identical `searchCards` call, so a revisited page can render at once */
+export function peekSearchCards({ q, page = 1, pageSize = 24, orderBy }: CardQuery = {}) {
+  return peek<PagedResponse<Card>>('/cards', { q, page, pageSize, orderBy })
+}
+
 export async function getCard(id: string, signal?: AbortSignal) {
   const { data } = await request<{ data: Card }>(`/cards/${encodeURIComponent(id)}`, undefined, signal)
   return data
+}
+
+const SUMMARY_FIELDS = 'id,name,number,images,set'
+
+/** The cards numbered right before and after this one in its set (none for numbers like "TG05"). */
+export async function getSetNeighbors(card: Card, signal?: AbortSignal) {
+  if (!/^\d+$/.test(card.number)) return { prev: null, next: null }
+  const n = Number(card.number)
+  const numbers = [n - 1, n + 1].filter((x) => x > 0).map((x) => `number:${x}`)
+  const { data } = await request<PagedResponse<CardSummary>>(
+    '/cards',
+    { q: `set.id:"${card.set.id}" (${numbers.join(' OR ')})`, select: SUMMARY_FIELDS, pageSize: 4 },
+    signal,
+  )
+  return {
+    prev: data.find((c) => c.number === String(n - 1)) ?? null,
+    next: data.find((c) => c.number === String(n + 1)) ?? null,
+  }
+}
+
+/** Other printings of the same Pokémon (by Pokédex number) or the same Trainer/Energy (by name). */
+/** Quote a value for the API's Lucene syntax; parentheses etc. must be escaped even inside quotes */
+const luceneQuote = (value: string) => `"${value.replace(/[+\-&|!(){}[\]^"~*?:\\/]/g, '\\$&')}"`
+
+export async function getRelatedCards(card: Card, limit: number, signal?: AbortSignal) {
+  // One Pokémon: every printing of it. TAG TEAM / multi-Pokémon cards and Trainers: the exact name.
+  const dex = card.nationalPokedexNumbers?.length === 1 ? card.nationalPokedexNumbers[0] : undefined
+  const q = dex ? `nationalPokedexNumbers:${dex}` : `name:${luceneQuote(card.name)}`
+  const res = await request<PagedResponse<CardSummary>>(
+    '/cards',
+    { q: `${q} -id:"${card.id}"`, orderBy: '-set.releaseDate,number', select: SUMMARY_FIELDS, pageSize: limit },
+    signal,
+  )
+  return { cards: res.data, totalCount: res.totalCount }
 }
 
 export async function getSets(signal?: AbortSignal) {
