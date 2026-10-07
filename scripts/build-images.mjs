@@ -9,6 +9,7 @@
 // Re-running skips images that already exist, so an interrupted run can simply be resumed.
 // The two folders are published as separate GitHub Pages sites (each must stay under 1 GB).
 
+import { createHash } from 'node:crypto'
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -35,14 +36,23 @@ const exists = (file) => stat(file).then(() => true, () => false)
  *  server/cardsApi.ts uses the same rule. */
 const imageName = (id) => id.replace(/[^\w.-]/g, (ch) => `_${ch.codePointAt(0).toString(16)}`)
 
+// Both image servers answer "no image" with the same card-back picture (pokemontcg.io as the
+// body of a 404, scrydex with a 200). An image with this hash is not the card.
+const CARD_BACK_SHA256 = new Set(['fd7c3800f9b8', '01f03f71564c']) // large, small
+const isCardBack = (buffer) => CARD_BACK_SHA256.has(createHash('sha256').update(buffer).digest('hex').slice(0, 12))
+
 async function download(url) {
   for (let attempt = 1; ; attempt++) {
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(60_000) })
-      if (res.ok) return Buffer.from(await res.arrayBuffer())
+      if (res.ok) {
+        const buffer = Buffer.from(await res.arrayBuffer())
+        if (isCardBack(buffer)) throw new Error(`card back (no image) ${url}`)
+        return buffer
+      }
       if (res.status === 404 || attempt === 5) throw new Error(`${res.status} ${url}`)
     } catch (error) {
-      if (attempt === 5) throw error
+      if (attempt === 5 || /^Error: (404|card back)/.test(String(error))) throw error
     }
     await new Promise((r) => setTimeout(r, 1000 * attempt))
   }
@@ -53,8 +63,11 @@ const jobs = []
 for (const file of setFiles) {
   const setId = file.replace(/\.json$/, '')
   for (const card of JSON.parse(await readFile(path.join(root, 'data/cards', file), 'utf8'))) {
-    // Prefer the large image; fall back to the small one if a card has no large image
-    jobs.push({ setId, id: card.id, urls: [card.images.large, card.images.small].filter(Boolean) })
+    // Original large, then small; scrydex (the API's successor) still has some images the
+    // original server lost, e.g. the McDonald's promos
+    const scrydex = `https://images.scrydex.com/pokemon/${encodeURIComponent(card.id)}`
+    const urls = [card.images.large, card.images.small, `${scrydex}/large`, `${scrydex}/small`]
+    jobs.push({ setId, id: card.id, urls: [...new Set(urls.filter(Boolean))] })
   }
 }
 
@@ -72,7 +85,6 @@ async function work(job) {
     skipped++
     return
   }
-  // Some cards have no large image on the original server (404): use the small one instead
   let source
   for (const [i, url] of job.urls.entries()) {
     try {
@@ -122,4 +134,8 @@ for (const set of JSON.parse(await readFile(path.join(root, 'data/sets.json'), '
 }
 
 await writeFile(path.join(outDir, 'failed.json'), JSON.stringify(failed, null, 2))
+// Cards with no image anywhere: the API sends no image URLs for them, so the app shows its
+// "이미지 없음" placeholder instead of a card back
+const missing = failed.filter((f) => !f.id.includes('/')).map((f) => f.id).sort()
+await writeFile(path.join(root, 'data/missing-images.json'), JSON.stringify(missing, null, 2) + '\n')
 console.log(`Done: ${jobs.length - failed.length}/${jobs.length} images, ${failed.length} failed (see failed.json)`)

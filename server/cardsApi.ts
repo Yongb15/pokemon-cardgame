@@ -6,6 +6,7 @@
 //   GET /api/cards/:id/neighbors                                    previous/next card in its set
 //   GET /api/cards/:id/related?limit=                               other printings
 
+import { readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 
@@ -56,7 +57,12 @@ const IMAGE_HOST = {
 /** Same file-name rule as scripts/build-images.mjs: unsafe characters become their hex code, so ids stay distinct ("ex10-?" → "ex10-_3f", "ex10-!" → "ex10-_21") */
 const imageName = (id: string) => id.replace(/[^\w.-]/g, (ch) => `_${ch.codePointAt(0)!.toString(16)}`)
 
+// Cards with no image anywhere (scripts/build-images.mjs): no URLs, so the app shows its placeholder
+// instead of the card back the image servers return
+const missingImages = new Set<string>(JSON.parse(readFileSync(path.join(DATA_DIR, 'missing-images.json'), 'utf8')))
+
 function images(setId: string, id: string, original: { small: string; large?: string }) {
+  if (missingImages.has(id)) return { small: '', large: '' }
   return {
     small: `${IMAGE_HOST.sm}/${setId}/${imageName(id)}.webp`,
     large: `${IMAGE_HOST.lg}/${setId}/${imageName(id)}.webp`,

@@ -15,9 +15,11 @@ export default function CardImg({ src, fallback, onError, className, alt, ...pro
   // Remember which src the failures belong to, so a new card (new src) starts fresh
   const [failed, setFailed] = useState<{ src: string; count: number } | null>(null)
   const failures = failed?.src === src ? failed.count : 0
-  const current = failures === 0 ? src : failures === 1 && fallback ? fallback : null
+  // Hosted copy, then the original; an empty src means the card has no image at all
+  const candidates = [src, fallback].filter(Boolean) as string[]
+  const current = candidates[failures]
 
-  if (current === null) {
+  if (!current) {
     return (
       <span className={className ? `${className} ${styles.missing}` : styles.missing} role="img" aria-label={alt || '이미지 없음'}>
         이미지 없음

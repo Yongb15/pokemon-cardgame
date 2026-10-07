@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Card } from '../../types/card'
 import CardImg from '../CardImg'
 import styles from './detail.module.css'
@@ -6,6 +6,8 @@ import styles from './detail.module.css'
 /** The large card image, with a full-screen viewer (native <dialog>: Esc and focus handled for us). */
 export default function CardImage({ card }: { card: Card }) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  // The viewer's high-resolution image is only fetched once someone opens it
+  const [viewerUsed, setViewerUsed] = useState(false)
 
   // Leaving the page with the viewer open (e.g. browser back) must not leave scrolling locked
   useEffect(() => () => void (document.documentElement.style.overflow = ''), [])
@@ -13,6 +15,7 @@ export default function CardImage({ card }: { card: Card }) {
   // Keep the page behind the viewer from scrolling while it's open
   function open() {
     document.documentElement.style.overflow = 'hidden'
+    setViewerUsed(true)
     dialogRef.current?.showModal()
   }
 
@@ -44,11 +47,13 @@ export default function CardImage({ card }: { card: Card }) {
         onClick={(event) => event.target === event.currentTarget && dialogRef.current?.close()}
       >
         {/* The viewer shows the original high-resolution image while it exists; our copy otherwise */}
-        <CardImg
-          src={card.images.fallbackLarge ?? card.images.large}
-          fallback={card.images.large}
-          alt={`${card.name} 카드 이미지 (확대)`}
-        />
+        {viewerUsed && (
+          <CardImg
+            src={card.images.fallbackLarge ?? card.images.large}
+            fallback={card.images.large}
+            alt={`${card.name} 카드 이미지 (확대)`}
+          />
+        )}
         <form method="dialog">
           <button type="submit" className={styles.viewerClose} aria-label="닫기" autoFocus>
             ✕
