@@ -319,7 +319,7 @@ for (const [i, set] of sets.entries()) {
   process.stdout.write(`\r  cards ${i + 1}/${sets.length} ${set.id.padEnd(12)}`)
   const cards = await fetchJson(`${TCG_RAW}/cards/en/${set.id}.json`)
   for (const card of cards) {
-    Object.assign(card, DATA_FIXES[card.id])
+    if (Object.hasOwn(DATA_FIXES, card.id)) Object.assign(card, DATA_FIXES[card.id])
     const nameKo = koreanName(card, species, speciesByName, trainerKo, gameNames)
     const evolvesFromKo = koreanSpeciesName(card.evolvesFrom, speciesByName)
     if (evolvesFromKo) card.evolvesFromKo = evolvesFromKo
