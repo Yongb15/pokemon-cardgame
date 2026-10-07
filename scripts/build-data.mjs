@@ -225,6 +225,7 @@ function koreanTrainerName({ name, subtypes = [] }, trainerKo, gameNames) {
       ? gameNames.items
       : null
   const own = (dict, key) => (Object.hasOwn(dict, key) ? dict[key] : undefined) // not "constructor" etc.
+  if (trainerKo.exclude.includes(base)) return null
   const ko = own(trainerKo.names, base) ?? own(trainerKo.people, base) ?? official?.get(base.toLowerCase())
   if (!ko) return null
   const variantKo = variant && own(trainerKo.people, variant[2])
