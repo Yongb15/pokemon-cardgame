@@ -9,6 +9,7 @@
 |---|---|
 | 프레임워크 | React 19 + TypeScript |
 | 빌드 도구 | Vite |
+| 라우팅 | React Router 7 (`/`, `/cards/:id`, 404) |
 | 스타일 | CSS Modules, CSS 변수 (라이트/다크) |
 | 린트 | oxlint |
 | 데이터 | [Pokémon TCG API v2](https://docs.pokemontcg.io/) |
@@ -21,7 +22,8 @@
 - [x] 필터 (타입, 세트, 희귀도) + 정렬, URL에 상태 저장
 - [x] 로딩 / 결과 없음 / 오류 / 응답 지연 상태
 - [x] 반응형 레이아웃 / 다크 모드
-- [ ] 카드 상세 페이지
+- [x] 카드 상세 페이지 (기술·특성, 약점·저항, 세트 정보, 대회 규정, 시세, 같은 세트 이전/다음, 다른 버전 카드)
+- [ ] 카드 데이터 자체 보유 (pokemontcg.io API 2027년 3월 종료 대비) + 한국어 카드 이름
 - [x] 배포 (Vercel, develop 미리보기)
 - [ ] 덱 빌더
 
@@ -48,7 +50,8 @@
 
 ## 디자인
 
-[Figma: Pokémon Card Dex](https://www.figma.com/design/n7tkM2aFBRJs43Qe9fNIwS) — 데스크톱, 모바일, 목록 상태(로딩·결과 없음·오류) 화면
+[Figma: Pokémon Card Dex](https://www.figma.com/design/n7tkM2aFBRJs43Qe9fNIwS) — 카드 목록·카드 상세의 데스크톱, 모바일, 상태(로딩·없음·오류) 화면.
+상세 화면 시안은 [docs/design](docs/design)에도 이미지로 보관합니다.
 
 ## 시작하기
 
@@ -76,10 +79,10 @@ api/
 └─ tcg.ts        # Vercel Function: Pokémon TCG API 프록시 (재시도, 엣지 캐시, API 키 보관)
 src/
 ├─ api/          # Pokémon TCG API 클라이언트 (재시도, 타임아웃, 캐시)
-├─ components/   # Header, SearchBar, TypeFilter, CardTile, Pagination, 상태 화면 등 (CSS Modules)
-├─ hooks/        # useCardSearch, useFilterOptions, useUrlParams, useMediaQuery, useDebouncedValue
+├─ components/   # Header, SearchBar, TypeFilter, CardTile, Pagination, 상태 화면, detail/(상세 섹션) 등 (CSS Modules)
+├─ hooks/        # useCardSearch, useApiResource, useFilterOptions, useUrlParams, useMediaQuery, useDebouncedValue
 ├─ lib/          # 필터 ↔ URL ↔ API 쿼리 변환, 타입 이름·색상, 페이지 번호 계산
-├─ pages/        # CardListPage
+├─ pages/        # CardListPage, CardDetailPage(/cards/:id), NotFoundPage
 ├─ types/        # API 응답 타입 정의
 ├─ App.tsx
 ├─ main.tsx

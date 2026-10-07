@@ -1,0 +1,174 @@
+.main {
+  width: 100%;
+  max-width: calc(var(--page-width) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 28px var(--gutter) 64px;
+}
+
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.crumbs a {
+  color: inherit;
+}
+
+.crumbs [aria-current='page'] {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+.back {
+  padding: 6px 12px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-h) !important;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.back:hover {
+  border-color: var(--border-strong);
+}
+
+.sep {
+  color: var(--border-strong);
+}
+
+.layout {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+  gap: 56px;
+  align-items: start;
+}
+
+.info {
+  min-width: 0;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.name {
+  font-size: 36px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.hp {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-h);
+  white-space: nowrap;
+}
+
+.hp small {
+  margin-right: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.subRow {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: 14px;
+}
+
+.subtitle {
+  font-weight: 500;
+}
+
+.evolves {
+  color: var(--text-muted);
+}
+
+.message {
+  margin-top: 24px;
+}
+
+.slow {
+  margin-top: 16px;
+}
+
+/* Loading skeleton */
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--skeleton) 25%, var(--surface-muted) 50%, var(--skeleton) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeletonImage {
+  aspect-ratio: 734 / 1024;
+  border-radius: 20px;
+}
+
+.skeletonLines {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+    gap: 32px;
+  }
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding-top: 16px;
+    padding-bottom: 40px;
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+    margin-top: 20px;
+  }
+
+  .skeletonImage {
+    width: 260px;
+    margin: 0 auto;
+  }
+
+  .name {
+    font-size: 26px;
+  }
+
+  .hp {
+    font-size: 22px;
+  }
+}

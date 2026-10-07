@@ -1,0 +1,653 @@
+/* Shared styles for the card detail sections */
+
+.muted {
+  color: var(--text-muted);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badgeDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+/* Image column */
+.imageColumn {
+  position: sticky;
+  top: 24px;
+}
+
+.imageButton {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+  border-radius: 20px;
+}
+
+.cardImage {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 734 / 1024;
+  border-radius: 20px;
+  background: var(--skeleton);
+  box-shadow:
+    0 30px 60px -20px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(0 0 0 / 0.06);
+}
+
+.zoom {
+  display: block;
+  margin: 14px auto 0;
+  padding: 4px 8px;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.zoom:hover {
+  color: var(--text-h);
+}
+
+.viewer {
+  max-width: none;
+  max-height: none;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 24px;
+  border: 0;
+  background: transparent;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.viewer[open] {
+  display: flex;
+}
+
+.viewer::backdrop {
+  background: rgb(0 0 0 / 0.85);
+}
+
+.viewer img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 20px;
+}
+
+.viewerClose {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.15);
+  color: #fff;
+  font-size: 18px;
+}
+
+.viewerClose:hover {
+  background: rgb(255 255 255 / 0.25);
+}
+
+/* Sections */
+.section {
+  margin-top: 32px;
+}
+
+.sectionTitle {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.sectionNote {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.sectionLink {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+/* Abilities & attacks */
+.move {
+  margin-top: 10px;
+  padding: 16px 18px;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.free {
+  color: var(--text-muted);
+}
+
+.moveName {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+
+.damage {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.moveText {
+  grid-column: 2 / -1;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.ability {
+  border-color: var(--accent-soft);
+}
+
+.abilityTag {
+  justify-self: start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Rules */
+.rules {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.rules b {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--accent-text);
+}
+
+.rules p + p {
+  margin-top: 6px;
+}
+
+/* Weakness / resistance / retreat */
+.stats {
+  margin: 16px 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.stats > div {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stats > div + div {
+  border-left: 1px solid var(--border);
+}
+
+.stats dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.stats dd {
+  margin: 0;
+  min-height: 22px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.statItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statNone {
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Card info */
+.setBox {
+  padding: 18px;
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.setLogo {
+  width: 100%;
+  max-width: 180px;
+  height: auto;
+}
+
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  row-gap: 8px;
+  font-size: 14px;
+}
+
+.facts dt {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.facts dd {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: var(--text-h);
+  overflow-wrap: anywhere;
+}
+
+.facts dd a {
+  color: inherit;
+}
+
+.setSymbol {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.rare {
+  color: var(--rare) !important;
+}
+
+.mark {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--text-h);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.legal {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.legal li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.legalOk {
+  background: #e7f6ea;
+  color: #1d6b31;
+}
+
+.legalBanned {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+@media (prefers-color-scheme: dark) {
+  .legalOk {
+    background: rgb(74 222 128 / 0.15);
+    color: #86efac;
+  }
+}
+
+.flavor {
+  margin-top: 14px;
+  font-size: 13px;
+  font-style: italic;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+/* Prices */
+.prices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.price {
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.priceMarket {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.priceMain {
+  margin-top: 4px;
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.priceMain small {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.priceRange {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.priceDate {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.priceDate a {
+  color: inherit;
+}
+
+/* Previous / next in set */
+.neighbors {
+  margin-top: 48px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.neighbor {
+  min-width: 0;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+}
+
+.neighbor:hover {
+  border-color: var(--border-strong);
+}
+
+.neighbor img {
+  width: 44px;
+  height: auto;
+  border-radius: 4px;
+  flex: none;
+}
+
+.neighbor > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.neighborNext {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+
+.neighborLabel {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.neighborName {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Related printings */
+.related {
+  margin-top: 48px;
+}
+
+.relatedRow {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.mini {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.mini img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 245 / 342;
+  border-radius: 8px;
+  background: var(--skeleton);
+  transition: transform 0.15s ease;
+}
+
+.mini:hover img {
+  transform: translateY(-3px);
+}
+
+.miniName,
+.miniSet {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.miniName {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.miniSet {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.miniSkeleton {
+  aspect-ratio: 245 / 342;
+  border-radius: 8px;
+  background: var(--skeleton);
+}
+
+.inlineError {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.inlineError button {
+  margin-left: 4px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini img {
+    transition: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .relatedRow {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .relatedRow li:nth-child(n + 5) {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .imageColumn {
+    position: static;
+    width: 260px;
+    margin: 0 auto;
+  }
+
+  .cardImage {
+    border-radius: 12px;
+  }
+
+  .section {
+    margin-top: 24px;
+  }
+
+  .move {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 14px;
+    gap: 6px 10px;
+  }
+
+  .moveName {
+    font-size: 15px;
+  }
+
+  .damage {
+    font-size: 18px;
+  }
+
+  .moveText {
+    grid-column: 1 / -1;
+    font-size: 13px;
+  }
+
+  .setBox {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .setLogo {
+    max-width: 140px;
+  }
+
+  .prices {
+    grid-template-columns: 1fr;
+  }
+
+  .neighbors {
+    margin-top: 28px;
+    gap: 10px;
+  }
+
+  .neighbor {
+    padding: 10px 12px;
+  }
+
+  .neighbor img,
+  .neighborNumber {
+    display: none;
+  }
+
+  .neighborName {
+    font-size: 14px;
+  }
+
+  .relatedRow {
+    display: flex;
+    overflow-x: auto;
+    gap: 12px;
+    margin-right: calc(var(--gutter) * -1);
+    padding-right: var(--gutter);
+    scrollbar-width: none;
+  }
+
+  .relatedRow li {
+    width: 120px;
+    flex: none;
+  }
+
+  .relatedRow li:nth-child(n + 5) {
+    display: list-item;
+  }
+}

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { searchCards } from '../api/pokemonTcg'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { peekSearchCards, searchCards } from '../api/pokemonTcg'
 import { PAGE_SIZE, SORT_OPTIONS, toLuceneQuery, type CardFilters } from '../lib/cardFilters'
 import type { Card } from '../types/card'
 
@@ -59,7 +59,23 @@ export function useCardSearch(filters: CardFilters, page: number, mode: 'paged' 
     }
   }, [key, q, orderBy, page])
 
-  const current = result?.key === key ? result : null
+  // A page seen recently (e.g. coming back from a card's detail page) renders on the first paint,
+  // so scroll restoration has the full grid to land on instead of a skeleton.
+  const current = useMemo<Result | null>(() => {
+    if (result?.key === key) return result
+    const cached = q !== null ? peekSearchCards({ q, orderBy, page, pageSize: PAGE_SIZE }) : undefined
+    if (!cached) return null
+    return {
+      key,
+      status: 'success',
+      cards: cached.data,
+      totalCount: cached.totalCount,
+      lastPage: page,
+      error: null,
+      loadingMore: false,
+      loadMoreError: null,
+    }
+  }, [result, key, q, orderBy, page])
   const status = q === null ? 'invalid' : (current?.status ?? 'loading')
 
   const retry = useCallback(() => setReloadToken((n) => n + 1), [])
