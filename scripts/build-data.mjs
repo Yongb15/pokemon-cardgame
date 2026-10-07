@@ -222,9 +222,10 @@ function koreanTrainerName({ name, subtypes = [] }, trainerKo, gameNames) {
       !subtypes.length || subtypes.some((t) => t === 'Item' || t.startsWith('Pokémon Tool'))
       ? gameNames.items
       : null
-  const ko = trainerKo.names[base] ?? trainerKo.people[base] ?? official?.get(base.toLowerCase())
+  const own = (dict, key) => (Object.hasOwn(dict, key) ? dict[key] : undefined) // not "constructor" etc.
+  const ko = own(trainerKo.names, base) ?? own(trainerKo.people, base) ?? official?.get(base.toLowerCase())
   if (!ko) return null
-  const variantKo = variant && trainerKo.people[variant[2]]
+  const variantKo = variant && own(trainerKo.people, variant[2])
   return variantKo ? `${ko} (${variantKo})` : ko
 }
 
