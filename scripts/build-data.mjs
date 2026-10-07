@@ -196,6 +196,8 @@ function translatePart(part, hints, speciesByName) {
  */
 function koreanName(card, species, speciesByName, trainerKo, gameNames) {
   if (card.supertype === 'Energy') {
+    // Only basic Energy: the old Special "Darkness Energy" / "Metal Energy" share the name pattern
+    if (!card.subtypes?.includes('Basic')) return null
     const m = card.name.match(/^(?:Basic )?(\w+) Energy$/)
     if (m && TYPE_KO[m[1]]) return `기본 ${TYPE_KO[m[1]]} 에너지`
     return null
