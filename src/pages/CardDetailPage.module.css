@@ -68,6 +68,14 @@
   overflow-wrap: anywhere;
 }
 
+.nameEn {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 .hp {
   font-size: 28px;
   font-weight: 700;

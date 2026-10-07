@@ -1,10 +1,10 @@
 import { Link } from 'react-router'
 import { formatCardNumber } from '../lib/cardText'
 import { isPokemonType, SUPERTYPE_LABEL, TYPE_COLOR, TYPE_LABEL, TYPE_TEXT } from '../lib/pokemonTypes'
-import type { Card } from '../types/card'
+import type { CardListItem } from '../types/card'
 import styles from './CardTile.module.css'
 
-function TypeBadge({ card }: { card: Card }) {
+function TypeBadge({ card }: { card: CardListItem }) {
   const type = card.types?.[0]
   if (type && isPokemonType(type)) {
     return (
@@ -17,7 +17,7 @@ function TypeBadge({ card }: { card: Card }) {
   return <span className={`${styles.badge} ${styles.neutral}`}>{SUPERTYPE_LABEL[card.supertype] ?? card.supertype}</span>
 }
 
-export default function CardTile({ card }: { card: Card }) {
+export default function CardTile({ card }: { card: CardListItem }) {
   const isRare = /rare|legend/i.test(card.rarity ?? '')
 
   return (
@@ -33,9 +33,14 @@ export default function CardTile({ card }: { card: Card }) {
         decoding="async"
       />
       <div className={styles.meta}>
-        <h3 className={styles.name} title={card.name}>
-          {card.name}
+        <h3 className={styles.name} title={card.nameKo ? `${card.nameKo} (${card.name})` : card.name}>
+          {card.nameKo ?? card.name}
         </h3>
+        {card.nameKo && (
+          <p className={styles.nameEn} lang="en">
+            {card.name}
+          </p>
+        )}
         <p className={styles.sub}>
           {formatCardNumber(card.number)} · {card.set.name}
         </p>

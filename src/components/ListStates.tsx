@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
-import { ApiError } from '../api/pokemonTcg'
+import { ApiError } from '../api/cards'
 import CardGrid from './CardGrid'
 import styles from './ListStates.module.css'
 
@@ -40,53 +40,10 @@ export function EmptyState({ query, onReset }: { query: string; onReset: () => v
       <p className={styles.desc}>
         철자를 확인하거나 필터를 줄여 보세요.
         <br />
-        카드 이름은 영문으로 검색됩니다.
+        한국어(리자몽)와 영어(Charizard) 이름 모두 검색됩니다.
       </p>
       <button type="button" className={styles.ghost} onClick={onReset}>
         필터 초기화
-      </button>
-    </div>
-  )
-}
-
-/** The search term can't be sent to the API (Korean, only symbols) or the API rejected it (400). */
-export function InvalidSearchState({
-  reason,
-  query,
-  onClear,
-}: {
-  reason: 'hangul' | 'unsupported' | 'rejected'
-  query: string
-  onClear: () => void
-}) {
-  const desc =
-    reason === 'hangul' ? (
-      <>
-        카드 이름은 영문으로만 검색할 수 있어요.
-        <br />
-        예: 피카츄 → Pikachu, 리자몽 → Charizard
-      </>
-    ) : (
-      <>
-        영문, 숫자와 일부 기호(' . - :)만 검색에 쓸 수 있어요.
-        <br />
-        검색어를 바꿔 다시 입력해 주세요.
-      </>
-    )
-  return (
-    <div className={styles.center} role="status">
-      <div className={styles.icon} aria-hidden="true">
-        <svg width="26" height="26" viewBox="0 0 24 24">
-          <circle cx="11" cy="11" r="7" />
-          <path d="m20 20-3.5-3.5" />
-        </svg>
-      </div>
-      <h2 className={styles.title}>
-        {reason === 'hangul' ? `“${query}”은(는) 영문으로 검색해 주세요` : '검색어를 확인해 주세요'}
-      </h2>
-      <p className={styles.desc}>{desc}</p>
-      <button type="button" className={styles.ghost} onClick={onClear}>
-        검색어 지우기
       </button>
     </div>
   )

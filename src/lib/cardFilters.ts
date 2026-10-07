@@ -1,10 +1,11 @@
+import type { CardSearchParams } from '../api/cards'
 import { POKEMON_TYPES, type PokemonType } from './pokemonTypes'
 
 export const SORT_OPTIONS = {
-  newest: { label: '최신 세트순', orderBy: '-set.releaseDate,number' },
-  oldest: { label: '오래된 세트순', orderBy: 'set.releaseDate,number' },
-  name: { label: '이름순', orderBy: 'name,-set.releaseDate' },
-  number: { label: '번호순', orderBy: 'number,-set.releaseDate' },
+  newest: { label: '최신 세트순' },
+  oldest: { label: '오래된 세트순' },
+  name: { label: '이름순' },
+  number: { label: '번호순' },
 } as const
 
 export type SortKey = keyof typeof SORT_OPTIONS
@@ -28,26 +29,6 @@ function isSortKey(value: string): value is SortKey {
 /** Collapse runs of whitespace and trim: what the URL stores and what the search box is compared with */
 export function cleanName(raw: string) {
   return raw.replace(/\s+/g, ' ').trim()
-}
-
-const HANGUL = /[ㄱ-ㆎ가-힣]/
-// Characters the API accepts inside a quoted name; it answers 400 to `"`, `(`, `\`, ’, ♀/♂
-// and non-Latin scripts. Covers names like Farfetch'd, Mr. Mime, Porygon-Z, Type: Null.
-const UNSEARCHABLE = /[^\p{Script=Latin}\p{N} .':&!?,/-]/gu
-
-/** The part of the name the API can search for ('' if nothing usable is left) */
-export function searchableName(raw: string) {
-  const name = cleanName(raw.replace(/’/g, "'").replace(UNSEARCHABLE, ' '))
-  // Punctuation alone ("...", "-") would match every card
-  return /[\p{L}\p{N}]/u.test(name) ? name : ''
-}
-
-/** Why a search term can't be sent as typed, or null if it can */
-export function nameIssue(raw: string): 'hangul' | 'unsupported' | null {
-  const name = cleanName(raw)
-  if (!name) return null
-  if (HANGUL.test(name)) return 'hangul'
-  return searchableName(name) ? null : 'unsupported'
 }
 
 export function filtersFromParams(params: URLSearchParams): CardFilters {
@@ -80,24 +61,15 @@ export function filtersToParams(filters: CardFilters, page = 1) {
   return params
 }
 
-/** Escape characters that have meaning inside a quoted Lucene phrase. */
-function quote(value: string) {
-  return `"${value.replace(/[\\"]/g, '\\$&')}"`
-}
-
-/**
- * Build the API `q` parameter, e.g. `name:"char*" types:Fire set.id:"sv3pt5"`.
- * Returns null when the search term can't be sent at all (see `nameIssue`).
- */
-export function toLuceneQuery(filters: CardFilters): string | null {
-  if (nameIssue(filters.name)) return null
-  const parts: string[] = []
-  const name = searchableName(filters.name)
-  if (name) parts.push(`name:${quote(`${name}*`)}`)
-  if (filters.type) parts.push(`types:${filters.type}`)
-  if (filters.set) parts.push(`set.id:${quote(filters.set)}`)
-  if (filters.rarity) parts.push(`rarity:${quote(filters.rarity)}`)
-  return parts.join(' ')
+/** The API parameters for a search (page and page size are added by the caller) */
+export function toSearchParams(filters: CardFilters): CardSearchParams {
+  return {
+    name: cleanName(filters.name) || undefined,
+    type: filters.type || undefined,
+    set: filters.set || undefined,
+    rarity: filters.rarity || undefined,
+    sort: filters.sort,
+  }
 }
 
 export function activeFilterCount(filters: CardFilters) {

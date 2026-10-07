@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import CardGrid from '../components/CardGrid'
 import CardTile from '../components/CardTile'
-import { EmptyState, ErrorState, InvalidSearchState, SkeletonGrid, SlowNotice } from '../components/ListStates'
+import { EmptyState, ErrorState, SkeletonGrid, SlowNotice } from '../components/ListStates'
 import Pagination from '../components/Pagination'
 import SearchBar from '../components/SearchBar'
 import Select from '../components/Select'
 import TypeFilter from '../components/TypeFilter'
-import { ApiError } from '../api/pokemonTcg'
 import { useCardSearch } from '../hooks/useCardSearch'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
-import { useFilterOptions } from '../hooks/useFilterOptions'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useUrlParams } from '../hooks/useUrlParams'
 import {
@@ -17,13 +15,14 @@ import {
   cleanName,
   filtersFromParams,
   filtersToParams,
-  nameIssue,
   pageFromParams,
   SORT_OPTIONS,
   type CardFilters,
   type SortKey,
 } from '../lib/cardFilters'
 import { TYPE_LABEL } from '../lib/pokemonTypes'
+import bundledRarities from '../data/rarities.json'
+import bundledSets from '../data/sets.json'
 import type { CardSet } from '../types/card'
 import styles from './CardListPage.module.css'
 
@@ -41,7 +40,9 @@ export default function CardListPage() {
   const filters = useMemo(() => filtersFromParams(params), [params])
   const page = pageFromParams(params)
   const isMobile = useMediaQuery('(max-width: 640px)')
-  const { sets, rarities } = useFilterOptions()
+  // Generated with the card data (scripts/build-data.mjs), so they always match it
+  const sets: CardSet[] = bundledSets
+  const rarities: string[] = bundledRarities
   const search = useCardSearch(filters, page, isMobile ? 'append' : 'paged')
   const [panelOpen, setPanelOpen] = useState(false)
   const resultsRef = useRef<HTMLElement>(null)
@@ -78,12 +79,6 @@ export default function CardListPage() {
   function clearName() {
     setNameInput('')
     updateFilters({ name: '' })
-  }
-
-  /** From the invalid-search screen: the button disappears, and the next step is typing again */
-  function clearAndFocusSearch() {
-    clearName()
-    document.getElementById('card-search')?.focus()
   }
 
   function resetFilters() {
@@ -173,8 +168,6 @@ export default function CardListPage() {
     filters.rarity && { key: 'rarity', label: `희귀도: ${filters.rarity}`, clear: () => updateFilters({ rarity: '' }) },
   ].filter((chip) => !!chip)
 
-  const nameProblem = nameIssue(filters.name)
-  const rejected = status === 'error' && search.error instanceof ApiError && search.error.status === 400
 
   return (
     <main className={styles.main}>
@@ -185,7 +178,7 @@ export default function CardListPage() {
         <SearchBar
           value={nameInput}
           onChange={setNameInput}
-          placeholder={isMobile ? '카드 이름 검색 (영문)' : '카드 이름으로 검색 (예: Pikachu, Charizard)'}
+          placeholder={isMobile ? '카드 이름 검색' : '카드 이름으로 검색 (예: 리자몽, 피카츄, Charizard)'}
         />
       </div>
 
@@ -222,9 +215,7 @@ export default function CardListPage() {
         <h2 className="visually-hidden">검색 결과</h2>
         <div className={styles.resultBar}>
           <p id="result-count" aria-live="polite">
-            {status === 'invalid' || rejected ? (
-              '검색어 확인 필요'
-            ) : status === 'loading' && totalCount === 0 ? (
+            {status === 'loading' && totalCount === 0 ? (
               '카드를 불러오는 중…'
             ) : status === 'error' ? (
               '불러오기 실패'
@@ -263,11 +254,7 @@ export default function CardListPage() {
         {search.slow && status === 'loading' && <SlowNotice />}
 
         {status === 'loading' && <SkeletonGrid count={isMobile ? 6 : 12} />}
-        {status === 'invalid' && nameProblem && (
-          <InvalidSearchState reason={nameProblem} query={filters.name} onClear={clearAndFocusSearch} />
-        )}
-        {rejected && <InvalidSearchState reason="rejected" query={filters.name} onClear={clearAndFocusSearch} />}
-        {status === 'error' && !rejected && search.error && (
+        {status === 'error' && search.error && (
           <ErrorState
             error={search.error}
             onRetry={() => {

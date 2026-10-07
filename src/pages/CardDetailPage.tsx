@@ -1,11 +1,10 @@
 import { useEffect } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
-import { ApiError, getCard, getRelatedCards, getSetNeighbors } from '../api/pokemonTcg'
+import { ApiError, getCard, getRelatedCards, getSetNeighbors } from '../api/cards'
 import CardAttacks from '../components/detail/CardAttacks'
 import { BattleStats, CardInfo, CardRules } from '../components/detail/CardFacts'
 import CardImage from '../components/detail/CardImage'
 import CardNeighbors from '../components/detail/CardNeighbors'
-import CardPrices from '../components/detail/CardPrices'
 import RelatedCards from '../components/detail/RelatedCards'
 import detail from '../components/detail/detail.module.css'
 import { ErrorState, NotFoundState, SlowNotice } from '../components/ListStates'
@@ -63,15 +62,15 @@ export default function CardDetailPage() {
   const cardResource = useApiResource(`card:${id}`, (signal) => getCard(id, signal))
   const card = cardResource.data
   // Secondary lists load after the card; failures there don't hide the card itself
-  const neighbors = useApiResource(card ? `neighbors:${card.id}` : null, (signal) => getSetNeighbors(card!, signal))
+  const neighbors = useApiResource(card ? `neighbors:${card.id}` : null, (signal) => getSetNeighbors(card!.id, signal))
   const related = useApiResource(card ? `related:${card.id}` : null, (signal) =>
-    getRelatedCards(card!, RELATED_LIMIT, signal),
+    getRelatedCards(card!.id, RELATED_LIMIT, signal),
   )
   const notFound = cardResource.error instanceof ApiError && cardResource.error.isNotFound
 
   useEffect(() => {
     document.title = card
-      ? `${card.name} · ${SITE_TITLE}`
+      ? `${card.nameKo ?? card.name} · ${SITE_TITLE}`
       : notFound
         ? `카드를 찾을 수 없어요 · ${SITE_TITLE}`
         : SITE_TITLE
@@ -110,7 +109,7 @@ export default function CardDetailPage() {
             <span className={styles.sep} aria-hidden="true">
               /
             </span>
-            <span aria-current="page">{card.name}</span>
+            <span aria-current="page">{card.nameKo ?? card.name}</span>
           </>
         )}
       </nav>
@@ -153,7 +152,15 @@ export default function CardDetailPage() {
 
             <div className={styles.info}>
               <div className={styles.titleRow}>
-                <h1 className={styles.name}>{card.name}</h1>
+                <h1 className={styles.name}>
+                  {card.nameKo ?? card.name}
+                  {/* The card itself is printed in English: keep that name visible too */}
+                  {card.nameKo && (
+                    <span className={styles.nameEn} lang="en">
+                      {card.name}
+                    </span>
+                  )}
+                </h1>
                 {card.hp && (
                   <p className={styles.hp}>
                     <small>HP</small>
@@ -165,8 +172,11 @@ export default function CardDetailPage() {
                 <TypeBadges card={card} />
                 <span className={styles.subtitle}>{subtitle}</span>
                 {card.evolvesFrom && (
-                  <Link className={styles.evolves} to={`/?q=${encodeURIComponent(card.evolvesFrom)}`}>
-                    ← {card.evolvesFrom}에서 진화
+                  <Link
+                    className={styles.evolves}
+                    to={`/?q=${encodeURIComponent(card.evolvesFromKo ?? card.evolvesFrom)}`}
+                  >
+                    ← {card.evolvesFromKo ?? card.evolvesFrom}에서 진화
                   </Link>
                 )}
               </div>
@@ -175,7 +185,6 @@ export default function CardDetailPage() {
               <CardRules card={card} />
               <BattleStats card={card} />
               <CardInfo card={card} />
-              <CardPrices card={card} />
             </div>
           </div>
 
