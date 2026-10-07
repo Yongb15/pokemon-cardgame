@@ -99,7 +99,7 @@ const PREFIX_KO = [
   ['Shining', '빛나는'],
   ['Dark', '다크'],
   ['Light', '라이트'],
-  ['Origin Forme', '오리진폼'],
+  ['Origin Forme', '오리진', true], // cards print "오리진디아루가", not the game's form name "오리진폼"
   ['Single Strike', '일격'],
   ['Rapid Strike', '연격'],
   ['Ice Rider', '백마'],
