@@ -4,7 +4,15 @@
 
 **🔗 데모: https://pokemon-card-dex-git-develop-dydqls-projects.vercel.app**
 
-<!-- screenshots -->
+<table>
+  <tr>
+    <td width="64%"><img src="docs/screenshots/list-desktop.webp" alt="카드 목록 (151 세트, 번호순)"></td>
+    <td rowspan="2"><img src="docs/screenshots/search-mobile-dark.webp" alt="모바일 다크 모드에서 '피카츄' 한국어 검색"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/detail-desktop.webp" alt="카드 상세 (리자몽 ex)"></td>
+  </tr>
+</table>
 
 ## 주요 기능
 
