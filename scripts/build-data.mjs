@@ -317,6 +317,8 @@ for (const [i, set] of sets.entries()) {
       dex: card.nationalPokedexNumbers,
       set: set.id,
       image: card.images.small,
+      // Formats the card is legal in, for the deck builder: "s" standard, "e" expanded
+      legal: (card.legalities?.standard === 'Legal' ? 's' : '') + (card.legalities?.expanded === 'Legal' ? 'e' : ''),
     })
   }
   await writeFile(path.join(root, `data/cards/${set.id}.json`), JSON.stringify(cards))
@@ -327,6 +329,8 @@ const setsOut = sets.map((s) => ({
   id: s.id,
   name: s.name,
   series: s.series,
+  // The set code in Pokémon TCG Live deck lists ("PAF"); a few subsets share their main set's
+  ...(s.ptcgoCode && { code: s.ptcgoCode }),
   printedTotal: s.printedTotal,
   total: s.total,
   releaseDate: s.releaseDate,
@@ -342,7 +346,7 @@ await writeFile(
 // Client bundle: the filter selects
 await writeFile(
   path.join(root, 'src/data/sets.json'),
-  JSON.stringify(setsOut.map(({ id, name, series, releaseDate }) => ({ id, name, series, releaseDate }))).replace(/\},\{/g, '},\n{') + '\n',
+  JSON.stringify(setsOut.map(({ id, name, series, code, releaseDate }) => ({ id, name, series, code, releaseDate }))).replace(/\},\{/g, '},\n{') + '\n',
 )
 await writeFile(path.join(root, 'src/data/rarities.json'), JSON.stringify([...rarities].sort(), null, 2) + '\n')
 
