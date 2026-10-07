@@ -335,7 +335,9 @@ for (const [i, set] of sets.entries()) {
     const nameKo = officialKo ?? ownKey(cardNamesKo.names, card.name)
     const nameKoUnofficial = !officialKo && !!nameKo
     const evolvesFromKo =
-      koreanSpeciesName(card.evolvesFrom, speciesByName) ?? ownKey(cardNamesKo.names, card.evolvesFrom)
+      koreanSpeciesName(card.evolvesFrom, speciesByName) ??
+      ownKey(cardNamesKo.official, card.evolvesFrom) ??
+      ownKey(cardNamesKo.names, card.evolvesFrom)
     if (evolvesFromKo) card.evolvesFromKo = evolvesFromKo
     if (nameKo) card.nameKo = nameKo
     if (nameKoUnofficial) {
