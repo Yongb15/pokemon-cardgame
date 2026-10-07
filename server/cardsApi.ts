@@ -14,6 +14,8 @@ interface IndexEntry {
   id: string
   name: string
   nameKo?: string
+  /** nameKo is our own translation, not an official Korean name */
+  nameKoUnofficial?: boolean
   supertype: string
   subtypes?: string[]
   hp?: string
@@ -30,7 +32,9 @@ interface IndexEntry {
 interface SetInfo {
   id: string
   name: string
+  nameKo: string
   series: string
+  seriesKo: string
   printedTotal?: number
   total?: number
   releaseDate: string
@@ -132,7 +136,9 @@ function setSummary(set: SetInfo) {
   return {
     id: set.id,
     name: set.name,
+    nameKo: set.nameKo,
     series: set.series,
+    seriesKo: set.seriesKo,
     releaseDate: set.releaseDate,
     images: {
       logo: `${hosted}/logo.png`,
@@ -150,6 +156,7 @@ function listItem(store: Store, c: IndexEntry) {
     id: c.id,
     name: c.name,
     ...(c.nameKo && { nameKo: c.nameKo }),
+    ...(c.nameKoUnofficial && { nameKoUnofficial: true }),
     supertype: c.supertype,
     subtypes: c.subtypes,
     hp: c.hp,

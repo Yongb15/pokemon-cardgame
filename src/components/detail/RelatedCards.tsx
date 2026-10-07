@@ -50,7 +50,7 @@ export default function RelatedCards({ card, status, related, onRetry, linkState
                       height={342}
                     />
                     <span className={styles.miniName}>{c.nameKo ?? c.name}</span>
-                    <span className={styles.miniSet}>{c.set.name}</span>
+                    <span className={styles.miniSet}>{c.set.nameKo}</span>
                   </Link>
                 </li>
               ))

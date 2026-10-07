@@ -13,7 +13,10 @@ export interface CardImages {
 export interface CardSetSummary {
   id: string
   name: string
+  /** Our Korean translation of the English set name (there's no official one) */
+  nameKo: string
   series: string
+  seriesKo: string
   releaseDate: string
   printedTotal?: number
   total?: number
@@ -26,7 +29,7 @@ export interface CardSetSummary {
 }
 
 /** Set as listed by `/sets` with `select=id,name,series,releaseDate` */
-export type CardSet = Pick<CardSetSummary, 'id' | 'name' | 'series' | 'releaseDate'>
+export type CardSet = Pick<CardSetSummary, 'id' | 'name' | 'nameKo' | 'series' | 'seriesKo' | 'releaseDate'>
 
 export interface Attack {
   name: string
@@ -50,8 +53,10 @@ export interface TypeModifier {
 export interface Card {
   id: string
   name: string
-  /** Official Korean name where one exists (Pokémon via PokéAPI, basic Energy) */
+  /** Korean name: official where one exists (PokéAPI, checked dictionary), else our translation */
   nameKo?: string
+  /** `nameKo` is our own translation, not an official Korean name */
+  nameKoUnofficial?: boolean
   supertype: string
   subtypes?: string[]
   hp?: string
@@ -78,7 +83,7 @@ export interface Card {
 /** What the list and related-cards sections get: a subset of the card, no large image */
 export type CardListItem = Pick<
   Card,
-  'id' | 'name' | 'nameKo' | 'supertype' | 'subtypes' | 'hp' | 'types' | 'number' | 'rarity' | 'set'
+  'id' | 'name' | 'nameKo' | 'nameKoUnofficial' | 'supertype' | 'subtypes' | 'hp' | 'types' | 'number' | 'rarity' | 'set'
 > & {
   images: Pick<CardImages, 'small' | 'fallbackSmall'>
   /** Formats besides Unlimited the card is legal in ("standard", "expanded") */
