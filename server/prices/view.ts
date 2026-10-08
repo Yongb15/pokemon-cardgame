@@ -38,9 +38,14 @@ export interface EditionView {
   others: Price[]
   history: {
     points: Point[]
-    /** Days with no confirmed price between two levels: refreshes failed (qa D-4) */
+    /** Days nobody confirmed a price: refreshes failed (qa D-4). Outlier days are not gaps. */
     gaps: { from: string; to: string }[]
-    /** The last price before the range, when nothing in the range is known yet (qa D-4) */
+    /** Days whose price was an outlier and is left out of the line (qa D-5, P3-1) */
+    excluded: { from: string; to: string }[]
+    /**
+     * The last price before the range, when the range doesn't start with a known price (the card
+     * went unchecked into the range, or nothing in it is known yet): the line's starting point (qa D-4)
+     */
     before: Point | null
   }
   summary: { min: number; max: number; changePct: number | null } | null
@@ -84,7 +89,7 @@ export function editionView(rows: StoredRow[], rates: Rates, rangeDays: number, 
     }
   }
   if (!headKey) {
-    return { latest: null, others: [], history: { points: [], gaps: [], before: null }, summary: null, staleDays: null }
+    return { latest: null, others: [], history: { points: [], gaps: [], excluded: [], before: null }, summary: null, staleDays: null }
   }
 
   const head = groups.get(headKey)!
@@ -92,23 +97,44 @@ export function editionView(rows: StoredRow[], rates: Rates, rangeDays: number, 
   const latest = price(last, rates)
   const others = [...groups.entries()].filter(([k]) => k !== headKey).map(([, g]) => price(g.at(-1)!, rates))
 
-  // Daily points over the range from the headline's levels, each day at that day's rate
+  // Daily points over the range from the headline's levels, each day at that day's rate. A later
+  // level wins a day both cover (the old level seen and a new one captured the same day: qa P3-2).
   const start = addDays(today, -(rangeDays - 1))
-  const points: Point[] = []
-  const gaps: { from: string; to: string }[] = []
-  let prevEnd: string | null = null
+  const clip = (r: StoredRow) => ({ from: r.capturedOn > start ? r.capturedOn : start, to: r.lastSeenOn < today ? r.lastSeenOn : today })
+  const byDay = new Map<string, number | null>()
   for (const level of head) {
     if (level.lastSeenOn < start) continue
-    const from = level.capturedOn > start ? level.capturedOn : start
-    const to = level.lastSeenOn < today ? level.lastSeenOn : today
-    if (prevEnd && daysBetween(prevEnd, from) > 1) gaps.push({ from: addDays(prevEnd, 1), to: addDays(from, -1) })
-    for (let day = from; day <= to; day = addDays(day, 1)) points.push({ date: day, krw: price(level, rates, day).krw })
-    prevEnd = to
+    const { from, to } = clip(level)
+    for (let day = from; day <= to; day = addDays(day, 1)) byDay.set(day, price(level, rates, day).krw)
   }
+  const points: Point[] = [...byDay].sort(([a], [b]) => a.localeCompare(b)).map(([date, krw]) => ({ date, krw }))
+
+  // Days some row of this price confirmed, outliers included: an outlier day was checked, so it's
+  // left out of the line but isn't a failed refresh (qa P3-1)
+  const [source, variant] = headKey.split(':')
+  const sameKind = rows.filter((r) => r.source === source && r.variant === variant && r.lastSeenOn >= start)
+  const seen = new Set<string>()
+  const excluded: { from: string; to: string }[] = []
+  for (const r of sameKind) {
+    const { from, to } = clip(r)
+    for (let day = from; day <= to; day = addDays(day, 1)) seen.add(day)
+    if (r.flagged) excluded.push({ from, to })
+  }
+
   const earlier = head.filter((r) => r.lastSeenOn < start).at(-1)
   const before = earlier && (!points.length || points[0].date > start) ? { date: earlier.lastSeenOn, krw: price(earlier, rates).krw } : null
-  // A gap from the last earlier level up to the first point in range counts too
-  if (earlier && points.length && points[0].date > start) gaps.unshift({ from: start, to: addDays(points[0].date, -1) })
+  // Unchecked days from the first point (or the range start, when something came before) to the last
+  const gaps: { from: string; to: string }[] = []
+  if (points.length) {
+    let open: string | null = null
+    for (let day = earlier ? start : points[0].date; day <= points.at(-1)!.date; day = addDays(day, 1)) {
+      if (!seen.has(day)) open ??= day
+      else if (open) {
+        gaps.push({ from: open, to: addDays(day, -1) })
+        open = null
+      }
+    }
+  }
 
   const values = points.map((p) => p.krw).filter((v): v is number => v !== null)
   const summary = values.length
@@ -120,5 +146,5 @@ export function editionView(rows: StoredRow[], rates: Rates, rangeDays: number, 
     : null
 
   const age = daysBetween(last.lastSeenOn, today)
-  return { latest, others, history: { points, gaps, before }, summary, staleDays: age > 1 ? age : null }
+  return { latest, others, history: { points, gaps, excluded, before }, summary, staleDays: age > 1 ? age : null }
 }

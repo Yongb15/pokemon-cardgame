@@ -3,8 +3,9 @@
 
 import { neon } from '@neondatabase/serverless'
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
+import type { BatchItem } from 'drizzle-orm/batch'
 import { drizzle } from 'drizzle-orm/neon-http'
-import { cardEditionLink, fxRate, priceRefresh, priceSnapshot } from '../db/schema.js'
+import { cardEditionLink, dailyCounter, fxRate, priceRefresh, priceSnapshot } from '../db/schema.js'
 import { daysBetween, decideOutlier, isUsableRate, type Currency, type LevelRow } from './logic.js'
 import type { FxResult, PriceRow } from './sources.js'
 
@@ -49,6 +50,14 @@ export async function claimRefresh(cardId: string): Promise<boolean> {
 
 export async function setRefreshStatus(cardId: string, status: 'ok' | 'not_found' | 'error') {
   await run((d) => d.update(priceRefresh).set({ status }).where(eq(priceRefresh.cardId, cardId)))
+}
+
+/** Whether a daily budget has units left, without taking one (no write once it's used up) */
+export async function budgetLeft(name: string, day: string, limit: number): Promise<boolean> {
+  const [row] = await run((d) =>
+    d.select({ value: dailyCounter.value }).from(dailyCounter).where(and(eq(dailyCounter.name, name), eq(dailyCounter.day, day))),
+  )
+  return (row?.value ?? 0) < limit
 }
 
 /** Takes one unit of a daily budget; false once `limit` is used up */
@@ -101,30 +110,42 @@ const round2 = (n: number) => Math.round(n * 100) / 100
  * three days at the new level (qa D-5). Returns how many levels changed.
  */
 export async function savePrices(cardId: string, edition: 'en' | 'ja', rows: PriceRow[], today: string) {
-  let changed = 0
-  for (const row of rows) {
-    const value = round2(row.market)
-    const key = and(
+  // Read everything first, then write all of it in one transaction, so a reader never sees some
+  // variants new and some old (qa P3-3)
+  const keyOf = (row: PriceRow) =>
+    and(
       eq(priceSnapshot.cardId, cardId),
       eq(priceSnapshot.edition, edition),
       eq(priceSnapshot.source, row.source),
       eq(priceSnapshot.variant, row.variant),
     )
-    const recent = (
-      await run((d) =>
-        d
-          .select({
-            capturedOn: priceSnapshot.capturedOn,
-            lastSeenOn: priceSnapshot.lastSeenOn,
-            market: priceSnapshot.market,
-            flagged: priceSnapshot.flagged,
-          })
-          .from(priceSnapshot)
-          .where(key)
-          .orderBy(desc(priceSnapshot.capturedOn))
-          .limit(30),
-      )
-    ).reverse()
+  const recents = await Promise.all(
+    rows.map(async (row) =>
+      (
+        await run((d) =>
+          d
+            .select({
+              capturedOn: priceSnapshot.capturedOn,
+              lastSeenOn: priceSnapshot.lastSeenOn,
+              market: priceSnapshot.market,
+              flagged: priceSnapshot.flagged,
+            })
+            .from(priceSnapshot)
+            .where(keyOf(row))
+            .orderBy(desc(priceSnapshot.capturedOn))
+            .limit(30),
+        )
+      ).reverse(),
+    ),
+  )
+
+  const d = getDb()
+  const writes: BatchItem<'pg'>[] = []
+  let changed = 0
+  rows.forEach((row, i) => {
+    const value = round2(row.market)
+    const key = keyOf(row)
+    const recent = recents[i]
 
     // A second run on the same day replaces today's row
     const last = recent.at(-1)
@@ -140,11 +161,11 @@ export async function savePrices(cardId: string, edition: 'en' | 'ja', rows: Pri
 
     if (previous && previous.market === value && last?.capturedOn !== today) {
       // Same level again: extend it
-      await run((d) =>
+      writes.push(
         d.update(priceSnapshot).set({ lastSeenOn: today }).where(and(key, eq(priceSnapshot.capturedOn, previous.capturedOn))),
       )
     } else {
-      await run((d) =>
+      writes.push(
         d
           .insert(priceSnapshot)
           .values({
@@ -177,9 +198,10 @@ export async function savePrices(cardId: string, edition: 'en' | 'ja', rows: Pri
     // The new level held for three days: its earlier flagged rows become normal too
     if (!decision.flagged && decision.acceptRun > 0) {
       const runDays = history.slice(-decision.acceptRun).map((r) => r.capturedOn)
-      await run((d) => d.update(priceSnapshot).set({ flagged: false }).where(and(key, inArray(priceSnapshot.capturedOn, runDays))))
+      writes.push(d.update(priceSnapshot).set({ flagged: false }).where(and(key, inArray(priceSnapshot.capturedOn, runDays))))
     }
-  }
+  })
+  if (writes.length) await run((db) => db.batch(writes as [BatchItem<'pg'>, ...BatchItem<'pg'>[]]))
   return changed
 }
 

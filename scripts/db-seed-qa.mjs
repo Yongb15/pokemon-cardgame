@@ -81,6 +81,10 @@ const histories = {
   'sv3pt5-199': [{ edition: 'en', source: 'tcgplayer', variant: 'holo', currency: 'USD', levels: [level(-60, 0, 920)] }],
   // 10. Stale: the last value is 10 days old and the latest refresh failed
   'sv6-3': [{ edition: 'en', source: 'tcgplayer', variant: 'normal', currency: 'USD', levels: [level(-40, -10, 0.18)] }],
+  // 14. Only known before the 30-day range (30d: `before` only; 90d: points)
+  'sv6-5': [{ edition: 'en', source: 'tcgplayer', variant: 'normal', currency: 'USD', levels: [level(-60, -40, 0.3)] }],
+  // 15. Unchecked days at the start of the range: `before` + a gap from the range start
+  'sv6-6': [{ edition: 'en', source: 'tcgplayer', variant: 'normal', currency: 'USD', levels: [level(-60, -35, 0.2), level(-10, 0, 0.3)] }],
   // 11. Captured on a weekend (a Saturday 1–7 days ago), rates exist only on weekdays
   'sv6-4': [],
 }
@@ -94,6 +98,7 @@ histories['sv6-4'] = [{ edition: 'en', source: 'tcgplayer', variant: 'normal', c
 const links = [
   { cardId: 'sv3pt5-6', externalId: 'SV2a-006', method: 'manual', confidence: 1, verified: true }, // 8a
   { cardId: 'sv3pt5-25', externalId: 'SV2a-025', method: 'manual', confidence: 1, verified: true }, // 8b
+  { cardId: 'sv3pt5-4', externalId: 'SV2a-004', method: 'auto', confidence: 0.5, verified: false }, // 8e. checking
   // 8c. sv3pt5-1: no link row yet ("연결 정보가 아직 없어요")
   { cardId: 'swsh12tg-TG01', externalId: '', method: 'none', confidence: 1, verified: true }, // 8d. English-only
 ]

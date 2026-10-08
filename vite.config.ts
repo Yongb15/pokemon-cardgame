@@ -18,6 +18,7 @@ function cardsApi(): Plugin {
           const response = await handlePrices(decodeURIComponent(prices[1]), url.searchParams, {
             method: req.method ?? 'GET',
             userAgent: req.headers['user-agent'] ?? null,
+            fetchSite: (req.headers['sec-fetch-site'] as string | undefined) ?? null,
           })
           res.statusCode = response.status
           response.headers.forEach((value: string, key: string) => res.setHeader(key, value))

@@ -65,10 +65,16 @@ describe('edition view', () => {
     expect(view.latest).toMatchObject({ date: '2026-10-03', fxDate: '2026-10-02', krw: 200 })
   })
 
-  it('leaves flagged outliers out', () => {
+  it('leaves flagged outliers out, as excluded days, not gaps (qa P3-1)', () => {
     const view = editionView([row(-30, -11, 0.2), row(-10, -10, 2.5, { flagged: true }), row(-9, 0, 0.21)], rates, 30, today)
     expect(view.summary?.max).toBe(210)
     expect(view.history.points.some((p) => p.krw === 2500)).toBe(false)
+    expect(view.history.gaps).toEqual([])
+    expect(view.history.excluded).toEqual([{ from: d(-10), to: d(-10) }])
+  })
+  it('keeps one point per day, the newer level winning (qa P3-2)', () => {
+    const view = editionView([row(-5, 0, 0.16), row(0, 0, 0.19)], rates, 30, today)
+    expect(view.history.points.filter((p) => p.date === today)).toEqual([{ date: today, krw: 190 }])
   })
 
   it('draws a level that started before the range from the range start (qa D-4)', () => {
@@ -83,6 +89,11 @@ describe('edition view', () => {
     expect(view.history.gaps).toEqual([{ from: d(-11), to: d(-6) }])
   })
 
+  it('starts from the earlier price when the range opens with unchecked days (qa D-4)', () => {
+    const view = editionView([row(-60, -35, 0.2), row(-10, 0, 0.3)], rates, 30, today)
+    expect(view.history.before).toEqual({ date: d(-35), krw: 200 })
+    expect(view.history.gaps).toEqual([{ from: d(-29), to: d(-11) }])
+  })
   it('gives the last earlier price when nothing in the range is known (qa D-4)', () => {
     const view = editionView([row(-60, -40, 0.18)], rates, 30, today)
     expect(view.history.points).toEqual([])

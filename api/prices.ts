@@ -11,6 +11,7 @@ export function GET(request: Request) {
   return handlePrices(id, url.searchParams, {
     method: request.method,
     userAgent: request.headers.get('user-agent'),
+    fetchSite: request.headers.get('sec-fetch-site'),
     waitUntil,
   })
 }
