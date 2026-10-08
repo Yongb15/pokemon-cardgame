@@ -103,7 +103,8 @@ const links = [
   { cardId: 'swsh12tg-TG01', externalId: '', method: 'none', confidence: 1, verified: true }, // 8d. English-only
 ]
 
-const allIds = [...new Set([...Object.keys(histories), 'basep-1', 'swsh12tg-TG01', 'sve-1'])]
+// Every card the seed touches, links included, so a second run starts clean
+const allIds = [...new Set([...Object.keys(histories), ...links.map((l) => l.cardId), 'basep-1', 'sve-1'])]
 
 await sql`delete from price_snapshot where card_id = any(${allIds})`
 await sql`delete from price_refresh where card_id = any(${allIds})`
