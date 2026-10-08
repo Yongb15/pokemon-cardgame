@@ -148,6 +148,25 @@ export class PgStore implements AccountStore {
     return REQUIRED_PRIVILEGES.filter((_, i) => ok[i] !== true).map(([t, c, p]) => `${p} ${t}${c ? `.${c}` : ''}`)
   }
 
+  /**
+   * Grants api_rw must NOT have: a migration that widens them by mistake shows up as a start-up
+   * warning (Security, step 3 Info). Returns the ones it has.
+   */
+  async excessPrivileges(): Promise<string[]> {
+    const { rows } = await this.db.execute<Record<string, boolean>>(sql`select
+      has_column_privilege('account.sessions', 'created_at', 'INSERT') as "INSERT account.sessions.created_at",
+      has_column_privilege('account.users', 'created_at', 'UPDATE') as "UPDATE account.users.created_at",
+      has_column_privilege('account.sessions', 'user_id', 'UPDATE') as "UPDATE account.sessions.user_id",
+      has_table_privilege('account.sessions', 'TRUNCATE') as "TRUNCATE account.sessions",
+      has_table_privilege('account.oauth_accounts', 'UPDATE') as "UPDATE account.oauth_accounts",
+      has_table_privilege('public.price_snapshot', 'SELECT') as "SELECT public.price_snapshot",
+      has_database_privilege(current_database(), 'CREATE') as "CREATE on the database",
+      has_schema_privilege('account', 'CREATE') as "CREATE on schema account"`)
+    return Object.entries(rows[0] ?? {})
+      .filter(([, granted]) => granted === true)
+      .map(([name]) => name)
+  }
+
   async isDevDatabase() {
     try {
       await this.db.execute(sql`select 1 from public.dev_marker limit 1`)
