@@ -34,3 +34,6 @@ public/sitemap.xml
 # Vercel CLI link (project/org ids) and private keys
 .vercel
 *.pem
+
+# Downloaded source data (scripts cache their requests here)
+.cache

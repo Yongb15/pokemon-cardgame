@@ -1,4 +1,5 @@
 import type { Card, CardListItem, CardSummary, PagedResponse } from '../types/card'
+import type { PricesResponse } from '../types/prices'
 
 // Our own card API (server/cardsApi.ts): a Vercel Function in production, Vite middleware in dev.
 const BASE_URL = '/api/cards'
@@ -212,4 +213,9 @@ export async function getCardsBatch(ids: string[], signal?: AbortSignal) {
 export async function getRelatedCards(id: string, limit: number, signal?: AbortSignal) {
   const res = await request<{ data: CardListItem[]; totalCount: number }>(`${cardPath(id)}/related`, { limit }, signal)
   return { cards: res.data, totalCount: res.totalCount }
+}
+
+/** A card's prices by edition over the last 30 or 90 days */
+export function getCardPrices(id: string, range: '30d' | '90d', signal?: AbortSignal) {
+  return request<PricesResponse>(`${cardPath(id)}/prices`, { range }, signal)
 }

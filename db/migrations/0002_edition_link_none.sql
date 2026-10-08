@@ -1,0 +1,2 @@
+ALTER TABLE "card_edition_link" DROP CONSTRAINT "card_edition_link_method_check";--> statement-breakpoint
+ALTER TABLE "card_edition_link" ADD CONSTRAINT "card_edition_link_method_check" CHECK (method in ('auto', 'manual', 'none'));

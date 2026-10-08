@@ -29,6 +29,7 @@
   - 로그인 없이 브라우저에 저장, 덱 내용을 담은 링크로 공유(받은 덱은 항상 새 덱으로 저장)
 - **필터와 정렬** — 타입·세트·희귀도 필터, 최신/오래된 세트순·이름순·번호순, 상태는 URL에 저장(새로고침·공유·뒤로 가기 유지)
 - **카드 상세** — 큰 이미지 뷰어, 기술·특성(에너지 비용), 약점·저항력·후퇴, 세트 정보, 대회 사용 가능 여부, 같은 세트의 이전/다음 카드, 같은 포켓몬의 다른 카드
+- **카드 시세** — 카드 상세에서 영문판·일본판 시세를 원화로(TCGplayer·Cardmarket, 그날 환율로 환산), 30·90일 그래프와 최저·최고·변동률, 버전(일반·홀로·리버스)별 시세. 이력은 매일 직접 쌓고(바뀐 값만 저장), 이상치는 그래프에서 빼며, 확인하지 못한 기간은 점선과 글로 표시. 일본판은 영문판 카드와 자동 대조한 연결표로 SV·메가 시대 포켓몬 1,971장(qa가 표본 143장을 그림으로 대조해 규칙을 다듬고, 신뢰도 높은 연결만 표시), 한글판은 크림·번개장터 검색 링크로 안내
 - **탐색 흐름 유지** — 상세에서 돌아오면 필터·페이지·스크롤 위치(모바일 "더 보기"로 쌓은 목록 포함) 복원
 - **반응형·접근성** — 6열 → 2열 그리드, 다크 모드, 키보드 조작, 스크린 리더 레이블, 강조색 글자·버튼 WCAG AA 대비, Lighthouse(모바일, 정식 주소) 접근성·권장사항·SEO 100점
 - **보안** — CSP·X-Frame-Options 등 보안 헤더, API 파라미터 화이트리스트와 길이·개수 제한, 프로토타입 키(`constructor`, `__proto__`) 방어, 붙여넣은 덱 목록·공유 링크·저장소 값을 한 곳에서 검증
@@ -38,7 +39,10 @@
 | 구분 | 사용 기술 |
 |---|---|
 | 프론트엔드 | React 19, TypeScript, Vite 8, React Router 7, CSS Modules |
-| 서버 | Vercel Functions (`api/cards.ts`) |
+| 서버 | Vercel Functions (`api/cards.ts` 카드, `api/prices.ts` 시세, `api/cron/prices.ts` 매일 시세 수집) |
+| DB | PostgreSQL ([Neon](https://neon.tech), `production`·`dev` 브랜치), Drizzle ORM·마이그레이션, 최소 권한 앱 계정 |
+| 시세·환율 | [TCGdex](https://tcgdex.dev) (TCGplayer·Cardmarket 시세, 일본판 카드), [Frankfurter](https://frankfurter.dev) (ECB 환율) |
+| 테스트 | Vitest (시세 규칙·외부 응답 파싱·인증 경계 65개) |
 | 데이터 | 자체 보유 카드 데이터([pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)) + 공식 한국어 포켓몬·아이템·장소 이름([PokéAPI](https://github.com/PokeAPI/pokeapi)) + 공식 카드 검색과 대조한 이름 사전 + 자체 번역(비공식 표시) |
 | 덱 저장 | 브라우저 localStorage (버전 관리), 공유는 URL 쿼리 |
 | 이미지 | 자체 변환 WebP, GitHub Pages 호스팅 |
@@ -53,8 +57,12 @@
                       └─ scripts/build-images.mjs ─> GitHub Pages   카드 이미지 WebP (245px · 440px)
 
   브라우저 ──> /api/cards  (Vercel Function, server/cardsApi.ts)    검색 · 상세 · 이전/다음 · 관련 카드 · 덱 카드 일괄 조회
+          ├──> /api/cards/:id/prices  (Vercel Function, server/prices/)     저장된 시세 → 원화 · 그래프, 하루 지난 카드는 응답 뒤 갱신
           ├──> 카드 이미지  (GitHub Pages, 실패하면 원본 이미지로 대체)
           └──> localStorage (덱 저장, 서버에는 저장하지 않음)
+
+  Vercel Cron (매일 03:00 KST) ──> /api/cron/prices ──> TCGdex · Frankfurter ──> Neon PostgreSQL
+                                   (비밀 값 인증)        (하루 2,000장)            (바뀐 값만 저장)
 ```
 
 - 외부 API를 실시간으로 호출하지 않습니다. 카드 데이터는 고정된 커밋에서 생성하고(`data/meta.json`), 서버 함수가 메모리에 올려 응답합니다(검색 수 ms, 응답은 엣지에 하루 캐시).
@@ -86,6 +94,14 @@
 ### 6. 덱 규칙의 스탠다드 판정
 원본 카드 데이터의 대회 사용 가능 여부가 갱신되지 않아, 이미 스탠다드에서 빠진 F 레귤레이션 카드는 "사용 가능", 최신 세트는 "사용 불가"로 나왔습니다(qa 발견).
 → 데이터 값 대신 카드의 **레귤레이션 마크**로 판정하도록 바꿨습니다(2026-04-10 로테이션 기준 H 이후). 기본 에너지는 항상 사용 가능하고, 데이터의 금지 카드는 그대로 반영합니다. 원본 데이터의 분류 오류(포켓몬이 트레이너스로 들어간 카드)는 카드 id별 보정 목록으로 고칩니다.
+
+### 7. 무료로 쓸 수 있는 시세 출처가 거의 없음
+TCGplayer·Cardmarket 공식 API는 신규 발급이 막혔고, 쓰던 API는 2027년 종료, 대안은 유료였습니다. 한국 시세는 공개 API가 없고 크롤링은 약관 위반입니다.
+→ 무료인 TCGdex 시세를 매일 받아 **이력은 우리 DB에 직접 쌓고**, 한글판은 데이터를 수집하지 않고 검색 링크만 둡니다([ADR 0001](docs/adr/0001-price-data-sources.md)). 영문판과 일본판은 Cardmarket 상품 id가 서로 달라(조사로 확인) 도감 번호·HP·기술 대미지·일러스트레이터로 직접 대조했고, 환율은 원화 기준으로 받으면 소수 다섯째 자리에서 잘려 0.4% 틀려서 유로 기준 교차 환율로 계산합니다.
+
+### 8. 보안 점검으로 바뀐 설계
+처음 설계에서는 "상세 페이지를 열면 하루 지난 카드만 갱신"이 누구나 외부 요청을 일으키는 통로였습니다.
+→ Security 점검으로 ① 없는 카드는 DB 접근 전에 404 ② 같은 카드는 DB에서 **원자적으로 선점한 요청 하나만** 갱신(동시 요청 8개 → 1개) ③ 하루 예산(3,000회)을 **선점보다 먼저** 확인 — 순서가 반대면 예산이 바닥난 뒤 모든 카드가 선점만 되고 갱신되지 않아 사이트 전체 시세를 멈출 수 있었습니다 ④ `range` 외 파라미터는 400(캐시 우회 차단). DB 계정도 Neon 콘솔로 만들면 관리자 그룹에 들어가는 것을 발견해 SQL로 만든 **최소 권한 계정**(테이블별 권한, 5초 제한)으로 바꿨습니다.
 
 ## 개발 방식
 
@@ -119,9 +135,12 @@ npm install
 npm run dev          # 개발 서버 (기본 http://localhost:5173, /api/cards 포함)
 npm run build        # sitemap 생성 + 타입 검사 + 프로덕션 빌드
 npm run lint         # 린트
+npm test             # 단위 테스트 (Vitest)
 npm run build:data   # 카드 데이터 다시 생성 (data/, src/data/)
 node scripts/build-images.mjs <출력 폴더>   # 카드 이미지 WebP 생성 (재실행하면 이어서 진행)
 ```
+
+시세 기능은 PostgreSQL이 필요합니다. `.env.example`을 `.env`로 복사해 Neon `dev` 브랜치 주소를 넣고(`DATABASE_URL`은 앱 계정, `DATABASE_URL_OWNER`는 마이그레이션용), `npm run db:migrate`로 테이블을 만듭니다. `.env`는 저장소에 올라가지 않습니다.
 
 ## API
 
@@ -132,12 +151,19 @@ node scripts/build-images.mjs <출력 폴더>   # 카드 이미지 WebP 생성 (
 | `GET /api/cards/:id` | 카드 상세 |
 | `GET /api/cards/:id/neighbors` | 같은 세트의 이전/다음 카드 |
 | `GET /api/cards/:id/related?limit=` | 같은 포켓몬(또는 같은 이름)의 다른 카드 |
+| `GET /api/cards/:id/prices?range=30d\|90d` | 판본별 시세(원화·원래 통화), 기간 이력·빈 구간·요약, 일본판 연결 상태, 한글판 검색 링크 |
+| `GET /api/cron/prices` | 매일 시세 수집 (Vercel Cron 전용, `Authorization: Bearer $CRON_SECRET`) |
 
 ## 폴더 구조
 
 ```
-api/cards.ts         Vercel Function 진입점
+api/                 Vercel Function 진입점 (cards.ts, prices.ts, cron/prices.ts)
 server/cardsApi.ts   카드 API (개발 서버와 공유)
+server/db/           DB 스키마 (Drizzle)
+server/prices/       시세: 규칙(logic) · 외부 출처(sources) · 저장(store) · 수집(cron) · 화면용 변환(view) · API
+db/migrations/       SQL 마이그레이션 (앱 계정 권한 포함)
+docs/adr/            설계 결정 기록 (시세 출처, DB)
+docs/price/          시세 설계 문서
 scripts/             build-data.mjs(카드 데이터·한국어 이름·포맷), build-images.mjs(이미지),
                      trainer-names-ko.json(트레이너스 이름 사전), card-names-ko.json(공식 확인 이름·비공식 번역),
                      set-names-ko.json(세트·시리즈), apply-verified-names.mjs(qa 대조 결과 반영),
@@ -165,7 +191,8 @@ src/
 - [x] v1.0.1 첫 화면 속도, 링크 미리보기 이미지
 - [x] 트레이너스 카드 한국어 이름 (공식 카드 검색과 대조)
 - [x] v1.1.0 덱 빌더 (M4), 모든 카드·세트·희귀도 한국어
-- [ ] 카드 시세 — 판본(영문·일본·한글)·상태별 시세, 해외 시세 원화 환산
+- [x] 카드 시세 (M5) — 영문판·일본판 시세 원화 환산, 매일 이력 수집, 30·90일 그래프, 한글판 검색 링크 (v1.2.0)
+- [ ] 시세 확장 — 트레이너스 카드 일본판 연결, 등급(PSA) 시세, 한글판 낙찰가·사용자 제보
 - [ ] 로그인·회원가입 + DB (PostgreSQL) — 프론트엔드/백엔드 분리
 - [ ] 가상 포인트 경매 — 실시간 입찰, 포인트 장부, 동시 입찰 처리
 - [ ] 덱 통계(타입·종류별 장수), 카드 상세에서 바로 덱에 담기
@@ -179,5 +206,8 @@ src/
 - 그 밖의 카드 이름과 세트 이름: 자체 번역 (사이트에 "비공식 번역"으로 표시)
 - 스탠다드 레귤레이션: [2026 Standard Format Rotation Announcement](https://www.pokemon.com/us/pokemon-news/2026-pokemon-tcg-standard-format-rotation-announcement)
 - 카드 이미지: Pokémon TCG API 이미지를 변환해 호스팅
+- 시세·일본판 카드: [TCGdex](https://tcgdex.dev) (TCGplayer·Cardmarket 시세 포함, 데이터 MIT). 표시 시세는 참고용
+- 환율: [Frankfurter](https://frankfurter.dev) (유럽중앙은행 기준 환율)
+- 한글판 시세: 수집하지 않고 크림·번개장터 검색으로 연결
 
 Pokémon 및 관련 상표·이미지의 권리는 Nintendo, Creatures, GAME FREAK, The Pokémon Company에 있으며, 이 프로젝트는 학습·포트폴리오 목적의 비공식 팬 프로젝트입니다.

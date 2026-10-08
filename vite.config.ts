@@ -9,7 +9,29 @@ function cardsApi(): Plugin {
   return {
     name: 'cards-api',
     configureServer(server) {
+      // Server-side only: the dev API reads DATABASE_URL like the Vercel Function does. (Vite's own
+      // env loading only exposes VITE_ variables to the client; nothing here reaches the bundle.)
+      try {
+        process.loadEnvFile('.env')
+      } catch {
+        // no .env: the prices API answers 500 locally, everything else works
+      }
       server.middlewares.use('/api/cards', async (req, res) => {
+        // /api/cards/:id/prices is its own function on Vercel (server/prices/api.ts)
+        const prices = /^\/([^/?]+)\/prices(?:\?|$)/.exec(req.url ?? '')
+        if (prices) {
+          const { handlePrices } = (await server.ssrLoadModule('/server/prices/api.ts')) as typeof import('./server/prices/api.js')
+          const url = new URL(req.url ?? '/', 'http://localhost')
+          const response = await handlePrices(decodeURIComponent(prices[1]), url.searchParams, {
+            method: req.method ?? 'GET',
+            userAgent: req.headers['user-agent'] ?? null,
+            fetchSite: (req.headers['sec-fetch-site'] as string | undefined) ?? null,
+          })
+          res.statusCode = response.status
+          response.headers.forEach((value: string, key: string) => res.setHeader(key, value))
+          res.end(await response.text())
+          return
+        }
         const { handleCards } = (await server.ssrLoadModule('/server/cardsApi.ts')) as typeof import('./server/cardsApi.js')
         const url = new URL(req.url ?? '/', 'http://localhost')
         const response = await handleCards(url.pathname, url.searchParams)
