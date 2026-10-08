@@ -1,0 +1,10 @@
+{
+  "name": "@card-dex/shared",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Rules and types shared by the web app and the API server",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
