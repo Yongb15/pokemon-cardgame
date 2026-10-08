@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getCardPrices } from '../../api/cards'
 import { useApiResource } from '../../hooks/useApiResource'
 import type { CardPrices as Prices, EditionView, Price } from '../../types/prices'
@@ -23,6 +23,9 @@ const CURRENCY: Record<string, (n: number) => string> = {
   JPY: (n) => `¥${Math.round(n).toLocaleString('ko-KR')}`,
 }
 
+/** More would make the box taller than its reserved height (qa P4-4) */
+const MAX_OTHERS = 2
+
 const label = (map: Record<string, string>, key: string) => (Object.hasOwn(map, key) ? map[key] : key)
 const won = (krw: number) => `₩${krw.toLocaleString('ko-KR')}`
 /** "2026-10-08" → "10.08" (prices are kept per UTC day) */
@@ -35,6 +38,12 @@ function priceText(price: Price) {
 function original(price: Price) {
   const amount = Object.hasOwn(CURRENCY, price.currency) ? CURRENCY[price.currency](price.amount) : `${price.amount} ${price.currency}`
   return `${amount} · ${label(SOURCE_LABEL, price.source)} · ${label(VARIANT_LABEL, price.variant)}`
+}
+
+/** Whether an edition has prices to show over a period */
+function hasPrices(data: Prices, edition: Edition) {
+  if (edition === 'en') return !!data.editions.en.latest
+  return edition === 'ja' && data.editions.ja.state === 'ok'
 }
 
 /** The edition to show first: the first one with prices (qa) */
@@ -125,11 +134,19 @@ function EditionPrices({ view, data, rangeDays }: { view: EditionView; data: Pri
       </p>
       {view.others.length > 0 && (
         <ul className={p.others} aria-label="다른 시세">
-          {view.others.map((o) => (
+          {view.others.slice(0, MAX_OTHERS).map((o) => (
             <li key={`${o.source}:${o.variant}`}>
               <span className={p.othersLabel}>다른 시세</span> <b>{priceText(o)}</b> {original(o)}
             </li>
           ))}
+          {view.others.length > MAX_OTHERS && (
+            <li>
+              {view.others
+                .slice(MAX_OTHERS)
+                .map((o) => `${label(VARIANT_LABEL, o.variant)} ${priceText(o)}`)
+                .join(' · ')}
+            </li>
+          )}
         </ul>
       )}
       {data.mixedEditions && <p className={p.note}>1판·무제한판을 구분하지 않은 시세예요.</p>}
@@ -143,7 +160,11 @@ function EditionPrices({ view, data, rangeDays }: { view: EditionView; data: Pri
           : history.before
             ? `최근 ${rangeDays}일 동안 확인된 시세가 없어요 (마지막 ${history.before.krw !== null ? won(history.before.krw) : '-'}, ${shortDate(history.before.date)})`
             : '그래프를 그릴 만큼 기록이 아직 쌓이지 않았어요.'}
-        {history.gaps.length > 0 && ' · 점선은 시세를 확인하지 못한 기간이에요'}
+        {history.gaps.length > 0 &&
+          ` · ${history.gaps
+            .slice(0, 2)
+            .map((g) => (g.from === g.to ? shortDate(g.from) : `${shortDate(g.from)}–${shortDate(g.to)}`))
+            .join(', ')}${history.gaps.length > 2 ? ' 외' : ''} 시세 확인 못 함(점선)`}
       </p>
       <p className={p.note}>원화 그래프는 환율 변동을 포함해요.</p>
 
@@ -229,13 +250,23 @@ export default function CardPrices({ cardId }: { cardId: string }) {
   const resource = useApiResource(`prices:${cardId}:${range}`, (signal) => getCardPrices(cardId, range, signal))
   const data = resource.data
 
+  // After "다시 시도" succeeds the button is gone: bring focus back to the section (qa P4-2)
+  const heading = useRef<HTMLHeadingElement>(null)
+  const retried = useRef(false)
+  useEffect(() => {
+    if (retried.current && resource.status === 'success') {
+      retried.current = false
+      heading.current?.focus()
+    }
+  }, [resource.status])
+
   if (data && 'hidden' in data) return null
   const rangeDays = range === '90d' ? 90 : 30
   const edition = chosen?.card === cardId ? chosen.edition : data ? firstEdition(data) : 'en'
 
   return (
     <section className={styles.section} aria-labelledby="price-heading">
-      <h2 id="price-heading" className={styles.sectionTitle}>
+      <h2 id="price-heading" className={styles.sectionTitle} ref={heading} tabIndex={-1}>
         시세 <span className={styles.sectionNote}>참고용 · 원화 환산</span>
       </h2>
       <div className={p.box} aria-busy={resource.status === 'loading' || undefined}>
@@ -252,7 +283,7 @@ export default function CardPrices({ cardId }: { cardId: string }) {
               </button>
             ))}
           </div>
-          {edition !== 'ko' && (
+          {data && hasPrices(data, edition) && (
             <div className={p.segments} role="group" aria-label="기간">
               {(['30d', '90d'] as const).map((r) => (
                 <button key={r} type="button" aria-pressed={range === r} onClick={() => setRange(r)}>
@@ -266,7 +297,14 @@ export default function CardPrices({ cardId }: { cardId: string }) {
         {resource.status === 'error' ? (
           <div className={p.empty} role="alert">
             <p>시세를 불러오지 못했어요.</p>
-            <button type="button" className={p.retry} onClick={resource.retry}>
+            <button
+              type="button"
+              className={p.retry}
+              onClick={() => {
+                retried.current = true
+                resource.retry()
+              }}
+            >
               다시 시도
             </button>
           </div>
