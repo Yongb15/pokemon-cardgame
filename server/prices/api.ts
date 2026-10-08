@@ -7,11 +7,23 @@
 
 import { addDays, isRefreshDue, utcDay, type FxRow } from './logic.js'
 import { isBasicEnergy, JA_MIN_CONFIDENCE, loadPriceData, refreshCard, type CardInfo } from './refresh.js'
-import { budgetLeft, claimRefresh, getEditionLink, getFxRates, getPriceRows, getRefresh, recordView, takeBudget } from './store.js'
+import { fetchFx } from './sources.js'
+import {
+  budgetLeft,
+  claimRefresh,
+  getEditionLink,
+  getFxRates,
+  getPriceRows,
+  getRefresh,
+  recordView,
+  saveFx,
+  takeBudget,
+} from './store.js'
 import { editionView, type Rates } from './view.js'
 
 export const VIEW_REFRESH_BUDGET = 3000
 const VIEW_REFRESH_TIMEOUT_MS = 10_000
+const FX_ON_VIEW_TRIES = 3
 const RANGES: Record<string, number> = { '30d': 30, '90d': 90 }
 const ID_PATTERN = /^[\w.!?-]{1,40}$/
 
@@ -129,6 +141,24 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
       if (ctx.waitUntil) ctx.waitUntil(work)
       else await work
     }
+
+    // No recent rate yet (a fresh database before its first daily run, or a failed run): fetch the
+    // day's rates once, so prices aren't shown without won (Security note after v1.2.0)
+    // Both price currencies need a recent rate; a few tries a day in case one call fails (qa)
+    const recent = (currency: string) => fx.some((r) => r.currency === currency && r.usable && r.rateDate >= addDays(today, -5))
+    const haveFx = recent('USD') && recent('EUR')
+    if (
+      human &&
+      !haveFx &&
+      (await budgetLeft('fx-on-view', today, FX_ON_VIEW_TRIES)) &&
+      (await takeBudget('fx-on-view', today, FX_ON_VIEW_TRIES))
+    ) {
+      const work = fetchFx(now, AbortSignal.timeout(VIEW_REFRESH_TIMEOUT_MS))
+        .then((rates) => (rates ? saveFx(rates) : undefined))
+        .catch(() => undefined)
+      if (ctx.waitUntil) ctx.waitUntil(work)
+      else await work
+    }
     // Views only from the app's own pages (Security Info 3)
     if (human && ctx.fetchSite === 'same-origin') await recordView(id, today).catch(() => undefined)
 
@@ -149,7 +179,15 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
       },
       200,
       // While a refresh runs the new prices are seconds away: don't keep "fetching" for 10 minutes (qa P4-6)
-      refreshing || refresh?.status === 'pending' ? 'public, max-age=0, s-maxage=15' : OK_CACHE,
+      // Short too when a bot saw a card that's due: the next person should reach the function and
+      // start the refresh, not get this answer from the cache for 10 minutes (qa V-2)
+      // Rates missing: the answer is in original currencies until they arrive in seconds (qa)
+      refreshing ||
+        refresh?.status === 'pending' ||
+        !haveFx ||
+        (!human && isRefreshDue(refresh?.refreshedAt ?? null, now))
+        ? 'public, max-age=0, s-maxage=15'
+        : OK_CACHE,
     )
   } catch {
     // Never the error itself: it can hold query or connection details
