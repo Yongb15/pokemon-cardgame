@@ -5,6 +5,7 @@ import CardAttacks from '../components/detail/CardAttacks'
 import { BattleStats, CardInfo, CardRules } from '../components/detail/CardFacts'
 import CardImage from '../components/detail/CardImage'
 import CardNeighbors from '../components/detail/CardNeighbors'
+import CardPrices from '../components/detail/CardPrices'
 import RelatedCards from '../components/detail/RelatedCards'
 import detail from '../components/detail/detail.module.css'
 import { ErrorState, NotFoundState, SlowNotice } from '../components/ListStates'
@@ -196,6 +197,7 @@ export default function CardDetailPage() {
               <CardRules card={card} />
               <BattleStats card={card} />
               <CardInfo card={card} />
+              <CardPrices key={card.id} cardId={card.id} />
             </div>
           </div>
 
