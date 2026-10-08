@@ -47,8 +47,9 @@ if (verdicts) {
         on conflict (card_id, edition) do update set external_id = '', method = 'none', confidence = 1, verified = true`
     } else if (verdict === 'wrong') {
       // Not this print: keep it hidden ('manual' so the next automatic load doesn't bring it back)
+      // Only when that print is the one linked: a wrong new candidate mustn't hide a checked link
       await sql`update card_edition_link set method = 'manual', confidence = 0, verified = false
-        where card_id = ${cardId} and edition = 'ja'`
+        where card_id = ${cardId} and edition = 'ja' and external_id = ${externalId ?? ''} and not verified`
     } else continue
     marked++
   }

@@ -1,17 +1,11 @@
 en_id	en_name	ko_name	ja_id	ja_name	ja_rarity	en_rarity	en_image	ja_image	confidence	reason
-me55-61	Morpeko	모르페코	SV8a-098	モルペコ	None	Common	https://images.scrydex.com/pokemon/me55-61/small	https://assets.tcgdex.net/ja/SV/SV8a/098/low.webp	0.15	dex+hp+other-set (2 candidates)
-me55-135	Morpeko	모르페코	SV8a-098	モルペコ	None	Illustration Rare	https://images.scrydex.com/pokemon/me55-135/small	https://assets.tcgdex.net/ja/SV/SV8a/098/low.webp	0.15	dex+hp+other-set (2 candidates)
-me2-42	Mimikyu	따라큐	SV4a-088	ミミッキュ		Common	https://images.pokemontcg.io/me2/42.png	https://assets.tcgdex.net/ja/SV/SV4a/088/low.webp	0.15	dex+hp+other-set (4 candidates)
-me2-102	Paldean Wooper	팔데아 우파	SV4a-116	パルデア ウパー		Illustration Rare	https://images.pokemontcg.io/me2/102.png	https://assets.tcgdex.net/ja/SV/SV4a/116/low.webp	0.15	dex+hp+other-set (3 candidates)
-sv10-137	Marnie's Morpeko	마리의 모르페코	SV8a-098	モルペコ	None	Common	https://images.pokemontcg.io/sv10/137.png	https://assets.tcgdex.net/ja/SV/SV8a/098/low.webp	0.15	dex+hp+other-set (2 candidates)
-sv9-137	Cramorant	윽우지	SV5a-072	ウッウ		Common	https://images.pokemontcg.io/sv9/137.png	https://assets.tcgdex.net/ja/SV/SV5a/072/low.webp	0.15	dex+hp+other-set (2 candidates)
-sv7-22	Reshiram	레시라무	SV9-109	Nのレシラム	None	Uncommon	https://images.pokemontcg.io/sv7/22.png	https://assets.tcgdex.net/ja/SV/SV9/109/low.webp	0.15	dex+hp+other-set (2 candidates)
-sv5-139	Iron Jugulis	무쇠머리	SV4M-078	テツノコウベ		Uncommon	https://images.pokemontcg.io/sv5/139.png	https://assets.tcgdex.net/ja/SV/SV4M/078/low.webp	0.15	dex+hp+other-set (2 candidates)
-sv2-67	Electrode	붐볼	SV4a-058	マルマイン		Uncommon	https://images.pokemontcg.io/sv2/67.png	https://assets.tcgdex.net/ja/SV/SV4a/058/low.webp	0.15	dex+hp+other-set (2 candidates)
-sv1-100	Flittle	하느라기	SV4a-093	ヒラヒナ		Common	https://images.pokemontcg.io/sv1/100.png	https://assets.tcgdex.net/ja/SV/SV4a/093/low.webp	0.15	dex+hp+other-set (2 candidates)
+me2-42	Mimikyu	따라큐	SV4a-088	ミミッキュ		Common	https://images.pokemontcg.io/me2/42.png	https://assets.tcgdex.net/ja/SV/SV4a/088/low.webp	0.15	dex+hp+other-set (2 candidates)
+me2-102	Paldean Wooper	팔데아 우파	SV4a-287	パルデア ウパー		Illustration Rare	https://images.pokemontcg.io/me2/102.png	https://assets.tcgdex.net/ja/SV/SV4a/287/low.webp	0.15	dex+hp+other-set (2 candidates)
 me55-14	Reshiram	레시라무	SV9-074	Nのレシラム	Rare	Rare	https://images.scrydex.com/pokemon/me55-14/small	https://assets.tcgdex.net/ja/SV/SV9/074/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
 me55-20	Palkia	펄기아	SV3a-008	パルキア	Rare	Rare	https://images.scrydex.com/pokemon/me55-20/small	https://assets.tcgdex.net/ja/SV/SV3a/008/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
+me55-58	Toxel	일레즌	SV1V-031	エレズン	Common	Common	https://images.scrydex.com/pokemon/me55-58/small	https://assets.tcgdex.net/ja/SV/SV1V/031/low.webp	0.2	dex+hp+rarity+other-set (4 candidates)
 me55-67	Marill	마릴	SV2P-016	マリル	Common	Common	https://images.scrydex.com/pokemon/me55-67/small	https://assets.tcgdex.net/ja/SV/SV2P/016/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
+me55-73	Drifloon	흔들풍손	SV7-040	フワンテ	Common	Common	https://images.scrydex.com/pokemon/me55-73/small	https://assets.tcgdex.net/ja/SV/SV7/040/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
 me55-88	Nidorina	니드리나	SV10-059	ロケット団のニドリーナ	Common	Common	https://images.scrydex.com/pokemon/me55-88/small	https://assets.tcgdex.net/ja/SV/SV10/059/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
 me55-95	Zorua	조로아	SV9-060	Nのゾロア	Common	Common	https://images.scrydex.com/pokemon/me55-95/small	https://assets.tcgdex.net/ja/SV/SV9/060/low.webp	0.2	dex+hp+rarity+other-set (3 candidates)
 me55-97	Deino	모노두	SV1a-057	モノズ	Common	Common	https://images.scrydex.com/pokemon/me55-97/small	https://assets.tcgdex.net/ja/SV/SV1a/057/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
@@ -74,6 +68,7 @@ sv5-89	Rockruff	암멍이	SV9-051	イワンコ	Common	Common	https://images.poke
 sv4pt5-23	Exeggcute	아라리	SV2a-102	タマタマ	Common	Common	https://images.pokemontcg.io/sv4pt5/23.png	https://assets.tcgdex.net/ja/SV/SV2a/102/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
 sv4pt5-34	Cottonee	소미안	SV11W-004	モンメン	Common	Common	https://images.pokemontcg.io/sv4pt5/34.png		0.2	dex+hp+rarity+other-set (3 candidates)
 sv4pt5-36	Dedenne	데덴네	SV8-055	デデンネ	Common	Common	https://images.pokemontcg.io/sv4pt5/36.png	https://assets.tcgdex.net/ja/SV/SV8/055/low.webp	0.2	dex+hp+rarity+other-set (3 candidates)
+sv4pt5-64	Varoom	부르롱	SV3-083	ブロロン	Common	Common	https://images.pokemontcg.io/sv4pt5/64.png	https://assets.tcgdex.net/ja/SV/SV3/083/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
 sv4-23	Fuecoco	뜨아거	SV1a-017	ホゲータ	Common	Common	https://images.pokemontcg.io/sv4/23.png	https://assets.tcgdex.net/ja/SV/SV1a/017/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
 sv3-36	Litwick	불켜미	SV11B-015	ヒトモシ	Common	Common	https://images.pokemontcg.io/sv3/36.png		0.2	dex+hp+rarity+other-set (2 candidates)
 sv3-37	Lampent	램프라	SV11B-016	ランプラー	Common	Common	https://images.pokemontcg.io/sv3/37.png		0.2	dex+hp+rarity+other-set (2 candidates)
@@ -88,44 +83,40 @@ sv3-132	Houndour	델빌	SV1V-017	デルビル	Common	Common	https://images.pokem
 sv3-178	Skwovet	탐리스	SV1V-061	ホシガリス	Common	Common	https://images.pokemontcg.io/sv3/178.png	https://assets.tcgdex.net/ja/SV/SV1V/061/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
 sv1-3	Shroomish	버섯꼬	SV5M-006	キノココ	Common	Common	https://images.pokemontcg.io/sv1/3.png		0.2	dex+hp+rarity+other-set (2 candidates)
 sv1-36	Fuecoco	뜨아거	SV1a-017	ホゲータ	Common	Common	https://images.pokemontcg.io/sv1/36.png	https://assets.tcgdex.net/ja/SV/SV1a/017/low.webp	0.2	dex+hp+rarity+other-set (2 candidates)
-me55-23	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-23/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-24	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-24/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-25	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-25/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-26	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-26/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-34	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-34/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-39	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-39/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-43	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-43/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-47	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-47/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-48	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-48/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-51	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-51/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-52	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-52/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.3	dex+hp (2 candidates)
-me55-58	Toxel	일레즌	SV4a-064	エレズン		Common	https://images.scrydex.com/pokemon/me55-58/small	https://assets.tcgdex.net/ja/SV/SV4a/064/low.webp	0.3	dex+hp (2 candidates)
-me55-60	Toxtricity	스트린더	SV4a-065	ストリンダー		Common	https://images.scrydex.com/pokemon/me55-60/small	https://assets.tcgdex.net/ja/SV/SV4a/065/low.webp	0.3	dex+hp (2 candidates)
-me55-73	Drifloon	흔들풍손	SV4a-083	フワンテ		Common	https://images.scrydex.com/pokemon/me55-73/small	https://assets.tcgdex.net/ja/SV/SV4a/083/low.webp	0.3	dex+hp (2 candidates)
-me55-134	Toxtricity	스트린더	SV4a-065	ストリンダー		Illustration Rare	https://images.scrydex.com/pokemon/me55-134/small	https://assets.tcgdex.net/ja/SV/SV4a/065/low.webp	0.3	dex+hp (2 candidates)
-me55-136	Drifloon	흔들풍손	SV4a-083	フワンテ		Illustration Rare	https://images.scrydex.com/pokemon/me55-136/small	https://assets.tcgdex.net/ja/SV/SV4a/083/low.webp	0.3	dex+hp (2 candidates)
 me55-12	Ho-Oh	칠색조	SVLS-003	ホウオウ	None	Rare	https://images.scrydex.com/pokemon/me55-12/small	https://assets.tcgdex.net/ja/SV/SVLS/003/low.webp	0.35	dex+hp+other-set
 me55-18	Articuno	프리져	M2a-034	ロケット団のフリーザー	None	Common	https://images.scrydex.com/pokemon/me55-18/small		0.35	dex+hp+other-set
+me55-60	Toxtricity	스트린더	SV4a-065	ストリンダー		Common	https://images.scrydex.com/pokemon/me55-60/small	https://assets.tcgdex.net/ja/SV/SV4a/065/low.webp	0.35	dex+hp+other-set
+me55-61	Morpeko	모르페코	SV8a-098	モルペコ	None	Common	https://images.scrydex.com/pokemon/me55-61/small	https://assets.tcgdex.net/ja/SV/SV8a/098/low.webp	0.35	dex+hp+other-set
 me55-69	Espeon	에브이	SV8a-062	エーフィ	None	Common	https://images.scrydex.com/pokemon/me55-69/small	https://assets.tcgdex.net/ja/SV/SV8a/062/low.webp	0.35	dex+hp+other-set
 me55-91	Umbreon	블래키	SV8a-092	ブラッキー	None	Common	https://images.scrydex.com/pokemon/me55-91/small	https://assets.tcgdex.net/ja/SV/SV8a/092/low.webp	0.35	dex+hp+other-set
 me55-93	Murkrow	니로우	M2a-102	ロケット団のヤミカラス	None	Common	https://images.scrydex.com/pokemon/me55-93/small		0.35	dex+hp+other-set
 me55-94	Scraggy	곤율랭	M2a-109	ズルッグ	None	Common	https://images.scrydex.com/pokemon/me55-94/small		0.35	dex+hp+other-set
 me55-96	Zoroark	조로아크	SV8a-097	ゾロアーク	None	Common	https://images.scrydex.com/pokemon/me55-96/small	https://assets.tcgdex.net/ja/SV/SV8a/097/low.webp	0.35	dex+hp+other-set
 me55-123	Hisuian Zoroark	히스이 조로아크	SV8a-097	ゾロアーク	None	Common	https://images.scrydex.com/pokemon/me55-123/small	https://assets.tcgdex.net/ja/SV/SV8a/097/low.webp	0.35	dex+hp+other-set
-me55-132	Articuno	프리져	M2a-034	ロケット団のフリーザー	None	Illustration Rare	https://images.scrydex.com/pokemon/me55-132/small		0.35	dex+hp+other-set
-me55-140	Scraggy	곤율랭	M2a-109	ズルッグ	None	Illustration Rare	https://images.scrydex.com/pokemon/me55-140/small		0.35	dex+hp+other-set
+me55-135	Morpeko	모르페코	SV4K-076	モルペコ		Illustration Rare	https://images.scrydex.com/pokemon/me55-135/small	https://assets.tcgdex.net/ja/SV/SV4K/076/low.webp	0.35	dex+hp+other-set
+me55-136	Drifloon	흔들풍손	SV4a-260	フワンテ		Illustration Rare	https://images.scrydex.com/pokemon/me55-136/small	https://assets.tcgdex.net/ja/SV/SV4a/260/low.webp	0.35	dex+hp+other-set
 me4-10	Ho-Oh	칠색조	SVLS-003	ホウオウ	None	Rare	https://images.scrydex.com/pokemon/me4-10/small	https://assets.tcgdex.net/ja/SV/SVLS/003/low.webp	0.35	dex+hp+other-set
 me2pt5-232	Marill	마릴	SV2P-073	マリル		Illustration Rare	https://images.scrydex.com/pokemon/me2pt5-232/small	https://assets.tcgdex.net/ja/SV/SV2P/073/low.webp	0.35	dex+hp+other-set
+zsv10pt5-130	Crustle	암팰리스	SV9a-067	イワパレス	None	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/130.png	https://assets.tcgdex.net/ja/SV/SV9a/067/low.webp	0.35	dex+hp+other-set
+zsv10pt5-135	Sandile	깜눈크	SV1S-087	メグロコ		Illustration Rare	https://images.pokemontcg.io/zsv10pt5/135.png	https://assets.tcgdex.net/ja/SV/SV1S/087/low.webp	0.35	dex+hp+other-set
+zsv10pt5-143	Bisharp	절각참	SV4a-293	キリキザン		Illustration Rare	https://images.pokemontcg.io/zsv10pt5/143.png	https://assets.tcgdex.net/ja/SV/SV4a/293/low.webp	0.35	dex+hp+other-set
+sv10-137	Marnie's Morpeko	마리의 모르페코	SV8a-098	モルペコ	None	Common	https://images.pokemontcg.io/sv10/137.png	https://assets.tcgdex.net/ja/SV/SV8a/098/low.webp	0.35	dex+hp+other-set
 sv10-144	Steven's Metang	성호의 메탕구	SV8a-107	メタング	None	Uncommon	https://images.pokemontcg.io/sv10/144.png	https://assets.tcgdex.net/ja/SV/SV8a/107/low.webp	0.35	dex+hp+other-set
+sv9-137	Cramorant	윽우지	M2a-143	ホップのウッウ	None	Common	https://images.pokemontcg.io/sv9/137.png		0.35	dex+hp+other-set
 sv9-162	Wailord	고래왕	SV9-103	ホエルオー	None	Illustration Rare	https://images.pokemontcg.io/sv9/162.png	https://assets.tcgdex.net/ja/SV/SV9/103/low.webp	0.35	dex+hp+other-set
 sv9-166	Lycanroc	루가루암	SV9-107	ルガルガン	None	Illustration Rare	https://images.pokemontcg.io/sv9/166.png	https://assets.tcgdex.net/ja/SV/SV9/107/low.webp	0.35	dex+hp+other-set
 sv8pt5-3	Pinsir	쁘사이저	M2a-001	ヒビキのカイロス	None	Common	https://images.pokemontcg.io/sv8pt5/3.png		0.35	dex+hp+other-set
 sv8pt5-40	Sylveon	님피아	SV8a-068	ニンフィア	None	Rare	https://images.pokemontcg.io/sv8pt5/40.png	https://assets.tcgdex.net/ja/SV/SV8a/068/low.webp	0.35	dex+hp+other-set
 sv8-125	Registeel	레지스틸	SVLS-008	レジスチル	None	Uncommon	https://images.pokemontcg.io/sv8/125.png	https://assets.tcgdex.net/ja/SV/SVLS/008/low.webp	0.35	dex+hp+other-set
 sv8-194	Shiinotic	마셰이드	SV7a-066	マシェード	None	Illustration Rare	https://images.pokemontcg.io/sv8/194.png	https://assets.tcgdex.net/ja/SV/SV7a/066/low.webp	0.35	dex+hp+other-set
-sv5-90	Lycanroc	루가루암	SV9-107	ルガルガン	None	Uncommon	https://images.pokemontcg.io/sv5/90.png	https://assets.tcgdex.net/ja/SV/SV9/107/low.webp	0.35	dex+hp+other-set
+sv7-22	Reshiram	레시라무	M2a-128	Nのレシラム	None	Uncommon	https://images.pokemontcg.io/sv7/22.png		0.35	dex+hp+other-set
+sv7-151	Zeraora	제라오라	SV7-109	ゼラオラ	None	Illustration Rare	https://images.pokemontcg.io/sv7/151.png	https://assets.tcgdex.net/ja/SV/SV7/109/low.webp	0.35	dex+hp+other-set
+sv5-139	Iron Jugulis	무쇠머리	SV8a-135	テツノコウベ	None	Uncommon	https://images.pokemontcg.io/sv5/139.png	https://assets.tcgdex.net/ja/SV/SV8a/135/low.webp	0.35	dex+hp+other-set
 sv3-84	Togetic	토게틱	M2a-065	トゲチック	None	Uncommon	https://images.pokemontcg.io/sv3/84.png		0.35	dex+hp+other-set
 sv3-126	Paldean Wooper	팔데아 우파	SV3-067	パルデア ウパー	Common	Common	https://images.pokemontcg.io/sv3/126.png	https://assets.tcgdex.net/ja/SV/SV3/067/low.webp	0.35	dex+hp+rarity (3 candidates)
+sv2-67	Electrode	붐볼	SV4a-058	マルマイン		Uncommon	https://images.pokemontcg.io/sv2/67.png	https://assets.tcgdex.net/ja/SV/SV4a/058/low.webp	0.35	dex+hp+other-set
+sv1-14	Floragato	나로테	SV4a-013	ニャローテ		Uncommon	https://images.pokemontcg.io/sv1/14.png	https://assets.tcgdex.net/ja/SV/SV4a/013/low.webp	0.35	dex+hp+other-set
+sv1-100	Flittle	하느라기	SV4a-093	ヒラヒナ		Common	https://images.pokemontcg.io/sv1/100.png	https://assets.tcgdex.net/ja/SV/SV4a/093/low.webp	0.35	dex+hp+other-set
 me55-13	Victini	비크티니	SV5M-019	ビクティニ	Common	Common	https://images.scrydex.com/pokemon/me55-13/small		0.4	dex+hp+rarity+other-set
 me55-56	Zekrom	제크로무	SV3a-018	ゼクロム	Rare	Rare	https://images.scrydex.com/pokemon/me55-56/small	https://assets.tcgdex.net/ja/SV/SV3a/018/low.webp	0.4	dex+hp+rarity+other-set
 me55-63	Mewtwo	뮤츠	SV2a-150	ミュウツー	Rare	Rare	https://images.scrydex.com/pokemon/me55-63/small	https://assets.tcgdex.net/ja/SV/SV2a/150/low.webp	0.4	dex+hp+rarity+other-set
@@ -136,6 +127,7 @@ me55-106	Zacian	자시안	M2-039	ザシアン	Rare	Rare	https://images.scrydex.c
 me55-107	Zamazenta	자마젠타	SV10-075	ザマゼンタ	Rare	Rare	https://images.scrydex.com/pokemon/me55-107/small	https://assets.tcgdex.net/ja/SV/SV10/075/low.webp	0.4	dex+hp+rarity+other-set
 me55-110	Jangmo-o	짜랑꼬	M6-050	ジャラコ	Common	Common	https://images.scrydex.com/pokemon/me55-110/small		0.4	dex+hp+rarity+other-set
 me55-119	Snorlax	잠만보	M3-062	カビゴン	Common	Common	https://images.scrydex.com/pokemon/me55-119/small		0.4	dex+hp+rarity+other-set
+me55-134	Toxtricity	스트린더	M2-089	ストリンダー	Illustration rare	Illustration Rare	https://images.scrydex.com/pokemon/me55-134/small		0.4	dex+hp+rarity+other-set
 me55-141	Galarian Meowth	가라르 나옹	SV10-109	ロケット団のニャース	Illustration rare	Illustration Rare	https://images.scrydex.com/pokemon/me55-141/small		0.4	dex+hp+rarity+other-set
 me3-6	Serperior	샤로다	M3-006	ジャローダ	Rare	Rare	https://images.scrydex.com/pokemon/me3-6/small		0.4	dex+hp+rarity+other-set
 me3-32	Mawile	입치트	M3-031	クチート	Common	Common	https://images.scrydex.com/pokemon/me3-32/small		0.4	dex+hp+rarity+other-set
@@ -159,6 +151,7 @@ me2pt5-165	Skitty	에나비	SV5M-055	エネコ	Common	Common	https://images.scry
 me2pt5-168	Larry's Starly	청목의 찌르꼬	SV1S-063	ムックル	Common	Common	https://images.scrydex.com/pokemon/me2pt5-168/small	https://assets.tcgdex.net/ja/SV/SV1S/063/low.webp	0.4	dex+hp+rarity+other-set
 me2pt5-174	Larry's Braviary	청목의 워글	SV7a-050	ウォーグル	Uncommon	Uncommon	https://images.scrydex.com/pokemon/me2pt5-174/small	https://assets.tcgdex.net/ja/SV/SV7a/050/low.webp	0.4	dex+hp+rarity+other-set
 me2pt5-218	Erika's Tangela	민화의 덩쿠리	SV2a-178	モンジャラ	Illustration rare	Illustration Rare	https://images.scrydex.com/pokemon/me2pt5-218/small	https://assets.tcgdex.net/ja/SV/SV2a/178/low.webp	0.4	dex+hp+rarity+other-set
+me2pt5-231	Iono's Wattrel	모야모의 찌리비	SV6-105	カイデン	Illustration rare	Illustration Rare	https://images.scrydex.com/pokemon/me2pt5-231/small	https://assets.tcgdex.net/ja/SV/SV6/105/low.webp	0.4	dex+hp+rarity+other-set
 me2pt5-294	Mega Charizard Y ex	메가리자몽 Y ex	M2-116	メガリザードンXex	Mega Hyper Rare	Mega Hyper Rare	https://images.scrydex.com/pokemon/me2pt5-294/small		0.4	dex+hp+rarity+other-set
 me2-14	Moltres	파이어	SV2a-146	ファイヤー	Rare	Rare	https://images.pokemontcg.io/me2/14.png	https://assets.tcgdex.net/ja/SV/SV2a/146/low.webp	0.4	dex+hp+rarity+other-set
 me2-54	Gastly	고오스	M3-047	ゴース	Common	Common	https://images.pokemontcg.io/me2/54.png		0.4	dex+hp+rarity+other-set
@@ -172,13 +165,10 @@ me1-103	Fearow	깨비드릴조	M1L-053	オニドリル	Common	Common	https://ima
 me1-108	Lopunny	이어롭	M1S-054	ミミロップ	Common	Common	https://images.pokemontcg.io/me1/108.png		0.4	dex+hp+rarity+other-set
 me1-136	Shuckle	단단지	M1S-064	ツボツボ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/me1/136.png		0.4	dex+hp+rarity+other-set
 me1-162	Mega Mawile ex	메가입치트 ex	M1L-080	メガクチートex	Ultra Rare	Ultra Rare	https://images.pokemontcg.io/me1/162.png		0.4	dex+hp+rarity+other-set
+zsv10pt5-146	Fraxure	액슨도	SV6a-074	オノンド	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/146.png	https://assets.tcgdex.net/ja/SV/SV6a/074/low.webp	0.4	dex+hp+rarity+other-set
 sv10-76	Manectric	썬더볼트	M5-023	ライボルト	Uncommon	Uncommon	https://images.pokemontcg.io/sv10/76.png		0.4	dex+hp+rarity+other-set
 sv10-84	Steven's Claydol	성호의 점토도리	M4-047	ネンドール	Uncommon	Uncommon	https://images.pokemontcg.io/sv10/84.png		0.4	dex+hp+rarity+other-set
 sv10-134	Marnie's Impidimp	마리의 메롱꿍	SV7-064	ベロバー	Common	Common	https://images.pokemontcg.io/sv10/134.png	https://assets.tcgdex.net/ja/SV/SV7/064/low.webp	0.4	dex+hp+rarity+other-set
-sv10-183	Yanma	왕자리	SV9a-064	ヤンヤンマ	None	Illustration Rare	https://images.pokemontcg.io/sv10/183.png	https://assets.tcgdex.net/ja/SV/SV9a/064/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
-sv10-184	Cynthia's Roserade	난천의 로즈레이드	SV9a-065	シロナのロズレイド	None	Illustration Rare	https://images.pokemontcg.io/sv10/184.png	https://assets.tcgdex.net/ja/SV/SV9a/065/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
-sv10-185	Shaymin	쉐이미	SV9a-066	シェイミ	None	Illustration Rare	https://images.pokemontcg.io/sv10/185.png	https://assets.tcgdex.net/ja/SV/SV9a/066/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
-sv10-186	Crustle	암팰리스	SV9a-067	イワパレス	None	Illustration Rare	https://images.pokemontcg.io/sv10/186.png	https://assets.tcgdex.net/ja/SV/SV9a/067/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
 sv9-28	Larvesta	활화르바	SV1a-012	メラルバ	Common	Common	https://images.pokemontcg.io/sv9/28.png	https://assets.tcgdex.net/ja/SV/SV1a/012/low.webp	0.4	dex+hp+rarity+other-set
 sv9-39	Pelipper	패리퍼	SV2P-059	ペリッパー	Uncommon	Uncommon	https://images.pokemontcg.io/sv9/39.png	https://assets.tcgdex.net/ja/SV/SV2P/059/low.webp	0.4	dex+hp+rarity+other-set
 sv9-50	Togedemaru	토게데마루	M2-061	トゲデマル	Common	Common	https://images.pokemontcg.io/sv9/50.png		0.4	dex+hp+rarity+other-set
@@ -190,9 +180,6 @@ sv9-73	Grimmsnarl	오롱털	SV7-066	オーロンゲ	Uncommon	Uncommon	https://im
 sv9-100	Lokix	엑스레그	M2-010	エクスレッグ	Uncommon	Uncommon	https://images.pokemontcg.io/sv9/100.png		0.4	dex+hp+rarity+other-set
 sv9-126	Cinccino	치라치노	SV11B-078	チラチーノ	Uncommon	Uncommon	https://images.pokemontcg.io/sv9/126.png		0.4	dex+hp+rarity+other-set
 sv9-132	Greedent	요씽리스	SV1V-062	ヨクバリス	Uncommon	Uncommon	https://images.pokemontcg.io/sv9/132.png	https://assets.tcgdex.net/ja/SV/SV1V/062/low.webp	0.4	dex+hp+rarity+other-set
-sv9-163	Iono's Kilowattrel	모야모의 찌리비크	SV9-104	ナンジャモのタイカイデン	None	Illustration Rare	https://images.pokemontcg.io/sv9/163.png	https://assets.tcgdex.net/ja/SV/SV9/104/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
-sv9-167	N's Reshiram	N의 레시라무	SV9-109	Nのレシラム	None	Illustration Rare	https://images.pokemontcg.io/sv9/167.png	https://assets.tcgdex.net/ja/SV/SV9/109/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
-sv9-170	Hop's Wooloo	호브의 우르	SV9-112	ホップのウールー	None	Illustration Rare	https://images.pokemontcg.io/sv9/170.png	https://assets.tcgdex.net/ja/SV/SV9/112/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
 sv8pt5-4	Budew	꼬몽울	SV8a-001	スボミー	None	Common	https://images.pokemontcg.io/sv8pt5/4.png	https://assets.tcgdex.net/ja/SV/SV8a/001/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
 sv8pt5-16	Pyroar	화염레오	SV1a-015	カエンジシ	Uncommon	Uncommon	https://images.pokemontcg.io/sv8pt5/16.png	https://assets.tcgdex.net/ja/SV/SV1a/015/low.webp	0.4	dex+hp+rarity+other-set
 sv8pt5-50	Riolu	리오르	SV1S-040	リオル	Common	Common	https://images.pokemontcg.io/sv8pt5/50.png	https://assets.tcgdex.net/ja/SV/SV1S/040/low.webp	0.4	dex+hp+rarity+other-set
@@ -212,7 +199,6 @@ sv8-92	Tapu Lele	카푸나비나	SV7a-021	カプ・テテフ	Rare	Rare	https://i
 sv8-109	Excadrill	몰드류	SV7a-029	ドリュウズ	Common	Common	https://images.pokemontcg.io/sv8/109.png	https://assets.tcgdex.net/ja/SV/SV7a/029/low.webp	0.4	dex+hp+rarity+other-set
 sv8-132	Iron Crown	무쇠감투	SV7a-039	テツノカシラ	Rare	Rare	https://images.pokemontcg.io/sv8/132.png	https://assets.tcgdex.net/ja/SV/SV7a/039/low.webp	0.4	dex+hp+rarity+other-set
 sv8-143	Eevee	이브이	SV8a-125	イーブイ	None	Common	https://images.pokemontcg.io/sv8/143.png	https://assets.tcgdex.net/ja/SV/SV8a/125/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
-sv8-218	Black Kyurem ex	블랙큐레무 ex	SV11B-160	キュレムex	Ultra Rare	Ultra Rare	https://images.pokemontcg.io/sv8/218.png		0.4	dex+hp+rarity+other-set
 sv7-18	Toedscruel	육파리	SV9a-048	ペパーのリククラゲ	Uncommon	Uncommon	https://images.pokemontcg.io/sv7/18.png	https://assets.tcgdex.net/ja/SV/SV9a/048/low.webp	0.4	dex+hp+rarity+other-set
 sv7-34	Azumarill	마릴리	SV2P-017	マリルリ	Uncommon	Uncommon	https://images.pokemontcg.io/sv7/34.png	https://assets.tcgdex.net/ja/SV/SV2P/017/low.webp	0.4	dex+hp+rarity+other-set
 sv7-39	Froakie	개구마르	SV5a-023	ケロマツ	Common	Common	https://images.pokemontcg.io/sv7/39.png	https://assets.tcgdex.net/ja/SV/SV5a/023/low.webp	0.4	dex+hp+rarity+other-set
@@ -228,7 +214,6 @@ sv7-106	Duraludon	두랄루돈	SV8a-112	ジュラルドン	None	Common	https://i
 sv7-108	Varoom	부르롱	SV1S-060	ブロロン	Common	Common	https://images.pokemontcg.io/sv7/108.png	https://assets.tcgdex.net/ja/SV/SV1S/060/low.webp	0.4	dex+hp+rarity+other-set
 sv7-119	Bouffalant	버프론	SV8a-133	バッフロン	None	Rare	https://images.pokemontcg.io/sv7/119.png	https://assets.tcgdex.net/ja/SV/SV8a/133/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
 sv7-123	Talonflame	파이어로	SV7-085	ファイアロー	Uncommon	Uncommon	https://images.pokemontcg.io/sv7/123.png	https://assets.tcgdex.net/ja/SV/SV7/085/low.webp	0.4	dex+hp+rarity+other-set
-sv7-155	Archaludon	브리두라스	SV8a-113	ブリジュラス	None	Illustration Rare	https://images.pokemontcg.io/sv7/155.png	https://assets.tcgdex.net/ja/SV/SV8a/113/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
 sv5-27	Rapidash	날쌩마	SV9a-014	ギャロップ	Uncommon	Uncommon	https://images.pokemontcg.io/sv5/27.png	https://assets.tcgdex.net/ja/SV/SV9a/014/low.webp	0.4	dex+hp+rarity+other-set
 sv5-58	Yamper	멍파치	M2-030	ワンパチ	Common	Common	https://images.pokemontcg.io/sv5/58.png		0.4	dex+hp+rarity+other-set
 sv5-73	Elgyem	리그레	SV11B-043	リグレー	Common	Common	https://images.pokemontcg.io/sv5/73.png		0.4	dex+hp+rarity+other-set
@@ -239,7 +224,7 @@ sv4pt5-35	Whimsicott	엘풍	M2-038	エルフーン	Uncommon	Uncommon	https://ima
 sv4pt5-54	Charizard ex	리자몽 ex	SV2a-006	リザードンex	Double rare	Double Rare	https://images.pokemontcg.io/sv4pt5/54.png	https://assets.tcgdex.net/ja/SV/SV2a/006/low.webp	0.4	dex+hp+rarity+other-set
 sv4pt5-66	Iron Treads ex	무쇠바퀴 ex	SV1V-058	テツノワダチex	Double rare	Double Rare	https://images.pokemontcg.io/sv4pt5/66.png	https://assets.tcgdex.net/ja/SV/SV1V/058/low.webp	0.4	dex+hp+rarity+other-set
 sv4pt5-234	Charizard ex	리자몽 ex	SV2a-201	リザードンex	Special illustration rare	Special Illustration Rare	https://images.pokemontcg.io/sv4pt5/234.png	https://assets.tcgdex.net/ja/SV/SV2a/201/low.webp	0.4	dex+hp+rarity+other-set
-sv4-72	Xatu	네이티오	SV4a-079	ネイティオ		Rare	https://images.pokemontcg.io/sv4/72.png	https://assets.tcgdex.net/ja/SV/SV4a/079/low.webp	0.4	dex+hp+damage+other-set (3 candidates)
+sv4-72	Xatu	네이티오	SV4a-079	ネイティオ		Rare	https://images.pokemontcg.io/sv4/72.png	https://assets.tcgdex.net/ja/SV/SV4a/079/low.webp	0.4	dex+hp+damage+other-set (2 candidates)
 sv3-13	Rowlet	나몰빼미	SV6a-003	モクロー	Common	Common	https://images.pokemontcg.io/sv3/13.png	https://assets.tcgdex.net/ja/SV/SV6a/003/low.webp	0.4	dex+hp+rarity+other-set
 sv3-15	Decidueye ex	모크나이퍼 ex	M3-012	ジュナイパーex	Double rare	Double Rare	https://images.pokemontcg.io/sv3/15.png		0.4	dex+hp+rarity+other-set
 sv3-19	Smoliv	미니브	SV1S-005	ミニーブ	Common	Common	https://images.pokemontcg.io/sv3/19.png	https://assets.tcgdex.net/ja/SV/SV1S/005/low.webp	0.4	dex+hp+rarity+other-set
@@ -310,7 +295,6 @@ sv5-96	Great Tusk	위대한엄니	SV5K-042	イダイナキバ	Uncommon	Uncommon	
 sv3-75	Tadbulb	빈나두	SV3-040	ズピカ	Common	Common	https://images.pokemontcg.io/sv3/75.png	https://assets.tcgdex.net/ja/SV/SV3/040/low.webp	0.55	dex+hp+rarity
 sv3-128	Paldean Clodsire	팔데아 토오	SV3-069	パルデア ドオー	Uncommon	Uncommon	https://images.pokemontcg.io/sv3/128.png	https://assets.tcgdex.net/ja/SV/SV3/069/low.webp	0.55	dex+hp+rarity
 sv3-182	Lechonk	맛보돈	SV3-097	グルトン	Common	Common	https://images.pokemontcg.io/sv3/182.png	https://assets.tcgdex.net/ja/SV/SV3/097/low.webp	0.55	dex+hp+rarity
-sv1-14	Floragato	나로테	SV1a-076	ニャローテ		Uncommon	https://images.pokemontcg.io/sv1/14.png	https://assets.tcgdex.net/ja/SV/SV1a/076/low.webp	0.55	dex+hp+illustrator+other-set
 sv1-16	Tarountula	타랜툴라	SV1V-006	タマンチュラ	Common	Common	https://images.pokemontcg.io/sv1/16.png	https://assets.tcgdex.net/ja/SV/SV1V/006/low.webp	0.55	dex+hp+rarity
 sv1-95	Dedenne	데덴네	SV1S-031	デデンネ	Common	Common	https://images.pokemontcg.io/sv1/95.png	https://assets.tcgdex.net/ja/SV/SV1S/031/low.webp	0.55	dex+hp+rarity
 sv1-112	Riolu	리오르	SV1S-040	リオル	Common	Common	https://images.pokemontcg.io/sv1/112.png	https://assets.tcgdex.net/ja/SV/SV1S/040/low.webp	0.55	dex+hp+rarity
@@ -319,6 +303,10 @@ me55-9	Vulpix	식스테일	SVLS-001	ロコン	None	Common	https://images.scrydex
 me2pt5-17	Grubbin	턱지충이	SV7-007	アゴジムシ	Common	Common	https://images.scrydex.com/pokemon/me2pt5-17/small	https://assets.tcgdex.net/ja/SV/SV7/007/low.webp	0.6	dex+hp+illustrator+rarity+other-set
 me2pt5-36	Scorbunny	염버니	SV7-016	ヒバニー	Common	Common	https://images.scrydex.com/pokemon/me2pt5-36/small	https://assets.tcgdex.net/ja/SV/SV7/016/low.webp	0.6	dex+hp+illustrator+rarity+other-set
 me2pt5-73	Miraidon ex	미라이돈 ex	SV1V-037	ミライドンex	Double rare	Double Rare	https://images.scrydex.com/pokemon/me2pt5-73/small	https://assets.tcgdex.net/ja/SV/SV1V/037/low.webp	0.6	dex+hp+illustrator+rarity+other-set
+sv10-183	Yanma	왕자리	SV9a-064	ヤンヤンマ	None	Illustration Rare	https://images.pokemontcg.io/sv10/183.png	https://assets.tcgdex.net/ja/SV/SV9a/064/low.webp	0.6	dex+hp+damage+other-set
+sv10-184	Cynthia's Roserade	난천의 로즈레이드	SV9a-065	シロナのロズレイド	None	Illustration Rare	https://images.pokemontcg.io/sv10/184.png	https://assets.tcgdex.net/ja/SV/SV9a/065/low.webp	0.6	dex+hp+damage+other-set
+sv10-185	Shaymin	쉐이미	SV9a-066	シェイミ	None	Illustration Rare	https://images.pokemontcg.io/sv10/185.png	https://assets.tcgdex.net/ja/SV/SV9a/066/low.webp	0.6	dex+hp+damage+other-set
+sv10-186	Crustle	암팰리스	SV9a-067	イワパレス	None	Illustration Rare	https://images.pokemontcg.io/sv10/186.png	https://assets.tcgdex.net/ja/SV/SV9a/067/low.webp	0.6	dex+hp+damage+other-set
 sv10-188	Hydrapple	과미드라	SV9a-068	カミツオロチ	None	Illustration Rare	https://images.pokemontcg.io/sv10/188.png	https://assets.tcgdex.net/ja/SV/SV9a/068/low.webp	0.6	dex+hp+damage+other-set
 sv10-189	Rapidash	날쌩마	SV9a-069	ギャロップ	None	Illustration Rare	https://images.pokemontcg.io/sv10/189.png	https://assets.tcgdex.net/ja/SV/SV9a/069/low.webp	0.6	dex+hp+damage+other-set
 sv10-190	Ethan's Typhlosion	심향의 블레이범	SV9a-070	ヒビキのバクフーン	None	Illustration Rare	https://images.pokemontcg.io/sv10/190.png	https://assets.tcgdex.net/ja/SV/SV9a/070/low.webp	0.6	dex+hp+damage+other-set
@@ -327,13 +315,15 @@ sv10-194	Misty's Lapras	이슬의 라프라스	SV9a-072	カスミのラプラス
 sv10-196	Electrike	썬더라이	SV9a-073	ラクライ	None	Illustration Rare	https://images.pokemontcg.io/sv10/196.png	https://assets.tcgdex.net/ja/SV/SV9a/073/low.webp	0.6	dex+hp+damage+other-set
 sv10-197	Rotom	로토무	SV9a-074	ロトム	None	Illustration Rare	https://images.pokemontcg.io/sv10/197.png	https://assets.tcgdex.net/ja/SV/SV9a/074/low.webp	0.6	dex+hp+damage+other-set
 sv10-205	Arven's Greedent	페퍼의 요씽리스	SV9a-075	ペパーのヨクバリス	None	Illustration Rare	https://images.pokemontcg.io/sv10/205.png	https://assets.tcgdex.net/ja/SV/SV9a/075/low.webp	0.6	dex+hp+damage+other-set
-sv9-67	Lillie's Ribombee	릴리에의 에리본	SV9-105	リーリエのアブリボン	None	Rare	https://images.pokemontcg.io/sv9/67.png	https://assets.tcgdex.net/ja/SV/SV9/105/low.webp	0.6	dex+hp+damage+other-set
 sv9-160	Maractus	마라카치	SV9-101	マラカッチ	None	Illustration Rare	https://images.pokemontcg.io/sv9/160.png	https://assets.tcgdex.net/ja/SV/SV9/101/low.webp	0.6	dex+hp+damage+other-set
 sv9-161	Articuno	프리져	SV9-102	フリーザー	None	Illustration Rare	https://images.pokemontcg.io/sv9/161.png	https://assets.tcgdex.net/ja/SV/SV9/102/low.webp	0.6	dex+hp+damage+other-set
+sv9-163	Iono's Kilowattrel	모야모의 찌리비크	SV9-104	ナンジャモのタイカイデン	None	Illustration Rare	https://images.pokemontcg.io/sv9/163.png	https://assets.tcgdex.net/ja/SV/SV9/104/low.webp	0.6	dex+hp+damage+other-set
 sv9-164	Lillie's Ribombee	릴리에의 에리본	SV9-105	リーリエのアブリボン	None	Illustration Rare	https://images.pokemontcg.io/sv9/164.png	https://assets.tcgdex.net/ja/SV/SV9/105/low.webp	0.6	dex+hp+damage+other-set
 sv9-165	Swinub	꾸꾸리	SV9-106	ウリムー	None	Illustration Rare	https://images.pokemontcg.io/sv9/165.png	https://assets.tcgdex.net/ja/SV/SV9/106/low.webp	0.6	dex+hp+damage+other-set
+sv9-167	N's Reshiram	N의 레시라무	SV9-109	Nのレシラム	None	Illustration Rare	https://images.pokemontcg.io/sv9/167.png	https://assets.tcgdex.net/ja/SV/SV9/109/low.webp	0.6	dex+hp+damage+other-set
 sv9-168	Furret	다꼬리	SV9-110	オオタチ	None	Illustration Rare	https://images.pokemontcg.io/sv9/168.png	https://assets.tcgdex.net/ja/SV/SV9/110/low.webp	0.6	dex+hp+damage+other-set
 sv9-169	Noibat	음뱃	SV9-111	オンバット	None	Illustration Rare	https://images.pokemontcg.io/sv9/169.png	https://assets.tcgdex.net/ja/SV/SV9/111/low.webp	0.6	dex+hp+damage+other-set
+sv9-170	Hop's Wooloo	호브의 우르	SV9-112	ホップのウールー	None	Illustration Rare	https://images.pokemontcg.io/sv9/170.png	https://assets.tcgdex.net/ja/SV/SV9/112/low.webp	0.6	dex+hp+damage+other-set
 sv8pt5-5	Leafeon	리피아	SV8a-002	リーフィア	None	Rare	https://images.pokemontcg.io/sv8pt5/5.png	https://assets.tcgdex.net/ja/SV/SV8a/002/low.webp	0.6	dex+hp+damage+other-set
 sv8pt5-21	Seaking	왕콘치	SV8a-029	アズマオウ	None	Uncommon	https://images.pokemontcg.io/sv8pt5/21.png	https://assets.tcgdex.net/ja/SV/SV8a/029/low.webp	0.6	dex+hp+damage+other-set
 sv8pt5-25	Glaceon	글레이시아	SV8a-040	グレイシア	None	Rare	https://images.pokemontcg.io/sv8pt5/25.png	https://assets.tcgdex.net/ja/SV/SV8a/040/low.webp	0.6	dex+hp+damage+other-set
@@ -369,13 +359,12 @@ sv7-146	Turtonator	폭거북스	SV7-105	バクガメス	None	Illustration Rare	h
 sv7-147	Raboot	래비풋	SV7-106	ラビフット	None	Illustration Rare	https://images.pokemontcg.io/sv7/147.png	https://assets.tcgdex.net/ja/SV/SV7/106/low.webp	0.6	dex+hp+damage+other-set
 sv7-149	Crabominable	모단단게	SV7-107	ケケンカニ	None	Illustration Rare	https://images.pokemontcg.io/sv7/149.png	https://assets.tcgdex.net/ja/SV/SV7/107/low.webp	0.6	dex+hp+damage+other-set
 sv7-150	Joltik	파쪼옥	SV7-108	バチュル	None	Illustration Rare	https://images.pokemontcg.io/sv7/150.png	https://assets.tcgdex.net/ja/SV/SV7/108/low.webp	0.6	dex+hp+damage+other-set
-sv7-151	Zeraora	제라오라	SV8a-053	ゼラオラ	None	Illustration Rare	https://images.pokemontcg.io/sv7/151.png	https://assets.tcgdex.net/ja/SV/SV8a/053/low.webp	0.6	dex+hp+damage+other-set
 sv7-152	Milcery	마빌크	SV7-110	マホミル	None	Illustration Rare	https://images.pokemontcg.io/sv7/152.png	https://assets.tcgdex.net/ja/SV/SV7/110/low.webp	0.6	dex+hp+damage+other-set
 sv7-153	Meditite	요가랑	SV7-111	アサナン	None	Illustration Rare	https://images.pokemontcg.io/sv7/153.png	https://assets.tcgdex.net/ja/SV/SV7/111/low.webp	0.6	dex+hp+damage+other-set
 sv7-154	Gulpin	꼴깍몬	SV7-112	ゴクリン	None	Illustration Rare	https://images.pokemontcg.io/sv7/154.png	https://assets.tcgdex.net/ja/SV/SV7/112/low.webp	0.6	dex+hp+damage+other-set
+sv7-155	Archaludon	브리두라스	SV7-113	ブリジュラス	None	Illustration Rare	https://images.pokemontcg.io/sv7/155.png	https://assets.tcgdex.net/ja/SV/SV7/113/low.webp	0.6	dex+hp+damage+other-set
 sv5-22	Scovillain ex	스코빌런 ex	SV8-023	スコヴィランex	Double rare	Double Rare	https://images.pokemontcg.io/sv5/22.png	https://assets.tcgdex.net/ja/SV/SV8/023/low.webp	0.6	dex+hp+illustrator+rarity+other-set
 sv3-79	Miraidon ex	미라이돈 ex	SV1V-037	ミライドンex	Double rare	Double Rare	https://images.pokemontcg.io/sv3/79.png	https://assets.tcgdex.net/ja/SV/SV1V/037/low.webp	0.6	dex+hp+illustrator+rarity+other-set
-sv2-59	Arctibax	드니꽁	SV4a-052	セゴール		Uncommon	https://images.pokemontcg.io/sv2/59.png	https://assets.tcgdex.net/ja/SV/SV4a/052/low.webp	0.6	dex+hp+damage+illustrator+other-set (2 candidates)
 me55-1	Exeggcute	아라리	M1L-004	タマタマ	Common	Common	https://images.scrydex.com/pokemon/me55-1/small		0.65	dex+hp+damage+rarity+other-set
 me55-16	Slowpoke	야돈	SV2a-079	ヤドン	Common	Common	https://images.scrydex.com/pokemon/me55-16/small	https://assets.tcgdex.net/ja/SV/SV2a/079/low.webp	0.65	dex+hp+damage+rarity+other-set
 me55-77	Comfey	큐아링	SV9-043	リーリエのキュワワー	Common	Common	https://images.scrydex.com/pokemon/me55-77/small	https://assets.tcgdex.net/ja/SV/SV9/043/low.webp	0.65	dex+hp+damage+rarity+other-set
@@ -591,7 +580,6 @@ me1-181	Mega Latias ex	메가라티아스 ex	M1S-088	メガラティアスex	Spe
 me1-182	Mega Kangaskhan ex	메가캥카 ex	M1S-089	メガガルーラex	Special illustration rare	Special Illustration Rare	https://images.pokemontcg.io/me1/182.png		0.65	dex+hp+damage+rarity+other-set
 me1-187	Mega Gardevoir ex	메가가디안 ex	M1S-092	メガサーナイトex	Mega Hyper Rare	Mega Hyper Rare	https://images.pokemontcg.io/me1/187.png		0.65	dex+hp+damage+rarity+other-set
 me1-188	Mega Lucario ex	메가루카리오 ex	M1L-092	メガルカリオex	Mega Hyper Rare	Mega Hyper Rare	https://images.pokemontcg.io/me1/188.png		0.65	dex+hp+damage+rarity+other-set
-rsv10pt5-172	Victini	비크티니	SV11B-012	ビクティニ	Rare	Rare	https://images.pokemontcg.io/rsv10pt5/172.png		0.65	dex+hp+damage+rarity+other-set
 sv10-1	Ethan's Pinsir	심향의 쁘사이저	SV9a-001	ヒビキのカイロス	Uncommon	Uncommon	https://images.pokemontcg.io/sv10/1.png	https://assets.tcgdex.net/ja/SV/SV9a/001/low.webp	0.65	dex+hp+damage+rarity+other-set
 sv10-2	Yanma	왕자리	SV9a-002	ヤンヤンマ	Common	Common	https://images.pokemontcg.io/sv10/2.png	https://assets.tcgdex.net/ja/SV/SV9a/002/low.webp	0.65	dex+hp+damage+rarity+other-set
 sv10-3	Yanmega ex	메가자리 ex	M2a-003	メガヤンマex	Double rare	Double Rare	https://images.pokemontcg.io/sv10/3.png		0.65	dex+hp+damage+rarity+other-set
@@ -1068,7 +1056,6 @@ sv7-143	Bulbasaur	이상해씨	SV2a-166	フシギダネ	Illustration rare	Illust
 sv7-148	Squirtle	꼬부기	SV2a-170	ゼニガメ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/sv7/148.png	https://assets.tcgdex.net/ja/SV/SV2a/170/low.webp	0.65	dex+hp+damage+rarity+other-set
 sv4pt5-50	Barboach	미꾸리	SV2D-038	ドジョッチ	Common	Common	https://images.pokemontcg.io/sv4pt5/50.png	https://assets.tcgdex.net/ja/SV/SV2D/038/low.webp	0.65	dex+hp+damage+rarity+other-set
 sv4pt5-232	Mew ex	뮤 ex	SV2a-205	ミュウex	Special illustration rare	Special Illustration Rare	https://images.pokemontcg.io/sv4pt5/232.png	https://assets.tcgdex.net/ja/SV/SV2a/205/low.webp	0.65	dex+hp+damage+rarity+other-set
-me55-36	Pikachu	피카츄	SV4a-055	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-36/small	https://assets.tcgdex.net/ja/SV/SV4a/055/low.webp	0.7	dex+hp+illustrator
 sv6-180	Enamorus	러브로스	SV5a-074	ラブトロス		Illustration Rare	https://images.pokemontcg.io/sv6/180.png	https://assets.tcgdex.net/ja/SV/SV5a/074/low.webp	0.7	dex+hp+illustrator
 sv6-182	Probopass	대코파스	SV5a-076	ダイノーズ		Illustration Rare	https://images.pokemontcg.io/sv6/182.png	https://assets.tcgdex.net/ja/SV/SV5a/076/low.webp	0.7	dex+hp+illustrator
 sv6-188	Eevee	이브이	SV5a-078	イーブイ		Illustration Rare	https://images.pokemontcg.io/sv6/188.png	https://assets.tcgdex.net/ja/SV/SV5a/078/low.webp	0.7	dex+hp+illustrator
@@ -1080,7 +1067,6 @@ sv1-212	Kirlia	킬리아	SV1S-084	キルリア		Illustration Rare	https://images
 me4-15	Mega Pyroar ex	메가화염레오 ex	M4-015	メガカエンジシex	Double rare	Double Rare	https://images.scrydex.com/pokemon/me4-15/small		0.75	dex+hp+illustrator+rarity
 me4-99	Mega Pyroar ex	메가화염레오 ex	M4-097	メガカエンジシex	Ultra Rare	Ultra Rare	https://images.scrydex.com/pokemon/me4-99/small		0.75	dex+hp+illustrator+rarity
 me2pt5-14	Cascoon	카스쿤	M2a-007	マユルド	None	Common	https://images.scrydex.com/pokemon/me2pt5-14/small		0.75	dex+hp+damage
-me2pt5-231	Iono's Wattrel	모야모의 찌리비	M2a-058	ナンジャモのカイデン	None	Illustration Rare	https://images.scrydex.com/pokemon/me2pt5-231/small		0.75	dex+hp+damage
 me2-9	Nymble	콩알뚜기	M2-009	マメバッタ	Common	Common	https://images.pokemontcg.io/me2/9.png		0.75	dex+hp+illustrator+rarity
 me2-13	Mega Charizard X ex	메가리자몽 X ex	M2-013	メガリザードンXex	Double rare	Double Rare	https://images.pokemontcg.io/me2/13.png		0.75	dex+hp+illustrator+rarity
 me2-22	Dewgong	쥬레곤	M2-022	ジュゴン	Common	Common	https://images.pokemontcg.io/me2/22.png		0.75	dex+hp+illustrator+rarity
@@ -1121,24 +1107,6 @@ zsv10pt5-32	Eelektross	저리더프	SV11B-035	シビルドン	Uncommon	Uncommon	
 zsv10pt5-43	Golurk	골루그	SV11B-046	ゴルーグ	Uncommon	Uncommon	https://images.pokemontcg.io/zsv10pt5/43.png		0.75	dex+hp+illustrator+rarity
 zsv10pt5-51	Dwebble	돌살이	SV11B-054	イシズマイ	Common	Common	https://images.pokemontcg.io/zsv10pt5/51.png		0.75	dex+hp+illustrator+rarity
 zsv10pt5-75	Minccino	치라미	SV11B-077	チラーミィ	Common	Common	https://images.pokemontcg.io/zsv10pt5/75.png		0.75	dex+hp+illustrator+rarity
-zsv10pt5-103	Tympole	동챙이	SV11B-107	オタマロ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/103.png		0.75	dex+hp+illustrator+rarity
-zsv10pt5-104	Palpitoad	두까비	SV11B-108	ガマガル	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/104.png		0.75	dex+hp+illustrator+rarity
-zsv10pt5-105	Seismitoad	두빅굴	SV11B-109	ガマゲロゲ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/105.png		0.75	dex+hp+illustrator+rarity
-zsv10pt5-106	Tirtouga	프로토가	SV11B-110	プロトーガ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/106.png		0.75	dex+hp+illustrator+rarity
-zsv10pt5-110	Beartic	툰베어	SV11B-114	ツンベアー	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/110.png		0.75	dex+hp+illustrator+rarity
-zsv10pt5-115	Eelektross	저리더프	SV11B-119	シビルドン	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/115.png		0.75	dex+hp+illustrator+rarity
-zsv10pt5-123	Golurk	골루그	SV11B-129	ゴルーグ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/123.png		0.75	dex+hp+illustrator+rarity
-zsv10pt5-129	Dwebble	돌살이	SV11B-135	イシズマイ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/129.png		0.75	dex+hp+illustrator+rarity
-zsv10pt5-152	Minccino	치라미	SV11B-157	チラーミィ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/152.png		0.75	dex+hp+illustrator+rarity
-sv4pt5-45	Mankey	망키	SV4a-100	マンキー		Common	https://images.pokemontcg.io/sv4pt5/45.png	https://assets.tcgdex.net/ja/SV/SV4a/100/low.webp	0.75	dex+hp+damage+illustrator (2 candidates)
-sv4pt5-64	Varoom	부르롱	SV4a-300	ブロロン		Common	https://images.pokemontcg.io/sv4pt5/64.png	https://assets.tcgdex.net/ja/SV/SV4a/300/low.webp	0.75	dex+hp+damage
-sv4pt5-70	Cyclizar	모토마	SV4a-303	モトトカゲ		Rare	https://images.pokemontcg.io/sv4pt5/70.png	https://assets.tcgdex.net/ja/SV/SV4a/303/low.webp	0.75	dex+hp+damage
-sv4pt5-129	Arctibax	드니꽁	SV4a-052	セゴール		Shiny Rare	https://images.pokemontcg.io/sv4pt5/129.png	https://assets.tcgdex.net/ja/SV/SV4a/052/low.webp	0.75	dex+hp+damage+illustrator (2 candidates)
-sv4pt5-169	Mankey	망키	SV4a-100	マンキー		Shiny Rare	https://images.pokemontcg.io/sv4pt5/169.png	https://assets.tcgdex.net/ja/SV/SV4a/100/low.webp	0.75	dex+hp+damage+illustrator (2 candidates)
-sv4pt5-182	Sneasel	포푸니	SV4a-119	ニューラ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/182.png	https://assets.tcgdex.net/ja/SV/SV4a/119/low.webp	0.75	dex+hp+damage+illustrator (2 candidates)
-sv3-163	Pidgeotto	피죤	SV3-119	ピジョン		Uncommon	https://images.pokemontcg.io/sv3/163.png	https://assets.tcgdex.net/ja/SV/SV3/119/low.webp	0.75	dex+hp+damage
-sv2-29	Fletchinder	불화살빈	SV2D-073	ヒノヤコマ		Uncommon	https://images.pokemontcg.io/sv2/29.png	https://assets.tcgdex.net/ja/SV/SV2D/073/low.webp	0.75	dex+hp+damage
-sv2-91	Gothorita	고디보미	SV2P-078	ゴチミル		Uncommon	https://images.pokemontcg.io/sv2/91.png	https://assets.tcgdex.net/ja/SV/SV2P/078/low.webp	0.75	dex+hp+damage
 sv1-202	Scovillain	스코빌런	SV1V-081	スコヴィラン	Illustration rare	Illustration Rare	https://images.pokemontcg.io/sv1/202.png	https://assets.tcgdex.net/ja/SV/SV1V/081/low.webp	0.75	dex+hp+illustrator+rarity
 sv1-208	Pachirisu	파치리스	SV1V-084	パチリス	Illustration rare	Illustration Rare	https://images.pokemontcg.io/sv1/208.png	https://assets.tcgdex.net/ja/SV/SV1V/084/low.webp	0.75	dex+hp+illustrator+rarity
 sv1-223	Spidops ex	트래피더 ex	SV1V-091	ワナイダーex	Ultra Rare	Ultra Rare	https://images.pokemontcg.io/sv1/223.png	https://assets.tcgdex.net/ja/SV/SV1V/091/low.webp	0.75	dex+hp+illustrator+rarity
@@ -1156,13 +1124,13 @@ me4-16	Remoraid	총어	M4-016	テッポウオ	Common	Common	https://images.scryd
 me4-27	Mareep	메리프	M4-027	メリープ	Common	Common	https://images.scrydex.com/pokemon/me4-27/small		0.8	dex+hp+damage+rarity
 me4-118	Mega Dragalge ex	메가드래캄 ex	M4-116	メガドラミドロex	Special illustration rare	Special Illustration Rare	https://images.scrydex.com/pokemon/me4-118/small		0.8	dex+hp+damage+rarity
 me2pt5-227	Snorunt	눈꼬마	M2a-200	ユキワラシ	Illustration rare	Illustration Rare	https://images.scrydex.com/pokemon/me2pt5-227/small		0.8	dex+hp+damage+rarity
-rsv10pt5-131	Archen	아켄	SV11W-047	アーケン	Uncommon	Uncommon	https://images.pokemontcg.io/rsv10pt5/131.png		0.8	dex+hp+damage+rarity
-zsv10pt5-171	Victini	비크티니	SV11B-012	ビクティニ	Rare	Rare	https://images.pokemontcg.io/zsv10pt5/171.png		0.8	dex+hp+damage+rarity
 sv4-71	Natu	네이티	SV8a-060	ネイティ	None	Common	https://images.pokemontcg.io/sv4/71.png	https://assets.tcgdex.net/ja/SV/SV8a/060/low.webp	0.8	dex+hp+damage+illustrator+other-set
 sv3-43	Charcadet	카르본	SV8a-023	カルボウ	None	Common	https://images.pokemontcg.io/sv3/43.png	https://assets.tcgdex.net/ja/SV/SV8a/023/low.webp	0.8	dex+hp+damage+illustrator+other-set
 sv2-2	Skiploom	두코	SV4a-006	ポポッコ		Uncommon	https://images.pokemontcg.io/sv2/2.png	https://assets.tcgdex.net/ja/SV/SV4a/006/low.webp	0.8	dex+hp+damage+illustrator+other-set
 sv2-14	Floragato	나로테	SV4a-013	ニャローテ		Uncommon	https://images.pokemontcg.io/sv2/14.png	https://assets.tcgdex.net/ja/SV/SV4a/013/low.webp	0.8	dex+hp+damage+illustrator+other-set
 sv2-36	Crocalor	악뜨거	SV4a-031	アチゲータ		Uncommon	https://images.pokemontcg.io/sv2/36.png	https://assets.tcgdex.net/ja/SV/SV4a/031/low.webp	0.8	dex+hp+damage+illustrator+other-set
+sv2-51	Quaxwell	아꾸왁	SV4a-042	ウェルカモ		Uncommon	https://images.pokemontcg.io/sv2/51.png	https://assets.tcgdex.net/ja/SV/SV4a/042/low.webp	0.8	dex+hp+damage+illustrator+other-set
+sv2-59	Arctibax	드니꽁	SV4a-052	セゴール		Uncommon	https://images.pokemontcg.io/sv2/59.png	https://assets.tcgdex.net/ja/SV/SV4a/052/low.webp	0.8	dex+hp+damage+illustrator+other-set
 sv2-70	Luxio	럭시오	SV4a-060	ルクシオ		Uncommon	https://images.pokemontcg.io/sv2/70.png	https://assets.tcgdex.net/ja/SV/SV4a/060/low.webp	0.8	dex+hp+damage+illustrator+other-set
 sv2-104	Tinkatuff	벼리짱	SV4a-095	ナカヌチャン		Uncommon	https://images.pokemontcg.io/sv2/104.png	https://assets.tcgdex.net/ja/SV/SV4a/095/low.webp	0.8	dex+hp+damage+illustrator+other-set
 sv2-122	Naclstack	스태솔트	SV4a-108	ジオヅム		Uncommon	https://images.pokemontcg.io/sv2/122.png	https://assets.tcgdex.net/ja/SV/SV4a/108/low.webp	0.8	dex+hp+damage+illustrator+other-set
@@ -1186,19 +1154,6 @@ rsv10pt5-17	Lampent	램프라	SV11B-016	ランプラー	Common	Common	https://im
 rsv10pt5-18	Chandelure	샹델라	SV11B-017	シャンデラ	Rare	Rare	https://images.pokemontcg.io/rsv10pt5/18.png		0.85	dex+hp+damage+illustrator+rarity+other-set
 rsv10pt5-63	Vullaby	벌차이	SV11B-063	バルチャイ	Common	Common	https://images.pokemontcg.io/rsv10pt5/63.png		0.85	dex+hp+damage+illustrator+rarity+other-set
 rsv10pt5-64	Mandibuzz	버랜지나	SV11B-064	バルジーナ	Uncommon	Uncommon	https://images.pokemontcg.io/rsv10pt5/64.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-rsv10pt5-101	Litwick	불켜미	SV11B-100	ヒトモシ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/rsv10pt5/101.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-rsv10pt5-102	Lampent	램프라	SV11B-101	ランプラー	Illustration rare	Illustration Rare	https://images.pokemontcg.io/rsv10pt5/102.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-rsv10pt5-103	Chandelure	샹델라	SV11B-102	シャンデラ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/rsv10pt5/103.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-rsv10pt5-144	Vullaby	벌차이	SV11B-144	バルチャイ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/rsv10pt5/144.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-rsv10pt5-145	Mandibuzz	버랜지나	SV11B-145	バルジーナ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/rsv10pt5/145.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-zsv10pt5-61	Klink	기어르	SV11W-065	ギアル	Common	Common	https://images.pokemontcg.io/zsv10pt5/61.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-zsv10pt5-62	Klang	기기어르	SV11W-066	ギギアル	Common	Common	https://images.pokemontcg.io/zsv10pt5/62.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-zsv10pt5-77	Rufflet	수리둥보	SV11W-076	ワシボン	Common	Common	https://images.pokemontcg.io/zsv10pt5/77.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-zsv10pt5-78	Braviary	워글	SV11W-077	ウォーグル	Uncommon	Uncommon	https://images.pokemontcg.io/zsv10pt5/78.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-zsv10pt5-139	Klink	기어르	SV11W-146	ギアル	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/139.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-zsv10pt5-140	Klang	기기어르	SV11W-147	ギギアル	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/140.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-zsv10pt5-154	Rufflet	수리둥보	SV11W-156	ワシボン	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/154.png		0.85	dex+hp+damage+illustrator+rarity+other-set
-zsv10pt5-155	Braviary	워글	SV11W-157	ウォーグル	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/155.png		0.85	dex+hp+damage+illustrator+rarity+other-set
 sv6pt5-72	Munkidori	이야후	SV6-107	マシマシラ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/sv6pt5/72.png	https://assets.tcgdex.net/ja/SV/SV6/107/low.webp	0.85	dex+hp+damage+illustrator+rarity+other-set
 sv6pt5-73	Fezandipiti	기로치	SV6-108	キチキギス	Illustration rare	Illustration Rare	https://images.pokemontcg.io/sv6pt5/73.png	https://assets.tcgdex.net/ja/SV/SV6/108/low.webp	0.85	dex+hp+damage+illustrator+rarity+other-set
 sv6pt5-74	Okidogi	조타구	SV6-110	イイネイヌ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/sv6pt5/74.png	https://assets.tcgdex.net/ja/SV/SV6/110/low.webp	0.85	dex+hp+damage+illustrator+rarity+other-set
@@ -1242,7 +1197,6 @@ sv3-114	Crabrawler	오기지게	SV2D-042	マケンカニ	Common	Common	https://i
 sv3-115	Crabominable	모단단게	SV2D-043	ケケンカニ	Uncommon	Uncommon	https://images.pokemontcg.io/sv3/115.png	https://assets.tcgdex.net/ja/SV/SV2D/043/low.webp	0.85	dex+hp+damage+illustrator+rarity+other-set
 sv3-144	Bronzor	동미러	SV2P-050	ドーミラー	Common	Common	https://images.pokemontcg.io/sv3/144.png	https://assets.tcgdex.net/ja/SV/SV2P/050/low.webp	0.85	dex+hp+damage+illustrator+rarity+other-set
 sv3-145	Bronzong	동탁군	SV2P-051	ドータクン	Uncommon	Uncommon	https://images.pokemontcg.io/sv3/145.png	https://assets.tcgdex.net/ja/SV/SV2P/051/low.webp	0.85	dex+hp+damage+illustrator+rarity+other-set
-me55-37	Pikachu	피카츄	SV4a-236	ピカチュウ		Pikachu Rare	https://images.scrydex.com/pokemon/me55-37/small	https://assets.tcgdex.net/ja/SV/SV4a/236/low.webp	0.95	dex+hp+damage+illustrator
 me2pt5-11	Wurmple	개무소	M2a-004	ケムッソ	None	Common	https://images.scrydex.com/pokemon/me2pt5-11/small		0.95	dex+hp+damage+illustrator
 me2pt5-12	Silcoon	실쿤	M2a-005	カラサリス	None	Common	https://images.scrydex.com/pokemon/me2pt5-12/small		0.95	dex+hp+damage+illustrator
 me2pt5-13	Beautifly	뷰티플라이	M2a-006	アゲハント	None	Uncommon	https://images.scrydex.com/pokemon/me2pt5-13/small		0.95	dex+hp+damage+illustrator
@@ -1357,6 +1311,7 @@ sv4pt5-41	Flittle	하느라기	SV4a-093	ヒラヒナ		Common	https://images.poke
 sv4pt5-42	Greavard	망망이	SV4a-097	ボチ		Common	https://images.pokemontcg.io/sv4pt5/42.png	https://assets.tcgdex.net/ja/SV/SV4a/097/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-43	Houndstone	묘두기	SV4a-098	ハカドッグ		Rare	https://images.pokemontcg.io/sv4pt5/43.png	https://assets.tcgdex.net/ja/SV/SV4a/098/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-44	Gimmighoul	모으령	SV4a-099	コレクレー		Common	https://images.pokemontcg.io/sv4pt5/44.png	https://assets.tcgdex.net/ja/SV/SV4a/099/low.webp	0.95	dex+hp+damage+illustrator
+sv4pt5-45	Mankey	망키	SV4a-100	マンキー		Common	https://images.pokemontcg.io/sv4pt5/45.png	https://assets.tcgdex.net/ja/SV/SV4a/100/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-46	Primeape	성원숭	SV4a-101	オコリザル		Uncommon	https://images.pokemontcg.io/sv4pt5/46.png	https://assets.tcgdex.net/ja/SV/SV4a/101/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-47	Annihilape	저승갓숭	SV4a-102	コノヨザル		Rare	https://images.pokemontcg.io/sv4pt5/47.png	https://assets.tcgdex.net/ja/SV/SV4a/102/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-58	Paldean Wooper	팔데아 우파	SV4a-116	パルデア ウパー		Common	https://images.pokemontcg.io/sv4pt5/58.png	https://assets.tcgdex.net/ja/SV/SV4a/116/low.webp	0.95	dex+hp+damage+illustrator
@@ -1399,6 +1354,7 @@ sv4pt5-125	Veluza	가비루사	SV4a-230	ミガルーサ		Shiny Rare	https://imag
 sv4pt5-126	Dondozo	어써러셔	SV4a-231	ヘイラッシャ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/126.png	https://assets.tcgdex.net/ja/SV/SV4a/231/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-127	Tatsugiri	싸리용	SV4a-232	シャリタツ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/127.png	https://assets.tcgdex.net/ja/SV/SV4a/232/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-128	Frigibax	드니차	SV4a-233	セビエ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/128.png	https://assets.tcgdex.net/ja/SV/SV4a/233/low.webp	0.95	dex+hp+damage+illustrator
+sv4pt5-129	Arctibax	드니꽁	SV4a-234	セゴール		Shiny Rare	https://images.pokemontcg.io/sv4pt5/129.png	https://assets.tcgdex.net/ja/SV/SV4a/234/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-130	Baxcalibur	드닐레이브	SV4a-235	セグレイブ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/130.png	https://assets.tcgdex.net/ja/SV/SV4a/235/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-131	Pikachu	피카츄	SV4a-236	ピカチュウ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/131.png	https://assets.tcgdex.net/ja/SV/SV4a/236/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-132	Raichu	라이츄	SV4a-237	ライチュウ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/132.png	https://assets.tcgdex.net/ja/SV/SV4a/237/low.webp	0.95	dex+hp+damage+illustrator
@@ -1438,6 +1394,7 @@ sv4pt5-165	Tinkatink	어리짱	SV4a-271	カヌチャン		Shiny Rare	https://imag
 sv4pt5-166	Tinkatuff	벼리짱	SV4a-272	ナカヌチャン		Shiny Rare	https://images.pokemontcg.io/sv4pt5/166.png	https://assets.tcgdex.net/ja/SV/SV4a/272/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-167	Tinkaton	두드리짱	SV4a-273	デカヌチャン		Shiny Rare	https://images.pokemontcg.io/sv4pt5/167.png	https://assets.tcgdex.net/ja/SV/SV4a/273/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-168	Houndstone	묘두기	SV4a-275	ハカドッグ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/168.png	https://assets.tcgdex.net/ja/SV/SV4a/275/low.webp	0.95	dex+hp+damage+illustrator
+sv4pt5-169	Mankey	망키	SV4a-276	マンキー		Shiny Rare	https://images.pokemontcg.io/sv4pt5/169.png	https://assets.tcgdex.net/ja/SV/SV4a/276/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-170	Primeape	성원숭	SV4a-277	オコリザル		Shiny Rare	https://images.pokemontcg.io/sv4pt5/170.png	https://assets.tcgdex.net/ja/SV/SV4a/277/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-171	Annihilape	저승갓숭	SV4a-278	コノヨザル		Shiny Rare	https://images.pokemontcg.io/sv4pt5/171.png	https://assets.tcgdex.net/ja/SV/SV4a/278/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-172	Paldean Tauros	팔데아 켄타로스	SV4a-279	パルデア ケンタロス		Shiny Rare	https://images.pokemontcg.io/sv4pt5/172.png	https://assets.tcgdex.net/ja/SV/SV4a/279/low.webp	0.95	dex+hp+damage+illustrator
@@ -1450,6 +1407,7 @@ sv4pt5-178	Garganacl	콜로솔트	SV4a-285	キョジオーン		Shiny Rare	https:
 sv4pt5-179	Glimmet	초롱순	SV4a-286	キラーメ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/179.png	https://assets.tcgdex.net/ja/SV/SV4a/286/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-180	Paldean Wooper	팔데아 우파	SV4a-287	パルデア ウパー		Shiny Rare	https://images.pokemontcg.io/sv4pt5/180.png	https://assets.tcgdex.net/ja/SV/SV4a/287/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-181	Murkrow	니로우	SV4a-288	ヤミカラス		Shiny Rare	https://images.pokemontcg.io/sv4pt5/181.png	https://assets.tcgdex.net/ja/SV/SV4a/288/low.webp	0.95	dex+hp+damage+illustrator
+sv4pt5-182	Sneasel	포푸니	SV4a-289	ニューラ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/182.png	https://assets.tcgdex.net/ja/SV/SV4a/289/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-183	Weavile	포푸니라	SV4a-290	マニューラ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/183.png	https://assets.tcgdex.net/ja/SV/SV4a/290/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-184	Sableye	깜까미	SV4a-291	ヤミラミ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/184.png	https://assets.tcgdex.net/ja/SV/SV4a/291/low.webp	0.95	dex+hp+damage+illustrator
 sv4pt5-185	Pawniard	자망칼	SV4a-292	コマタナ		Shiny Rare	https://images.pokemontcg.io/sv4pt5/185.png	https://assets.tcgdex.net/ja/SV/SV4a/292/low.webp	0.95	dex+hp+damage+illustrator
@@ -1528,7 +1486,6 @@ sv3-206	Varoom	부르롱	SV3-117	ブロロン		Illustration Rare	https://images.
 sv3-207	Pidgey	구구	SV3-118	ポッポ		Illustration Rare	https://images.pokemontcg.io/sv3/207.png	https://assets.tcgdex.net/ja/SV/SV3/118/low.webp	0.95	dex+hp+damage+illustrator
 sv3-208	Pidgeotto	피죤	SV3-119	ピジョン		Illustration Rare	https://images.pokemontcg.io/sv3/208.png	https://assets.tcgdex.net/ja/SV/SV3/119/low.webp	0.95	dex+hp+damage+illustrator
 sv3-209	Lechonk	맛보돈	SV3-120	グルトン		Illustration Rare	https://images.pokemontcg.io/sv3/209.png	https://assets.tcgdex.net/ja/SV/SV3/120/low.webp	0.95	dex+hp+damage+illustrator
-sv2-51	Quaxwell	아꾸왁	SV1a-082	ウェルカモ		Uncommon	https://images.pokemontcg.io/sv2/51.png	https://assets.tcgdex.net/ja/SV/SV1a/082/low.webp	0.95	dex+hp+damage+illustrator
 sv2-194	Heracross	헤라크로스	SV2D-072	ヘラクロス		Illustration Rare	https://images.pokemontcg.io/sv2/194.png	https://assets.tcgdex.net/ja/SV/SV2D/072/low.webp	0.95	dex+hp+damage+illustrator
 sv2-195	Tropius	트로피우스	SV1a-074	トロピウス		Illustration Rare	https://images.pokemontcg.io/sv2/195.png	https://assets.tcgdex.net/ja/SV/SV1a/074/low.webp	0.95	dex+hp+damage+illustrator
 sv2-196	Sprigatito	나오하	SV1a-075	ニャオハ		Illustration Rare	https://images.pokemontcg.io/sv2/196.png	https://assets.tcgdex.net/ja/SV/SV1a/075/low.webp	0.95	dex+hp+damage+illustrator
@@ -2050,6 +2007,8 @@ zsv10pt5-57	Sandile	깜눈크	SV11B-060	メグロコ	Common	Common	https://image
 zsv10pt5-58	Krokorok	악비르	SV11B-061	ワルビル	Common	Common	https://images.pokemontcg.io/zsv10pt5/58.png		1	dex+hp+damage+illustrator+rarity
 zsv10pt5-59	Krookodile	악비아르	SV11B-062	ワルビアル	Uncommon	Uncommon	https://images.pokemontcg.io/zsv10pt5/59.png		1	dex+hp+damage+illustrator+rarity
 zsv10pt5-60	Escavalier	슈바르고	SV11B-065	シュバルゴ	Uncommon	Uncommon	https://images.pokemontcg.io/zsv10pt5/60.png		1	dex+hp+damage+illustrator+rarity
+zsv10pt5-61	Klink	기어르	SV11W-065	ギアル	Common	Common	https://images.pokemontcg.io/zsv10pt5/61.png		1	dex+hp+damage+illustrator+rarity
+zsv10pt5-62	Klang	기기어르	SV11W-066	ギギアル	Common	Common	https://images.pokemontcg.io/zsv10pt5/62.png		1	dex+hp+damage+illustrator+rarity
 zsv10pt5-64	Pawniard	자망칼	SV11B-066	コマタナ	Common	Common	https://images.pokemontcg.io/zsv10pt5/64.png		1	dex+hp+damage+illustrator+rarity
 zsv10pt5-65	Bisharp	절각참	SV11B-067	キリキザン	Uncommon	Uncommon	https://images.pokemontcg.io/zsv10pt5/65.png		1	dex+hp+damage+illustrator+rarity
 zsv10pt5-66	Cobalion	코바르온	SV11B-068	コバルオン	Rare	Rare	https://images.pokemontcg.io/zsv10pt5/66.png		1	dex+hp+damage+illustrator+rarity
@@ -2062,74 +2021,12 @@ zsv10pt5-72	Tranquill	유토브	SV11B-074	ハトーボー	Common	Common	https://
 zsv10pt5-73	Unfezant	켄호로우	SV11B-075	ケンホロウ	Uncommon	Uncommon	https://images.pokemontcg.io/zsv10pt5/73.png		1	dex+hp+damage+illustrator+rarity
 zsv10pt5-74	Audino	다부니	SV11B-076	タブンネ	Common	Common	https://images.pokemontcg.io/zsv10pt5/74.png		1	dex+hp+damage+illustrator+rarity
 zsv10pt5-76	Cinccino	치라치노	SV11B-078	チラチーノ	Uncommon	Uncommon	https://images.pokemontcg.io/zsv10pt5/76.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-87	Snivy	주리비얀	SV11B-087	ツタージャ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/87.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-88	Servine	샤비	SV11B-088	ジャノビー	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/88.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-89	Pansage	야나프	SV11B-089	ヤナップ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/89.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-90	Simisage	야나키	SV11B-090	ヤナッキー	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/90.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-91	Petilil	치릴리	SV11B-091	チュリネ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/91.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-92	Lilligant	드레디어	SV11B-092	ドレディア	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/92.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-93	Maractus	마라카치	SV11B-093	マラカッチ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/93.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-94	Karrablast	딱정곤	SV11B-094	カブルモ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/94.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-95	Foongus	깜놀버슬	SV11B-095	タマゲタケ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/95.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-96	Amoonguss	뽀록나	SV11B-096	モロバレル	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/96.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-97	Darumaka	달막화	SV11B-098	ダルマッカ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/97.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-98	Darmanitan	불비달마	SV11B-099	ヒヒダルマ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/98.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-99	Larvesta	활화르바	SV11B-103	メラルバ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/99.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-100	Volcarona	불카모스	SV11B-104	ウルガモス	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/100.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-101	Panpour	앗차프	SV11B-105	ヒヤップ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/101.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-102	Simipour	앗차키	SV11B-106	ヒヤッキー	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/102.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-107	Carracosta	늑골라	SV11B-111	アバゴーラ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/107.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-108	Alomomola	맘복치	SV11B-112	ママンボウ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/108.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-109	Cubchoo	코고미	SV11B-113	クマシュン	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/109.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-111	Cryogonal	프리지오	SV11B-115	フリージオ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/111.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-112	Emolga	에몽가	SV11B-116	エモンガ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/112.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-113	Tynamo	저리어	SV11B-117	シビシラス	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/113.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-114	Eelektrik	저리릴	SV11B-118	シビビール	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/114.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-116	Munna	몽나	SV11B-121	ムンナ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/116.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-117	Musharna	몽얌나	SV11B-122	ムシャーナ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/117.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-118	Solosis	유니란	SV11B-123	ユニラン	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/118.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-119	Duosion	듀란	SV11B-124	ダブラン	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/119.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-120	Elgyem	리그레	SV11B-126	リグレー	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/120.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-121	Beheeyem	벰크	SV11B-127	オーベム	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/121.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-122	Golett	골비람	SV11B-128	ゴビット	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/122.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-124	Drilbur	두더류	SV11B-130	モグリュー	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/124.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-125	Timburr	으랏차	SV11B-131	ドッコラー	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/125.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-126	Gurdurr	토쇠골	SV11B-132	ドテッコツ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/126.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-127	Conkeldurr	노보청	SV11B-133	ローブシン	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/127.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-128	Throh	던지미	SV11B-134	ナゲキ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/128.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-130	Crustle	암팰리스	SV11B-136	イワパレス	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/130.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-131	Landorus	랜드로스	SV11B-137	ランドロス	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/131.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-132	Venipede	마디네	SV11B-138	フシデ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/132.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-133	Whirlipede	휠구	SV11B-139	ホイーガ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/133.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-134	Scolipede	펜드라	SV11B-140	ペンドラー	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/134.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-135	Sandile	깜눈크	SV11B-141	メグロコ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/135.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-136	Krokorok	악비르	SV11B-142	ワルビル	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/136.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-137	Krookodile	악비아르	SV11B-143	ワルビアル	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/137.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-138	Escavalier	슈바르고	SV11B-146	シュバルゴ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/138.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-142	Pawniard	자망칼	SV11B-147	コマタナ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/142.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-143	Bisharp	절각참	SV11B-148	キリキザン	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/143.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-144	Cobalion	코바르온	SV11B-149	コバルオン	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/144.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-145	Axew	터검니	SV11B-150	キバゴ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/145.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-146	Fraxure	액슨도	SV11B-151	オノンド	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/146.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-147	Haxorus	액스라이즈	SV11B-152	オノノクス	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/147.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-148	Pidove	콩둘기	SV11B-153	マメパト	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/148.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-149	Tranquill	유토브	SV11B-154	ハトーボー	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/149.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-150	Unfezant	켄호로우	SV11B-155	ケンホロウ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/150.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-151	Audino	다부니	SV11B-156	タブンネ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/151.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-153	Cinccino	치라치노	SV11B-158	チラチーノ	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/153.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-156	Serperior ex	샤로다 ex	SV11B-159	ジャローダex	Ultra Rare	Ultra Rare	https://images.pokemontcg.io/zsv10pt5/156.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-157	Kyurem ex	큐레무 ex	SV11B-160	キュレムex	Ultra Rare	Ultra Rare	https://images.pokemontcg.io/zsv10pt5/157.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-158	Zekrom ex	제크로무 ex	SV11B-161	ゼクロムex	Ultra Rare	Ultra Rare	https://images.pokemontcg.io/zsv10pt5/158.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-159	Meloetta ex	메로엣타 ex	SV11B-162	メロエッタex	Ultra Rare	Ultra Rare	https://images.pokemontcg.io/zsv10pt5/159.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-160	Excadrill ex	몰드류 ex	SV11B-163	ドリュウズex	Ultra Rare	Ultra Rare	https://images.pokemontcg.io/zsv10pt5/160.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-161	Genesect ex	게노세크트 ex	SV11B-164	ゲノセクトex	Ultra Rare	Ultra Rare	https://images.pokemontcg.io/zsv10pt5/161.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-164	Serperior ex	샤로다 ex	SV11B-167	ジャローダex	Special illustration rare	Special Illustration Rare	https://images.pokemontcg.io/zsv10pt5/164.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-165	Kyurem ex	큐레무 ex	SV11B-168	キュレムex	Special illustration rare	Special Illustration Rare	https://images.pokemontcg.io/zsv10pt5/165.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-166	Zekrom ex	제크로무 ex	SV11B-169	ゼクロムex	Special illustration rare	Special Illustration Rare	https://images.pokemontcg.io/zsv10pt5/166.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-167	Meloetta ex	메로엣타 ex	SV11B-170	メロエッタex	Special illustration rare	Special Illustration Rare	https://images.pokemontcg.io/zsv10pt5/167.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-168	Excadrill ex	몰드류 ex	SV11B-171	ドリュウズex	Special illustration rare	Special Illustration Rare	https://images.pokemontcg.io/zsv10pt5/168.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-169	Genesect ex	게노세크트 ex	SV11B-172	ゲノセクトex	Special illustration rare	Special Illustration Rare	https://images.pokemontcg.io/zsv10pt5/169.png		1	dex+hp+damage+illustrator+rarity
-zsv10pt5-172	Zekrom ex	제크로무 ex	SV11B-174	ゼクロムex	Black White Rare	Black White Rare	https://images.pokemontcg.io/zsv10pt5/172.png		1	dex+hp+damage+illustrator+rarity
+zsv10pt5-77	Rufflet	수리둥보	SV11W-076	ワシボン	Common	Common	https://images.pokemontcg.io/zsv10pt5/77.png		1	dex+hp+damage+illustrator+rarity
+zsv10pt5-78	Braviary	워글	SV11W-077	ウォーグル	Uncommon	Uncommon	https://images.pokemontcg.io/zsv10pt5/78.png		1	dex+hp+damage+illustrator+rarity
+zsv10pt5-139	Klink	기어르	SV11W-146	ギアル	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/139.png		1	dex+hp+damage+illustrator+rarity
+zsv10pt5-140	Klang	기기어르	SV11W-147	ギギアル	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/140.png		1	dex+hp+damage+illustrator+rarity
+zsv10pt5-154	Rufflet	수리둥보	SV11W-156	ワシボン	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/154.png		1	dex+hp+damage+illustrator+rarity
+zsv10pt5-155	Braviary	워글	SV11W-157	ウォーグル	Illustration rare	Illustration Rare	https://images.pokemontcg.io/zsv10pt5/155.png		1	dex+hp+damage+illustrator+rarity
 sv6pt5-1	Joltik	파쪼옥	SV6a-001	バチュル	Common	Common	https://images.pokemontcg.io/sv6pt5/1.png	https://assets.tcgdex.net/ja/SV/SV6a/001/low.webp	1	dex+hp+damage+illustrator+rarity
 sv6pt5-2	Galvantula	전툴라	SV6a-002	デンチュラ	Uncommon	Uncommon	https://images.pokemontcg.io/sv6pt5/2.png	https://assets.tcgdex.net/ja/SV/SV6a/002/low.webp	1	dex+hp+damage+illustrator+rarity
 sv6pt5-3	Rowlet	나몰빼미	SV6a-003	モクロー	Common	Common	https://images.pokemontcg.io/sv6pt5/3.png	https://assets.tcgdex.net/ja/SV/SV6a/003/low.webp	1	dex+hp+damage+illustrator+rarity

@@ -34,8 +34,11 @@ async function cached(name, url) {
 await mkdir(CACHE, { recursive: true })
 const sets = (await cached('sets', `${HOST}/sets`)).filter((s) => /^(SV|M)/i.test(s.id) && !/^(SV-P|M-P|MC)$/.test(s.id))
 const jaCards = []
+/** Printed set size per Japanese set: numbers past it are secret / art-rare slots */
+const jaOfficial = new Map()
 for (const [i, set] of sets.entries()) {
   const detail = await cached(`set-${set.id}`, `${HOST}/sets/${encodeURIComponent(set.id)}`)
+  if (detail?.cardCount?.official) jaOfficial.set(set.id, detail.cardCount.official)
   for (const brief of detail?.cards ?? []) {
     const card = await cached(`card-${brief.id}`, `${HOST}/cards/${encodeURIComponent(brief.id)}`)
     if (card?.category === 'Pokemon') jaCards.push(card)
@@ -56,10 +59,12 @@ for (const c of jaCards) {
 
 const index = JSON.parse(await readFile(path.join(root, 'data/index.json'), 'utf8'))
 const ourSets = [...new Set(index.filter((c) => OUR_SETS.test(c.set)).map((c) => c.set))]
+const enPrinted = new Map(JSON.parse(await readFile(path.join(root, 'data/sets.json'), 'utf8')).map((s) => [s.id, s.printedTotal]))
 const enCards = []
 for (const setId of ourSets) {
   for (const en of JSON.parse(await readFile(path.join(root, `data/cards/${setId}.json`), 'utf8'))) {
-    if (en.supertype === 'Pokémon' && en.nationalPokedexNumbers?.length) enCards.push({ setId, en })
+    // Special English-only prints ("Pikachu Rare" art) have no Japanese counterpart (qa)
+    if (en.supertype === 'Pokémon' && en.nationalPokedexNumbers?.length && en.rarity !== 'Pikachu Rare') enCards.push({ setId, en })
   }
 }
 
@@ -67,10 +72,18 @@ for (const setId of ourSets) {
 const knownRarity = (r) => !!norm(r) && norm(r) !== 'none'
 const jaSet = (ja) => ja.id.slice(0, ja.id.lastIndexOf('-'))
 
+/** Past the printed set size: a secret / special slot (unknown when the number isn't plain) */
+const pastTotal = (number, total) => (/^\d+$/.test(String(number)) && total ? Number(number) > total : null)
+
 /** Scores the Japanese candidates of an English card (best first) */
-function score(en, nativeSets) {
+function score(en, nativeSets, setId) {
   const scored = []
+  const enSecret = pastTotal(en.number, enPrinted.get(setId))
   for (const ja of byKey.get(`${en.nationalPokedexNumbers[0]}:${Number(en.hp)}`) ?? []) {
+    // Secret matches secret, regular matches regular: a regular card isn't its set's full-art slot,
+    // and an English special print isn't a Japanese regular one (qa round 2)
+    const jaSecret = pastTotal(ja.localId, jaOfficial.get(jaSet(ja)))
+    if (enSecret !== null && jaSecret !== null && enSecret !== jaSecret) continue
     // Both rarities known and different: another print, not this one (qa sample: 4 of 6 were wrong)
     if (knownRarity(en.rarity) && knownRarity(ja.rarity) && norm(en.rarity) !== norm(ja.rarity)) continue
     const checks = [
@@ -97,7 +110,7 @@ for (const setId of ourSets) {
   const counts = new Map()
   let total = 0
   for (const { en } of enCards.filter((c) => c.setId === setId)) {
-    const [best, second] = score(en, null)
+    const [best, second] = score(en, null, setId)
     if (!best || best.score < 0.95 || (second && second.score === best.score)) continue
     counts.set(jaSet(best.ja), (counts.get(jaSet(best.ja)) ?? 0) + 1)
     total++
@@ -109,7 +122,7 @@ const links = []
 const review = []
 for (const { setId, en } of enCards) {
   {
-    const [best, ...rest] = score(en, nativeSetsOf.get(setId))
+    const [best, ...rest] = score(en, nativeSetsOf.get(setId), setId)
     if (!best) continue
     const ties = rest.filter((r) => r.score === best.score).length
     // Several equally good Japanese prints (reprints, alternate arts): less sure which one
