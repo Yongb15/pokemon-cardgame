@@ -28,6 +28,18 @@ describe('configuration (checked at startup)', () => {
     expect(() => loadConfig({ ...baseEnv, APP_ENV: 'production', AUTH_TEST_PROVIDER: '1' })).toThrow(/AUTH_TEST_PROVIDER/)
     expect(loadConfig({ ...baseEnv, AUTH_TEST_PROVIDER: '1' }).AUTH_TEST_PROVIDER).toBe('1')
   })
+  it('reads secrets from the API_SECRETS bundle, never plain settings', () => {
+    const json = JSON.stringify({ PROXY_SECRET: SECRET })
+    expect(loadConfig({ ...baseEnv, API_SECRETS: json }).PROXY_SECRET).toBe(SECRET)
+    expect(() => loadConfig({ ...baseEnv, API_SECRETS: JSON.stringify({ APP_ENV: 'production' }) })).toThrow(/APP_ENV/)
+    expect(() => loadConfig({ ...baseEnv, API_SECRETS: JSON.stringify({ PROXY_SECRET: 1 }) })).toThrow(/PROXY_SECRET/)
+    expect(() => loadConfig({ ...baseEnv, API_SECRETS: '{"PROXY_SECRET":"secret-value' })).toThrow(/not JSON/)
+    try {
+      loadConfig({ ...baseEnv, API_SECRETS: '{"PROXY_SECRET":"secret-value' })
+    } catch (error) {
+      expect(String(error)).not.toContain('secret-value')
+    }
+  })
   it('rejects a short proxy secret', () => {
     expect(() => loadConfig({ ...baseEnv, PROXY_SECRET: 'short' })).toThrow(/PROXY_SECRET/)
   })

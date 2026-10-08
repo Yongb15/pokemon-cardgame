@@ -1,0 +1,82 @@
+name: Deploy API
+
+# main → Cloud Run "api" (production), develop → "api-preview" (dev DB).
+# Keyless: GitHub's OIDC token is exchanged through Workload Identity Federation. The provider only
+# accepts pushes of this file on main/develop of this repository (by repository id), and each branch
+# maps to its own deploy account that can update one service only (docs/auth/design.md).
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'apps/api/**'
+      - 'packages/shared/**'
+      - 'package-lock.json'
+      - '.github/workflows/deploy-api.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-api-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGION: asia-southeast3
+  IMAGE: asia-southeast3-docker.pkg.dev/pokemon-card-dex-511008/api/api
+  PROVIDER: projects/596522340638/locations/global/workloadIdentityPools/github/providers/github
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run apps/api
+      - run: npm run build --workspace apps/api
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The only job that may ask GitHub for an OIDC token
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Pick the target
+        id: target
+        run: |
+          if [ "$GITHUB_REF" = refs/heads/main ]; then
+            echo "service=api" >> "$GITHUB_OUTPUT"
+            echo "account=api-deploy-prod@pokemon-card-dex-511008.iam.gserviceaccount.com" >> "$GITHUB_OUTPUT"
+          else
+            echo "service=api-preview" >> "$GITHUB_OUTPUT"
+            echo "account=api-deploy-preview@pokemon-card-dex-511008.iam.gserviceaccount.com" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ env.PROVIDER }}
+          service_account: ${{ steps.target.outputs.account }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - name: Build and push the image
+        run: |
+          gcloud auth configure-docker "$REGION-docker.pkg.dev" --quiet
+          docker build -f apps/api/Dockerfile -t "$IMAGE:$GITHUB_SHA" .
+          docker push "$IMAGE:$GITHUB_SHA"
+      # Only the image changes: limits, account, env and secrets stay as set on the service
+      - name: Deploy
+        run: gcloud run deploy "${{ steps.target.outputs.service }}" --image="$IMAGE:$GITHUB_SHA" --region="$REGION" --quiet
+      - name: Health check
+        run: |
+          url=$(gcloud run services describe "${{ steps.target.outputs.service }}" --region="$REGION" --format='value(status.url)')
+          curl -fsS --max-time 20 "$url/api/v1/health"

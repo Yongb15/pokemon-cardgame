@@ -17,8 +17,35 @@ export type Config = z.infer<typeof schema> & { proxyReady: boolean }
 
 export const CONFIG = Symbol('CONFIG')
 
+/** Keys that may come from the API_SECRETS bundle; plain settings like APP_ENV may not */
+const SECRET_KEYS = new Set(['PROXY_SECRET'])
+
+/**
+ * Cloud Run gets all secrets of one environment as a single Secret Manager value (JSON) in
+ * API_SECRETS: the free tier holds only 6 secret versions, so one secret per environment
+ */
+function withSecrets(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  if (!env.API_SECRETS) return env
+  let bundle: unknown
+  try {
+    bundle = JSON.parse(env.API_SECRETS)
+  } catch {
+    throw new Error('Invalid configuration: API_SECRETS is not JSON')
+  }
+  if (!bundle || typeof bundle !== 'object' || Array.isArray(bundle)) {
+    throw new Error('Invalid configuration: API_SECRETS is not an object')
+  }
+  const entries = Object.entries(bundle)
+  const unknown = entries.filter(([key, value]) => !SECRET_KEYS.has(key) || typeof value !== 'string')
+  if (unknown.length) {
+    throw new Error(`Invalid configuration: API_SECRETS ${unknown.map(([key]) => key).join(', ')}`)
+  }
+  const { API_SECRETS: _, ...rest } = env
+  return { ...rest, ...Object.fromEntries(entries) }
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-  const parsed = schema.safeParse(env)
+  const parsed = schema.safeParse(withSecrets(env))
   if (!parsed.success) {
     // Names only: values can be secrets
     const fields = [...new Set(parsed.error.issues.map((i) => i.path.join('.')))].join(', ')
