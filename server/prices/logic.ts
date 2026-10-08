@@ -1,7 +1,7 @@
 // Pure price logic: no I/O, and "now" always comes in as an argument so the boundaries can be
 // tested (qa). Rules are from docs/price/design.md (qa D-1…D-7, Security review).
 
-import { CURRENCIES, SOURCES, VARIANTS } from '../db/schema.ts'
+import { CURRENCIES, SOURCES, VARIANTS } from '../db/schema.js'
 
 export type Source = (typeof SOURCES)[number]
 export type Variant = (typeof VARIANTS)[number]

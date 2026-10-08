@@ -12,7 +12,7 @@ import {
   toKrw,
   utcDay,
   type LevelRow,
-} from './logic.ts'
+} from './logic.js'
 
 describe('UTC days (qa D-2)', () => {
   it('uses the UTC date, not Korean time', () => {

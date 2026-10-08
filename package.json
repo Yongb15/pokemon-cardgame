@@ -15,7 +15,8 @@
     "build:sitemap": "node scripts/build-sitemap.mjs",
     "test": "vitest run",
     "db:generate": "node --env-file=.env ./node_modules/drizzle-kit/bin.cjs generate",
-    "db:migrate": "node --env-file=.env ./node_modules/drizzle-kit/bin.cjs migrate"
+    "db:migrate": "node --env-file=.env ./node_modules/drizzle-kit/bin.cjs migrate",
+    "build:tcgdex-map": "node scripts/build-tcgdex-map.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.2.0",
