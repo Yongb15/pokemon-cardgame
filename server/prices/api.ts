@@ -23,6 +23,7 @@ import { editionView, type Rates } from './view.js'
 
 export const VIEW_REFRESH_BUDGET = 3000
 const VIEW_REFRESH_TIMEOUT_MS = 10_000
+const FX_ON_VIEW_TRIES = 3
 const RANGES: Record<string, number> = { '30d': 30, '90d': 90 }
 const ID_PATTERN = /^[\w.!?-]{1,40}$/
 
@@ -143,8 +144,15 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
 
     // No recent rate yet (a fresh database before its first daily run, or a failed run): fetch the
     // day's rates once, so prices aren't shown without won (Security note after v1.2.0)
-    const haveFx = fx.some((r) => r.usable && r.rateDate >= addDays(today, -5))
-    if (human && !haveFx && (await budgetLeft('fx-on-view', today, 1)) && (await takeBudget('fx-on-view', today, 1))) {
+    // Both price currencies need a recent rate; a few tries a day in case one call fails (qa)
+    const recent = (currency: string) => fx.some((r) => r.currency === currency && r.usable && r.rateDate >= addDays(today, -5))
+    const haveFx = recent('USD') && recent('EUR')
+    if (
+      human &&
+      !haveFx &&
+      (await budgetLeft('fx-on-view', today, FX_ON_VIEW_TRIES)) &&
+      (await takeBudget('fx-on-view', today, FX_ON_VIEW_TRIES))
+    ) {
       const work = fetchFx(now, AbortSignal.timeout(VIEW_REFRESH_TIMEOUT_MS))
         .then((rates) => (rates ? saveFx(rates) : undefined))
         .catch(() => undefined)
@@ -173,7 +181,11 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
       // While a refresh runs the new prices are seconds away: don't keep "fetching" for 10 minutes (qa P4-6)
       // Short too when a bot saw a card that's due: the next person should reach the function and
       // start the refresh, not get this answer from the cache for 10 minutes (qa V-2)
-      refreshing || refresh?.status === 'pending' || (!human && isRefreshDue(refresh?.refreshedAt ?? null, now))
+      // Rates missing: the answer is in original currencies until they arrive in seconds (qa)
+      refreshing ||
+        refresh?.status === 'pending' ||
+        !haveFx ||
+        (!human && isRefreshDue(refresh?.refreshedAt ?? null, now))
         ? 'public, max-age=0, s-maxage=15'
         : OK_CACHE,
     )
