@@ -31,13 +31,18 @@ const won = (krw: number) => `₩${krw.toLocaleString('ko-KR')}`
 /** "2026-10-08" → "10.08" (prices are kept per UTC day) */
 const shortDate = (day: string) => `${day.slice(5, 7)}.${day.slice(8, 10)}`
 
+const amountText = (price: Price) =>
+  Object.hasOwn(CURRENCY, price.currency) ? CURRENCY[price.currency](price.amount) : `${price.amount} ${price.currency}`
+
+/** Won, "₩10 미만", or — with no exchange rate yet — the original amount (qa V-1) */
 function priceText(price: Price) {
-  return price.krw !== null ? won(price.krw) : price.belowMin ? '₩10 미만' : '환율 정보 없음'
+  return price.krw !== null ? won(price.krw) : price.belowMin ? '₩10 미만' : amountText(price)
 }
 
 function original(price: Price) {
-  const amount = Object.hasOwn(CURRENCY, price.currency) ? CURRENCY[price.currency](price.amount) : `${price.amount} ${price.currency}`
-  return `${amount} · ${label(SOURCE_LABEL, price.source)} · ${label(VARIANT_LABEL, price.variant)}`
+  const detail = `${label(SOURCE_LABEL, price.source)} · ${label(VARIANT_LABEL, price.variant)}`
+  // The headline already is the original amount when there's no rate: say why instead
+  return price.krw === null && !price.belowMin ? `원화 환산 준비 중 · ${detail}` : `${amountText(price)} · ${detail}`
 }
 
 /** Whether an edition has prices to show over a period */
