@@ -2,6 +2,7 @@
 // Everything that comes from outside (storage, a pasted list, a link) goes through the same
 // sanitizer, so a tampered value can only ever become a smaller, valid deck.
 
+import { cleanText } from '@card-dex/shared'
 import bundledSets from '../data/sets.json'
 import type { CardListItem } from '../types/card'
 
@@ -46,14 +47,8 @@ const isCount = (n: unknown): n is number => Number.isInteger(n) && (n as number
  * text after it so "gnp.exe" reads "exe.png"), keeping the zero-width joiner emoji are built with
  */
 export function cleanDeckName(name: string) {
-  const clean = name
-    .replace(/\s+/g, ' ') // tabs and newlines become spaces before the other controls go
-    .replace(/(?!‍)[\p{Cc}\p{Cf}]/gu, '')
-    .replace(/ {2,}/g, ' ') // "a <ZWSP> b" left two spaces
-    .slice(0, MAX_DECK_NAME)
-    .trim() // after cutting, so a space at the 50th character doesn't stay at the end
-  // Nothing visible left (only joiners): treat as no name, so callers fall back to a default
-  return /^[\s‍]*$/.test(clean) ? '' : clean
+  // The same rule the API server applies (packages/shared)
+  return cleanText(name, MAX_DECK_NAME)
 }
 
 /** Merges duplicate ids, drops invalid entries and caps the number of distinct cards */

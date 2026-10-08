@@ -202,3 +202,10 @@ erDiagram
 - 2단계: Google Cloud 계정·결제 카드 등록·프로젝트 생성 (나머지 설정은 CLI로)
 - 3단계: Google OAuth 클라이언트 등록(동의 화면 포함)
 - 4단계: 카카오 디벨로퍼스 앱 등록(OpenID Connect 켜기)
+
+## 테스트 로그인(qa L-1) 조건 — Security (2026-10-08)
+1. 이중 차단: `APP_ENV=preview && AUTH_TEST_PROVIDER=1`일 때만 라우트 등록 + 연결된 DB가 dev 브랜치가 아니면(`dev_marker` 없음) 시작 시 실패. production 서비스에 `AUTH_TEST_PROVIDER`가 있으면 시작 거부
+2. 네임스페이스 분리: `provider='test'`만 만들고 찾는다. `google`·`kakao`의 sub로는 절대 조회·생성 불가(실제 계정 사칭 방지)
+3. 별도 키·발급자: 가짜 제공자의 JWKS·iss는 실제 제공자 신뢰 목록에 없음. 검증은 제공자별 정확한 iss/aud
+4. 공개 전제: 미리보기는 누구나 접근 가능 → 테스트 계정은 dev DB·테스트 데이터만, 어떤 추가 권한도 없음
+5. 테스트: production 빌드(`APP_ENV=production`)에서 `/auth/test/*` → 404
