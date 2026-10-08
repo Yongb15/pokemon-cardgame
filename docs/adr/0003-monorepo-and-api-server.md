@@ -20,7 +20,8 @@
    packages/shared DB 스키마(Drizzle)·입력 검증(zod)·API 타입 — 웹과 API가 같은 정의를 씀
    ```
 2. **API 서버는 Google Cloud Run** (사용자 결정)
-   - 리전 **asia-southeast1(싱가포르)**: DB(Neon 싱가포르) 옆이라 쿼리 왕복이 짧다(서울 리전이면 쿼리마다 ~70ms)
+   - 리전 **asia-southeast3(방콕)**: DB(Neon 싱가포르)와 가까운 **요금 1등급** 리전. 처음엔 싱가포르(asia-southeast1)였지만 2등급이라 단가가 높고 무료 사용량 적용이 문서로 확인되지 않아 바꿨다(2026-10-08)
+   - 서비스 둘: `api`(main → 정식, production DB) · `api-preview`(develop → 미리보기, dev DB). 최대 인스턴스 2, 요청 10초, 요청 처리 중에만 CPU
    - 최소 인스턴스 0(무료 사용량 안에서 0원), 첫 요청은 1~2초 느릴 수 있음
    - WebSocket 지원(M7)
 3. **같은 출처(Same origin)로 묶는다**: Vercel이 `/api/v1/*`을 Cloud Run으로 프록시(rewrite)한다
@@ -28,6 +29,10 @@
    - CSP `connect-src 'self'` 유지
 4. **카드·시세 API는 Vercel Functions 그대로**(데이터가 빌드 파일이라 엣지 캐시가 유리). 사용자 데이터만 API 서버로.
 5. **배포는 GitHub Actions + Workload Identity Federation** — 서비스 계정 키 파일 없이 GitHub이 짧은 토큰으로 배포. 비밀 값은 Secret Manager → Cloud Run 환경변수.
+   - WIF 조건: 저장소 id + push 이벤트 + 이 워크플로 파일(`deploy-api.yml`)의 main/develop만. main은 `api-deploy-prod`(→ `api`만), develop은 `api-deploy-preview`(→ `api-preview`만) 계정으로 나눠 권한을 서비스 단위로 묶음
+   - 비밀 값은 **환경마다 Secret Manager 비밀 하나(JSON)** `api-secrets-{prod,preview}` → `API_SECRETS` 환경변수. 무료 한도가 활성 버전 6개라 값마다 따로 두지 않음. 서버는 정해진 비밀 키만 받음
+   - 과금 차단: 예산 ₩7,000(크레딧 제외)의 알림이 `infra/billing-guard` 함수를 깨워 실제 비용 ₩1,000에서 결제 연결을 끊음
+     - 감수한 위험(Security I-8): run.app 주소로 대량 호출이 오면 비용 → 차단 → 프로젝트 전체 정지(가용성)로 이어질 수 있다. 최대 인스턴스 2와 가벼운 401 응답으로 비용 상한이 낮아 받아들임
 
 ## 대안
 

@@ -1,0 +1,27 @@
+{
+  "name": "@card-dex/api",
+  "private": true,
+  "version": "0.0.0",
+  "description": "NestJS API server: login, sessions, user data (Cloud Run)",
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/main.js",
+    "dev": "node --env-file=../../.env --watch --import tsx src/main.ts"
+  },
+  "dependencies": {
+    "@card-dex/shared": "file:../../packages/shared",
+    "@nestjs/common": "^11.2.7",
+    "@nestjs/core": "^11.2.7",
+    "@nestjs/platform-express": "^11.2.7",
+    "express": "^5.2.1",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.2.7",
+    "@types/express": "^5.0.6",
+    "tsx": "^4.23.15"
+  }
+}
