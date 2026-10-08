@@ -42,6 +42,8 @@ const mustFail: [string, string][] = [
   ['update sessions.user_id', "update account.sessions set user_id = gen_random_uuid() where false"],
   ['bad provider', "insert into account.oauth_accounts(provider, subject, user_id) values ('evil', 'x', gen_random_uuid())"],
   ['long nickname', "insert into account.users(nickname) values (repeat('가', 21))"],
+  ['backdated session', "insert into account.sessions(token_hash, user_id, expires_at, created_at) values (decode(repeat('00', 32), 'hex'), gen_random_uuid(), now(), now() + interval '1 year')"],
+  ['user with chosen id', "insert into account.users(id, nickname) values (gen_random_uuid(), 'ab')"],
   ['short token hash', "insert into account.sessions(token_hash, user_id, expires_at) values ('\\x00', gen_random_uuid(), now())"],
 ]
 for (const [label, q] of mustFail) {

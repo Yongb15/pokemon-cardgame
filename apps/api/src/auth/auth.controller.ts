@@ -11,7 +11,7 @@ import type { Request, Response } from 'express'
 import type { Config } from '../config.js'
 import { clearCookie, OAUTH_COOKIE, readCookie, setCookie } from './cookies.js'
 import { pkceChallenge, randomToken, safeEqual, seal, unseal } from './crypto.js'
-import { safeNext } from './next.js'
+import { isSafePath, safeNext } from './next.js'
 import { SignInError, type Provider } from './providers.js'
 import type { Sessions } from './sessions.js'
 import type { AccountStore } from './store.js'
@@ -106,14 +106,15 @@ export class AuthController {
       const idToken = await provider.exchange(query.code, pending.v)
       const subject = await provider.verify(idToken, pending.n)
       const userId = await this.services.store!.signIn(provider.name, subject, defaultNickname())
-      await this.services.sessions!.start(res, userId)
+      await this.services.sessions!.start(req, res, userId)
     } catch (error) {
       // Reason only: never the code, tokens or the provider's response
       console.warn(`sign-in failed (${provider.name}):`, error instanceof SignInError ? error.message : error instanceof Error ? error.name : 'unknown')
       return fail(res, 'failed')
     }
-    // Relative: the browser stays on the site it started from (the callback URL drops code/state)
-    res.redirect(302, pending.next)
+    // Relative: the browser stays on the site it started from (the callback URL drops code/state).
+    // The path is checked once more here, whatever the cookie says (S3-1)
+    res.redirect(302, isSafePath(pending.next) ? pending.next : '/')
   }
 
   @Post('auth/logout')

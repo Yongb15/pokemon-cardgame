@@ -54,10 +54,21 @@ export class RateLimiter {
     return entry.count <= this.max
   }
 
-  /** Express middleware keyed by the visitor's IP (only known through the verified proxy) */
-  middleware() {
+  /**
+   * Express middleware keyed by the visitor's IP (only known through the verified proxy). Requests
+   * without a known IP share one much larger bucket instead, so one visitor can't lock everyone
+   * out if the header ever goes missing (Security S3-2); that case is logged, at most once a minute
+   */
+  middleware(unknownMax = this.max * 10) {
+    const shared = new RateLimiter(unknownMax, this.windowMs, this.now)
+    let warnedAt = -Infinity
     return (req: Request, res: Response, next: NextFunction) => {
-      if (this.allow(clientIp(req, res) ?? 'unknown')) return next()
+      const ip = clientIp(req, res)
+      if (!ip && this.now() - warnedAt >= 60_000) {
+        warnedAt = this.now()
+        console.warn('rate limit: request without a visitor IP (x-real-ip missing)')
+      }
+      if (ip ? this.allow(ip) : shared.allow('unknown')) return next()
       res.status(429).json({ error: { message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', code: 429 } })
     }
   }

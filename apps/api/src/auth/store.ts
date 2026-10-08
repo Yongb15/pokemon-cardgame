@@ -1,5 +1,6 @@
 // Accounts and sessions in PostgreSQL (schema `account`, role api_rw). Queries go through Drizzle,
-// so every value is a bound parameter.
+// so every value is a bound parameter. Inserts name their columns by hand: api_rw may insert only
+// those (migration 0006), and Drizzle's insert() would list every column as DEFAULT.
 
 import { and, desc, eq, gt, inArray, lt, notInArray, sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
@@ -39,15 +40,17 @@ export class PgStore implements AccountStore {
         .from(oauthAccounts)
         .where(and(eq(oauthAccounts.provider, provider), eq(oauthAccounts.subject, subject)))
       if (found[0]) return found[0].userId
-      const [user] = await tx.insert(users).values({ nickname }).returning({ id: users.id })
-      const linked = await tx
-        .insert(oauthAccounts)
-        .values({ provider, subject, userId: user!.id })
-        .onConflictDoNothing()
-        .returning({ userId: oauthAccounts.userId })
-      if (linked[0]) return linked[0].userId
+      const { rows: created } = await tx.execute<{ id: string }>(
+        sql`insert into ${users} (nickname) values (${nickname}) returning id`,
+      )
+      const userId = created[0]!.id
+      const { rows: linked } = await tx.execute<{ user_id: string }>(
+        sql`insert into ${oauthAccounts} (provider, subject, user_id) values (${provider}, ${subject}, ${userId})
+            on conflict do nothing returning user_id`,
+      )
+      if (linked[0]) return linked[0].user_id
       // Two first sign-ins at once: the other one won, so drop ours and use theirs
-      await tx.delete(users).where(eq(users.id, user!.id))
+      await tx.delete(users).where(eq(users.id, userId))
       const [winner] = await tx
         .select({ userId: oauthAccounts.userId })
         .from(oauthAccounts)
@@ -59,7 +62,9 @@ export class PgStore implements AccountStore {
 
   async createSession(userId: string, tokenHash: Buffer, expiresAt: Date) {
     await this.db.transaction(async (tx) => {
-      await tx.insert(sessions).values({ tokenHash, userId, expiresAt })
+      await tx.execute(
+        sql`insert into ${sessions} (token_hash, user_id, expires_at) values (${tokenHash}, ${userId}, ${expiresAt})`,
+      )
       // Keep the newest MAX_SESSIONS of this user
       const keep = tx
         .select({ tokenHash: sessions.tokenHash })

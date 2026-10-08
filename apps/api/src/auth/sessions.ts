@@ -22,8 +22,13 @@ export class Sessions {
     private readonly now: () => Date = () => new Date(),
   ) {}
 
-  /** A new session for a fresh sign-in (always a new token: no session fixation) */
-  async start(res: Response, userId: string) {
+  /**
+   * A new session for a fresh sign-in (always a new token: no session fixation). A session this
+   * browser already had is ended first, so it doesn't linger until it expires (Security I3-2)
+   */
+  async start(req: Request, res: Response, userId: string) {
+    const previous = readCookie(req, SESSION_COOKIE)
+    if (previous && TOKEN.test(previous)) await this.store.deleteSession(sha256(previous))
     const token = randomToken(32)
     await this.store.createSession(userId, sha256(token), new Date(this.now().getTime() + SESSION_DAYS * DAY))
     setCookie(res, SESSION_COOKIE, token, SESSION_DAYS * DAY / 1000)

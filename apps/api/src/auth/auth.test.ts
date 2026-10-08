@@ -33,6 +33,9 @@ describe('next (after sign-in) stays on our site (Security fuzz list)', () => {
       '//evil.com', '/\\evil.com', '\\\\evil.com', 'https://evil.com', 'https:evil.com', 'evil.com',
       '/\tevil', '/\nx', '', 'javascript:alert(1)', '/api/v1/auth/logout',
       `/${'a'.repeat(200)}`, undefined, ['/decks'], '/\u0000',
+      // Dot segments that normalise into "//evil.com" (Security S3-1)
+      '/.//evil.com', '/..//evil.com', '/a/..//evil.com', '/%2e//evil.com', '/a/../..//evil.com',
+      '/%2E%2E//evil.com', '/./', '/a/.', '/a/..?x', '/.%2e/x',
     ]
     for (const input of bad) expect(safeNext(input, ORIGIN), String(input)).toBe('/')
     // An encoded CRLF stays encoded inside the path: harmless text, not a header
@@ -135,7 +138,7 @@ describe('sessions: 30 days that slide, 90 days at most', () => {
     const cookies: string[] = []
     const res = { append: (_: string, v: string) => cookies.push(v) } as never
     const userId = await store.signIn('test', 'qa1', '트레이너1')
-    await sessions.start(res, userId)
+    await sessions.start({ headers: {} } as never, res, userId)
     const token = /__Host-session=([^;]+)/.exec(cookies[0]!)![1]!
     const req = { headers: { cookie: `__Host-session=${token}` } } as never
     store.sessions[0]!.createdAt = now
@@ -164,6 +167,18 @@ describe('rate limits', () => {
     expect(limiter.allow('other-ip')).toBe(true)
     now = 60_000
     expect(limiter.allow('ip')).toBe(true)
+  })
+  it('puts visitors without a known IP in one much larger bucket (S3-2)', () => {
+    const limiter = new RateLimiter(30, 60_000, () => 0)
+    const handle = limiter.middleware()
+    let passed = 0
+    const res = { locals: { proxyVerified: true }, status: () => ({ json: () => undefined }) } as never
+    for (let i = 0; i < 301; i += 1) handle({ headers: {} } as never, res, () => (passed += 1))
+    expect(passed).toBe(300)
+    // a known visitor still has their own 30
+    let mine = 0
+    for (let i = 0; i < 31; i += 1) handle({ headers: { 'x-real-ip': '1.2.3.4' } } as never, res, () => (mine += 1))
+    expect(mine).toBe(30)
   })
 })
 
@@ -309,8 +324,30 @@ describe('sign-in flow (test provider, preview)', () => {
   })
 
   it('sends a dangerous next to /', async () => {
-    const { callback } = await signIn('qa5', '//evil.com/x')
-    expect(callback.location).toBe('/')
+    for (const next of ['//evil.com/x', '/.//evil.com', '/a/..//evil.com', '/%2e//evil.com']) {
+      const { callback } = await signIn('qa5', next)
+      expect(callback.location, next).toBe('/')
+    }
+  })
+
+  it('checks next again right before the redirect, whatever the cookie says (S3-1)', async () => {
+    const start = await call('/api/v1/auth/test/start?sub=qa7')
+    const consent = await call(start.location!)
+    const state = new URL(consent.location!, 'http://x').searchParams.get('state')!
+    const opened = unseal(start.cookies['__Host-oauth']!, Buffer.from(KEY, 'base64url')) as Record<string, unknown>
+    const forged = seal({ ...opened, s: state, next: '//evil.com' }, Buffer.from(KEY, 'base64url'))
+    const hop = await call(consent.location!, { cookie: `__Host-oauth=${forged}` })
+    expect(hop.location).toBe('/')
+  })
+
+  it('ends the previous session of this browser on a new sign-in (I3-2)', async () => {
+    const first = await signIn('qa8')
+    const old = first.callback.cookies['__Host-session']!
+    const start = await call('/api/v1/auth/test/start?sub=qa8')
+    const consent = await call(start.location!)
+    const again = await call(consent.location!, { cookie: `__Host-oauth=${start.cookies['__Host-oauth']}; __Host-session=${old}` })
+    expect(again.cookies['__Host-session']).not.toBe(old)
+    expect(JSON.parse((await call('/api/v1/me', { cookie: `__Host-session=${old}` })).body)).toEqual({ user: null })
   })
 
   it('only accepts test account names it knows the shape of', async () => {

@@ -43,6 +43,13 @@
       "when": 1791456349367,
       "tag": "0005_api_rw_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791458270125,
+      "tag": "0006_api_rw_insert_columns",
+      "breakpoints": true
     }
   ]
 }
