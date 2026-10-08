@@ -148,7 +148,8 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
         note: '참고용 시세입니다',
       },
       200,
-      OK_CACHE,
+      // While a refresh runs the new prices are seconds away: don't keep "fetching" for 10 minutes (qa P4-6)
+      refreshing || refresh?.status === 'pending' ? 'public, max-age=0, s-maxage=15' : OK_CACHE,
     )
   } catch {
     // Never the error itself: it can hold query or connection details

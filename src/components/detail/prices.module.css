@@ -233,5 +233,7 @@
   padding: 1px 6px;
   border-radius: 4px;
   background: var(--surface-muted);
+  /* inherits --text-muted otherwise: 4.1–4.4:1 on this background (qa P4-1b) */
+  color: var(--text);
   font-size: 11px;
 }
