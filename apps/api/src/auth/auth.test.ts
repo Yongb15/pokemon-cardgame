@@ -172,7 +172,7 @@ describe('rate limits', () => {
     const limiter = new RateLimiter(30, 60_000, () => 0)
     const handle = limiter.middleware()
     let passed = 0
-    const res = { locals: { proxyVerified: true }, status: () => ({ json: () => undefined }) } as never
+    const res = { locals: { proxyVerified: true }, setHeader: () => undefined, status: () => ({ json: () => undefined }) } as never
     for (let i = 0; i < 301; i += 1) handle({ headers: {} } as never, res, () => (passed += 1))
     expect(passed).toBe(300)
     // a known visitor still has their own 30

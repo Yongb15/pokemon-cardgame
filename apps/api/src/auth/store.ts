@@ -9,6 +9,24 @@ import { oauthAccounts, sessions, users, type Provider } from '../db/schema.js'
 /** At most this many sessions per user: the oldest go first (Security) */
 export const MAX_SESSIONS = 20
 
+/** What the queries below use: [table in schema account, column or null for the table, privilege] */
+const REQUIRED_PRIVILEGES: [string, string | null, string][] = [
+  ['users', null, 'SELECT'],
+  ['users', 'nickname', 'INSERT'],
+  ['users', null, 'DELETE'],
+  ['oauth_accounts', null, 'SELECT'],
+  ['oauth_accounts', 'provider', 'INSERT'],
+  ['oauth_accounts', 'subject', 'INSERT'],
+  ['oauth_accounts', 'user_id', 'INSERT'],
+  ['sessions', null, 'SELECT'],
+  ['sessions', null, 'DELETE'],
+  ['sessions', 'token_hash', 'INSERT'],
+  ['sessions', 'user_id', 'INSERT'],
+  ['sessions', 'expires_at', 'INSERT'],
+  ['sessions', 'expires_at', 'UPDATE'],
+  ['sessions', 'last_seen_at', 'UPDATE'],
+]
+
 export interface SessionRecord {
   userId: string
   nickname: string
@@ -112,6 +130,22 @@ export class PgStore implements AccountStore {
       .from(oauthAccounts)
       .where(eq(oauthAccounts.userId, userId))
     return rows.map((r) => r.provider as Provider)
+  }
+
+  /**
+   * The grants this code needs, checked at start-up: a revision whose code and the database's
+   * grants disagree refuses to start, so the deploy fails and the old revision keeps serving
+   * (qa B3-1: a narrowing migration ran before the matching image). Returns what is missing.
+   */
+  async missingPrivileges(): Promise<string[]> {
+    const checks = REQUIRED_PRIVILEGES.map(([table, column, privilege]) =>
+      column
+        ? sql`has_column_privilege(${`account.${table}`}, ${column}, ${privilege})`
+        : sql`has_table_privilege(${`account.${table}`}, ${privilege})`,
+    )
+    const { rows } = await this.db.execute<{ ok: boolean[] }>(sql`select array[${sql.join(checks, sql`, `)}] as ok`)
+    const ok = rows[0]?.ok ?? []
+    return REQUIRED_PRIVILEGES.filter((_, i) => ok[i] !== true).map(([t, c, p]) => `${p} ${t}${c ? `.${c}` : ''}`)
   }
 
   async isDevDatabase() {

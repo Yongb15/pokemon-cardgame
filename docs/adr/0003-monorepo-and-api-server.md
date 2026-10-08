@@ -31,6 +31,8 @@
 5. **배포는 GitHub Actions + Workload Identity Federation** — 서비스 계정 키 파일 없이 GitHub이 짧은 토큰으로 배포. 비밀 값은 Secret Manager → Cloud Run 환경변수.
    - WIF 조건: 저장소 id + push 이벤트 + 이 워크플로 파일(`deploy-api.yml`)의 main/develop만. main은 `api-deploy-prod`(→ `api`만), develop은 `api-deploy-preview`(→ `api-preview`만) 계정으로 나눠 권한을 서비스 단위로 묶음
    - 비밀 값은 **환경마다 Secret Manager 비밀 하나(JSON)** `api-secrets-{prod,preview}` → `API_SECRETS` 환경변수. 무료 한도가 활성 버전 6개라 값마다 따로 두지 않음. 서버는 정해진 비밀 키만 받음
+   - **DB 변경과 서버 배포 순서**(qa B3-1): 권한을 **넓히는** 마이그레이션(새 테이블·컬럼·GRANT)은 마이그레이션 → 서버 배포, 권한을 **좁히는** 마이그레이션(REVOKE, 컬럼 단위로 축소)은 새 서버 배포 → 마이그레이션. 3단계에서 0006을 이전 이미지보다 먼저 적용해 미리보기 로그인이 약 2분간 실패했다
+   - 서버는 시작할 때 코드가 쓰는 DB 권한(`REQUIRED_PRIVILEGES`)을 `has_*_privilege`로 확인하고, 하나라도 없으면 시작을 거부한다 → 새 리비전이 뜨지 않아 배포가 실패로 드러나고 이전 리비전이 계속 응답한다
    - 과금 차단: 예산 ₩7,000(크레딧 제외)의 알림이 `infra/billing-guard` 함수를 깨워 실제 비용 ₩1,000에서 결제 연결을 끊음
      - 감수한 위험(Security I-8): run.app 주소로 대량 호출이 오면 비용 → 차단 → 프로젝트 전체 정지(가용성)로 이어질 수 있다. 최대 인스턴스 2와 가벼운 401 응답으로 비용 상한이 낮아 받아들임
 
