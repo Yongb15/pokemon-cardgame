@@ -18,7 +18,7 @@
 ```
 브라우저 ──> pokemon-card-dex-green.vercel.app
               ├─ /api/cards/*, /api/prices   Vercel Functions (그대로)
-              └─ /api/v1/*  ──rewrite──> Cloud Run (asia-southeast1) · NestJS
+              └─ /api/v1/*  ──rewrite──> Cloud Run (asia-southeast3) · NestJS
                                               ├─ AuthModule      /auth/{google|kakao}/start, /callback, /logout
                                               ├─ SessionGuard    쿠키 → 세션 조회 → req.user
                                               ├─ MeModule        /me (닉네임, 탈퇴, 모든 기기 로그아웃)
