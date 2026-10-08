@@ -24,7 +24,11 @@ for (const { cardId, externalId, confidence } of links) {
     returning card_id`
   written += rows.length
 }
-console.log(`Automatic links written: ${written}/${links.length}`)
+// An automatic match the new rules no longer make must not linger (checked links stay)
+const current = links.map((l) => l.cardId)
+const removed = await sql`delete from card_edition_link
+  where edition = 'ja' and method = 'auto' and not verified and not (card_id = any(${current})) returning card_id`
+console.log(`Automatic links written: ${written}/${links.length}, stale removed: ${removed.length}`)
 
 const verdicts = process.argv[2]
 if (verdicts) {

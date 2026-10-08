@@ -56,28 +56,65 @@ for (const c of jaCards) {
 
 const index = JSON.parse(await readFile(path.join(root, 'data/index.json'), 'utf8'))
 const ourSets = [...new Set(index.filter((c) => OUR_SETS.test(c.set)).map((c) => c.set))]
+const enCards = []
+for (const setId of ourSets) {
+  for (const en of JSON.parse(await readFile(path.join(root, `data/cards/${setId}.json`), 'utf8'))) {
+    if (en.supertype === 'Pokémon' && en.nationalPokedexNumbers?.length) enCards.push({ setId, en })
+  }
+}
+
+// A rarity TCGdex doesn't know ("None", empty) can't rule a print out
+const knownRarity = (r) => !!norm(r) && norm(r) !== 'none'
+const jaSet = (ja) => ja.id.slice(0, ja.id.lastIndexOf('-'))
+
+/** Scores the Japanese candidates of an English card (best first) */
+function score(en, nativeSets) {
+  const scored = []
+  for (const ja of byKey.get(`${en.nationalPokedexNumbers[0]}:${Number(en.hp)}`) ?? []) {
+    // Both rarities known and different: another print, not this one (qa sample: 4 of 6 were wrong)
+    if (knownRarity(en.rarity) && knownRarity(ja.rarity) && norm(en.rarity) !== norm(ja.rarity)) continue
+    const checks = [
+      ['damage', 0.25, damages(en.attacks) === damages(ja.attacks)],
+      ['illustrator', 0.2, !!norm(en.artist) && norm(en.artist) === norm(ja.illustrator)],
+      ['rarity', 0.05, norm(en.rarity) === norm(ja.rarity)],
+    ].filter(([, , ok]) => ok)
+    let value = 0.5 + checks.reduce((sum, [, weight]) => sum + weight, 0)
+    const why = ['dex+hp', ...checks.map(([name]) => name)]
+    // Outside the sets this English set was made from: a reprint or a collection print (qa)
+    if (nativeSets && !nativeSets.has(jaSet(ja))) {
+      value -= 0.15
+      why.push('other-set')
+    }
+    scored.push({ ja, score: value, why })
+  }
+  return scored.sort((a, b) => b.score - a.score)
+}
+
+// The Japanese sets each English set was made from, learned from its surest matches: the sets
+// holding at least 10% of them (one English set can come from several: sv10 ← SV10, SV9a)
+const nativeSetsOf = new Map()
+for (const setId of ourSets) {
+  const counts = new Map()
+  let total = 0
+  for (const { en } of enCards.filter((c) => c.setId === setId)) {
+    const [best, second] = score(en, null)
+    if (!best || best.score < 0.95 || (second && second.score === best.score)) continue
+    counts.set(jaSet(best.ja), (counts.get(jaSet(best.ja)) ?? 0) + 1)
+    total++
+  }
+  nativeSetsOf.set(setId, new Set([...counts].filter(([, n]) => n >= total * 0.1).map(([s]) => s)))
+}
+
 const links = []
 const review = []
-for (const setId of ourSets) {
-  const cards = JSON.parse(await readFile(path.join(root, `data/cards/${setId}.json`), 'utf8'))
-  for (const en of cards) {
-    if (en.supertype !== 'Pokémon' || !en.nationalPokedexNumbers?.length) continue
-    const candidates = byKey.get(`${en.nationalPokedexNumbers[0]}:${Number(en.hp)}`) ?? []
-    let best = null
-    for (const ja of candidates) {
-      const checks = [
-        ['damage', 0.25, damages(en.attacks) === damages(ja.attacks)],
-        ['illustrator', 0.2, !!norm(en.artist) && norm(en.artist) === norm(ja.illustrator)],
-        ['rarity', 0.05, norm(en.rarity) === norm(ja.rarity)],
-      ].filter(([, , ok]) => ok)
-      const score = 0.5 + checks.reduce((sum, [, weight]) => sum + weight, 0)
-      const why = ['dex+hp', ...checks.map(([name]) => name)]
-      if (!best || score > best.score) best = { ja, score, why, ties: 0 }
-      else if (score === best.score) best.ties++
-    }
+for (const { setId, en } of enCards) {
+  {
+    const [best, ...rest] = score(en, nativeSetsOf.get(setId))
     if (!best) continue
+    const ties = rest.filter((r) => r.score === best.score).length
     // Several equally good Japanese prints (reprints, alternate arts): less sure which one
-    const confidence = Math.max(0, Math.round((best.score - (best.ties ? 0.2 : 0)) * 100) / 100)
+    const confidence = Math.max(0, Math.round((best.score - (ties ? 0.2 : 0)) * 100) / 100)
+    best.ties = ties
     links.push({ cardId: en.id, externalId: best.ja.id, confidence })
     const our = index.find((c) => c.id === en.id)
     review.push(
