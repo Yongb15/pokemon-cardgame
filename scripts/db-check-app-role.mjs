@@ -4,8 +4,10 @@
 
 import { neon } from '@neondatabase/serverless'
 const sql = neon(process.env.DATABASE_URL)
-const who = await sql`select current_user as u, (select rolsuper from pg_roles where rolname=current_user) as su,
-  pg_has_role(current_user,'neon_superuser','member') as neon_su, current_setting('statement_timeout') as timeout`
+const who = await sql`select current_user as u, r.rolsuper as su, r.rolcreatedb as createdb, r.rolcreaterole as createrole,
+  r.rolinherit as inherit, r.rolbypassrls as bypassrls, r.rolreplication as replication, r.rolconnlimit as connlimit,
+  pg_has_role(current_user,'neon_superuser','member') as neon_su, current_setting('statement_timeout') as timeout
+  from pg_roles r where r.rolname = current_user`
 console.log(who[0])
 const grants = await sql`select table_name, string_agg(privilege_type, ',' order by privilege_type) p
   from information_schema.role_table_grants where grantee='app_rw' group by table_name order by 1`

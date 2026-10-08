@@ -154,7 +154,7 @@ describe('display', () => {
 })
 
 describe('outside data (Security)', () => {
-  it('keeps only finite prices in [0, 100000]', () => {
+  it('keeps only finite prices in (0, 100000]', () => {
     expect(cleanPrice(3.05)).toBe(3.05)
     expect(cleanPrice(100_000)).toBe(100_000)
     for (const bad of [0, -1, 100_001, Number.NaN, Infinity, '3', null, undefined]) expect(cleanPrice(bad)).toBeNull()
