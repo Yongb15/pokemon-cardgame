@@ -1,0 +1,659 @@
+{
+  "id": "519f9758-374e-47bc-a7e3-22a2154b76f5",
+  "prevId": "18f41f86-c1b8-4c75-8073-84369e9d00be",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.card_edition_link": {
+      "name": "card_edition_link",
+      "schema": "",
+      "columns": {
+        "card_id": {
+          "name": "card_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "edition": {
+          "name": "edition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "external_id": {
+          "name": "external_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "method": {
+          "name": "method",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confidence": {
+          "name": "confidence",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verified": {
+          "name": "verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "card_edition_link_card_id_edition_pk": {
+          "name": "card_edition_link_card_id_edition_pk",
+          "columns": [
+            "card_id",
+            "edition"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "card_edition_link_edition_check": {
+          "name": "card_edition_link_edition_check",
+          "value": "edition = 'ja'"
+        },
+        "card_edition_link_card_id_check": {
+          "name": "card_edition_link_card_id_check",
+          "value": "length(card_id) between 1 and 40"
+        },
+        "card_edition_link_method_check": {
+          "name": "card_edition_link_method_check",
+          "value": "method in ('auto', 'manual', 'none')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.card_view_daily": {
+      "name": "card_view_daily",
+      "schema": "",
+      "columns": {
+        "card_id": {
+          "name": "card_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "views": {
+          "name": "views",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "card_view_daily_card_id_day_pk": {
+          "name": "card_view_daily_card_id_day_pk",
+          "columns": [
+            "card_id",
+            "day"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "card_view_daily_card_id_check": {
+          "name": "card_view_daily_card_id_check",
+          "value": "length(card_id) between 1 and 40"
+        },
+        "card_view_daily_views_check": {
+          "name": "card_view_daily_views_check",
+          "value": "views >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.daily_counter": {
+      "name": "daily_counter",
+      "schema": "",
+      "columns": {
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "day": {
+          "name": "day",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "value": {
+          "name": "value",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "daily_counter_name_day_pk": {
+          "name": "daily_counter_name_day_pk",
+          "columns": [
+            "name",
+            "day"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "daily_counter_value_check": {
+          "name": "daily_counter_value_check",
+          "value": "value >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.fx_rate": {
+      "name": "fx_rate",
+      "schema": "",
+      "columns": {
+        "currency": {
+          "name": "currency",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rate_date": {
+          "name": "rate_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "krw_per_unit": {
+          "name": "krw_per_unit",
+          "type": "numeric(14, 6)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "usable": {
+          "name": "usable",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "fx_rate_currency_rate_date_pk": {
+          "name": "fx_rate_currency_rate_date_pk",
+          "columns": [
+            "currency",
+            "rate_date"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "fx_rate_currency_check": {
+          "name": "fx_rate_currency_check",
+          "value": "currency in ('USD', 'EUR', 'JPY')"
+        },
+        "fx_rate_positive_check": {
+          "name": "fx_rate_positive_check",
+          "value": "krw_per_unit > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.price_refresh": {
+      "name": "price_refresh",
+      "schema": "",
+      "columns": {
+        "card_id": {
+          "name": "card_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "refreshed_at": {
+          "name": "refreshed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "price_refresh_status_check": {
+          "name": "price_refresh_status_check",
+          "value": "status in ('pending', 'ok', 'not_found', 'error')"
+        },
+        "price_refresh_card_id_check": {
+          "name": "price_refresh_card_id_check",
+          "value": "length(card_id) between 1 and 40"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.price_snapshot": {
+      "name": "price_snapshot",
+      "schema": "",
+      "columns": {
+        "card_id": {
+          "name": "card_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "edition": {
+          "name": "edition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "variant": {
+          "name": "variant",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "captured_on": {
+          "name": "captured_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_seen_on": {
+          "name": "last_seen_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "market": {
+          "name": "market",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "low": {
+          "name": "low",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avg30": {
+          "name": "avg30",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flagged": {
+          "name": "flagged",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {
+        "price_snapshot_card_idx": {
+          "name": "price_snapshot_card_idx",
+          "columns": [
+            {
+              "expression": "card_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "edition",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "captured_on",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "price_snapshot_card_id_edition_source_variant_captured_on_pk": {
+          "name": "price_snapshot_card_id_edition_source_variant_captured_on_pk",
+          "columns": [
+            "card_id",
+            "edition",
+            "source",
+            "variant",
+            "captured_on"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "price_snapshot_edition_check": {
+          "name": "price_snapshot_edition_check",
+          "value": "edition in ('en', 'ja', 'ko')"
+        },
+        "price_snapshot_source_check": {
+          "name": "price_snapshot_source_check",
+          "value": "source in ('tcgplayer', 'cardmarket')"
+        },
+        "price_snapshot_variant_check": {
+          "name": "price_snapshot_variant_check",
+          "value": "variant in ('normal', 'holo', 'reverse', 'firstEdition', 'unlimited')"
+        },
+        "price_snapshot_currency_check": {
+          "name": "price_snapshot_currency_check",
+          "value": "currency in ('USD', 'EUR', 'JPY')"
+        },
+        "price_snapshot_values_check": {
+          "name": "price_snapshot_values_check",
+          "value": "market between 0 and 100000 and (low is null or low between 0 and 100000) and (avg30 is null or avg30 between 0 and 100000)"
+        },
+        "price_snapshot_card_id_check": {
+          "name": "price_snapshot_card_id_check",
+          "value": "length(card_id) between 1 and 40"
+        },
+        "price_snapshot_seen_check": {
+          "name": "price_snapshot_seen_check",
+          "value": "last_seen_on >= captured_on"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "account.oauth_accounts": {
+      "name": "oauth_accounts",
+      "schema": "account",
+      "columns": {
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject": {
+          "name": "subject",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "oauth_accounts_user_idx": {
+          "name": "oauth_accounts_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "oauth_accounts_user_id_users_id_fk": {
+          "name": "oauth_accounts_user_id_users_id_fk",
+          "tableFrom": "oauth_accounts",
+          "tableTo": "users",
+          "schemaTo": "account",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "oauth_accounts_provider_subject_pk": {
+          "name": "oauth_accounts_provider_subject_pk",
+          "columns": [
+            "provider",
+            "subject"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "oauth_accounts_provider_check": {
+          "name": "oauth_accounts_provider_check",
+          "value": "provider in ('google', 'kakao', 'test')"
+        },
+        "oauth_accounts_subject_check": {
+          "name": "oauth_accounts_subject_check",
+          "value": "char_length(subject) between 1 and 255"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "account.sessions": {
+      "name": "sessions",
+      "schema": "account",
+      "columns": {
+        "token_hash": {
+          "name": "token_hash",
+          "type": "bytea",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sessions_user_idx": {
+          "name": "sessions_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sessions_expires_idx": {
+          "name": "sessions_expires_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "users",
+          "schemaTo": "account",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "sessions_token_hash_check": {
+          "name": "sessions_token_hash_check",
+          "value": "octet_length(token_hash) = 32"
+        },
+        "sessions_expiry_check": {
+          "name": "sessions_expiry_check",
+          "value": "expires_at <= created_at + interval '90 days'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "account.users": {
+      "name": "users",
+      "schema": "account",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "nickname": {
+          "name": "nickname",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "users_nickname_check": {
+          "name": "users_nickname_check",
+          "value": "char_length(nickname) between 2 and 20"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {
+    "account": "account"
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -29,6 +29,27 @@
       "when": 1791421170589,
       "tag": "0003_defense_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791456326495,
+      "tag": "0004_account_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791456349367,
+      "tag": "0005_api_rw_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791458270125,
+      "tag": "0006_api_rw_insert_columns",
+      "breakpoints": true
     }
   ]
 }

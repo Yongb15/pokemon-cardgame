@@ -14,14 +14,24 @@ const schema = z.object({
    */
   PROXY_SECRET: z.string().regex(/^[A-Za-z0-9_-]{32,256}$/).optional(),
   AUTH_TEST_PROVIDER: z.enum(['0', '1']).default('0'),
+  /** The API's own database role (api_rw), pooled; without it the server answers only /health and /me */
+  DATABASE_URL: z
+    .url()
+    .refine((value) => /^postgres(ql)?:\/\//.test(value))
+    .optional(),
+  /** 32 random bytes (base64url) that encrypt the short-lived __Host-oauth cookie */
+  OAUTH_COOKIE_KEY: z.string().regex(/^[A-Za-z0-9_-]{43}$/).optional(),
+  /** Google sign-in: the client id is public, the secret comes from the bundle */
+  GOOGLE_CLIENT_ID: z.string().regex(/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/).optional(),
+  GOOGLE_CLIENT_SECRET: z.string().regex(/^[A-Za-z0-9_-]{10,100}$/).optional(),
 })
 
-export type Config = z.infer<typeof schema> & { proxyReady: boolean }
+export type Config = z.infer<typeof schema> & { proxyReady: boolean; googleReady: boolean }
 
 export const CONFIG = Symbol('CONFIG')
 
 /** Keys that may come from the API_SECRETS bundle; plain settings like APP_ENV may not */
-const SECRET_KEYS = new Set(['PROXY_SECRET'])
+const SECRET_KEYS = new Set(['PROXY_SECRET', 'DATABASE_URL', 'OAUTH_COOKIE_KEY', 'GOOGLE_CLIENT_SECRET'])
 
 /**
  * Cloud Run gets all secrets of one environment as a single Secret Manager value (JSON) in
@@ -59,5 +69,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   if (config.AUTH_TEST_PROVIDER === '1' && config.APP_ENV !== 'preview') {
     throw new Error('AUTH_TEST_PROVIDER is only allowed when APP_ENV=preview')
   }
-  return { ...config, proxyReady: !!config.PROXY_SECRET }
+  const googleReady = !!(config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET)
+  // Any sign-in needs the cookie key and the database: a half-configured login refuses to start
+  if ((googleReady || config.AUTH_TEST_PROVIDER === '1') && !(config.OAUTH_COOKIE_KEY && config.DATABASE_URL)) {
+    throw new Error('Invalid configuration: sign-in needs OAUTH_COOKIE_KEY and DATABASE_URL')
+  }
+  return { ...config, proxyReady: !!config.PROXY_SECRET, googleReady }
 }

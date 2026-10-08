@@ -26,7 +26,8 @@ describe('configuration (checked at startup)', () => {
   })
   it('refuses the test login outside previews (Security)', () => {
     expect(() => loadConfig({ ...baseEnv, APP_ENV: 'production', AUTH_TEST_PROVIDER: '1' })).toThrow(/AUTH_TEST_PROVIDER/)
-    expect(loadConfig({ ...baseEnv, AUTH_TEST_PROVIDER: '1' }).AUTH_TEST_PROVIDER).toBe('1')
+    const signIn = { OAUTH_COOKIE_KEY: 'k'.repeat(43), DATABASE_URL: 'postgresql://api_rw:x@localhost/db' }
+    expect(loadConfig({ ...baseEnv, ...signIn, AUTH_TEST_PROVIDER: '1' }).AUTH_TEST_PROVIDER).toBe('1')
   })
   it('reads secrets from the API_SECRETS bundle, never plain settings', () => {
     const json = JSON.stringify({ PROXY_SECRET: SECRET })
@@ -121,7 +122,7 @@ describe('the server', () => {
   it('refuses bodies over 64 KB', async () => {
     const res = await fetch(`${url}/api/v1/nope`, {
       method: 'POST',
-      headers: { ...proxied, 'content-type': 'application/json' },
+      headers: { ...proxied, 'content-type': 'application/json', origin: baseEnv.PUBLIC_ORIGIN },
       body: JSON.stringify({ x: 'a'.repeat(70_000) }),
     })
     expect(res.status).toBe(413)
@@ -147,7 +148,7 @@ describe('malformed requests', () => {
     try {
       const res = await fetch(`${url}/api/v1/nope`, {
         method: 'POST',
-        headers: { 'x-proxy-auth': SECRET, 'content-type': 'application/json' },
+        headers: { 'x-proxy-auth': SECRET, 'content-type': 'application/json', origin: baseEnv.PUBLIC_ORIGIN },
         body: '{"secret_token_abc": <script>',
       })
       expect(res.status).toBe(400)
