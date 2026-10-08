@@ -62,7 +62,9 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
 
   // 2. The one parameter. Anything else would only make a new cache key that always reaches the
   // database, so it's refused (Security P-5)
-  if ([...params.keys()].some((key) => key !== 'range')) return error(400, '알 수 없는 파라미터입니다.')
+  // (a repeated `range=…&range=…` would make new keys too: Security P-5b)
+  const keys = [...params.keys()]
+  if (keys.length > 1 || keys.some((key) => key !== 'range')) return error(400, '알 수 없는 파라미터입니다.')
   const rangeParam = params.get('range') ?? '30d'
   if (!Object.hasOwn(RANGES, rangeParam)) return error(400, 'range는 30d 또는 90d여야 합니다.')
   const rangeDays = RANGES[rangeParam]

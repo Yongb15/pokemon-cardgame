@@ -9,6 +9,13 @@ function cardsApi(): Plugin {
   return {
     name: 'cards-api',
     configureServer(server) {
+      // Server-side only: the dev API reads DATABASE_URL like the Vercel Function does. (Vite's own
+      // env loading only exposes VITE_ variables to the client; nothing here reaches the bundle.)
+      try {
+        process.loadEnvFile('.env')
+      } catch {
+        // no .env: the prices API answers 500 locally, everything else works
+      }
       server.middlewares.use('/api/cards', async (req, res) => {
         // /api/cards/:id/prices is its own function on Vercel (server/prices/api.ts)
         const prices = /^\/([^/?]+)\/prices(?:\?|$)/.exec(req.url ?? '')
