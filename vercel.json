@@ -11,9 +11,17 @@
     "api/cron/prices.ts": {
       "includeFiles": "{data/index.json,data/tcgdex-map.json,server/prices/fixtures/**}",
       "maxDuration": 300
+    },
+    "api/prices.ts": {
+      "includeFiles": "{data/index.json,data/tcgdex-map.json,server/prices/fixtures/**}",
+      "maxDuration": 15
     }
   },
   "rewrites": [
+    {
+      "source": "/api/cards/:id/prices",
+      "destination": "/api/prices?id=:id"
+    },
     {
       "source": "/api/cards/:path*",
       "destination": "/api/cards?path=:path*"

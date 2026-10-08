@@ -10,6 +10,10 @@ const DATA_DIR = path.join(process.cwd(), 'data')
 
 export interface CardInfo {
   id: string
+  name: string
+  nameKo?: string
+  nameKoUnofficial?: boolean
+  set: string
   supertype: string
   subtypes?: string[]
   legal?: string
@@ -29,7 +33,21 @@ export function loadPriceData() {
       readFile(path.join(DATA_DIR, 'tcgdex-map.json'), 'utf8').then((t) => JSON.parse(t) as Record<string, string>),
     ])
     return {
-      cards: new Map(index.map((c) => [c.id, { id: c.id, supertype: c.supertype, subtypes: c.subtypes, legal: c.legal }])),
+      cards: new Map(
+        index.map((c) => [
+          c.id,
+          {
+            id: c.id,
+            name: c.name,
+            nameKo: c.nameKo,
+            nameKoUnofficial: c.nameKoUnofficial,
+            set: c.set,
+            supertype: c.supertype,
+            subtypes: c.subtypes,
+            legal: c.legal,
+          },
+        ]),
+      ),
       tcgdex: new Map(Object.entries(map)),
     }
   })().catch((error: unknown) => {

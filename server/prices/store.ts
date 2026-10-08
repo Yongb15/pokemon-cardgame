@@ -219,3 +219,44 @@ export async function getEditionLink(cardId: string) {
   )
   return link ?? null
 }
+
+/** Everything stored for one card (a few hundred rows at most: only changes are kept) */
+export async function getPriceRows(cardId: string) {
+  return run((d) =>
+    d
+      .select({
+        edition: priceSnapshot.edition,
+        source: priceSnapshot.source,
+        variant: priceSnapshot.variant,
+        currency: priceSnapshot.currency,
+        capturedOn: priceSnapshot.capturedOn,
+        lastSeenOn: priceSnapshot.lastSeenOn,
+        market: priceSnapshot.market,
+        flagged: priceSnapshot.flagged,
+      })
+      .from(priceSnapshot)
+      .where(eq(priceSnapshot.cardId, cardId))
+      .orderBy(priceSnapshot.capturedOn)
+      .limit(1000),
+  )
+}
+
+/** Rates from `sinceDay` on (start a few days early so weekends at the start have a rate) */
+export async function getFxRates(sinceDay: string) {
+  return run((d) =>
+    d
+      .select({ currency: fxRate.currency, rateDate: fxRate.rateDate, krwPerUnit: fxRate.krwPerUnit, usable: fxRate.usable })
+      .from(fxRate)
+      .where(sql`${fxRate.rateDate} >= ${sinceDay}`),
+  )
+}
+
+export async function getRefresh(cardId: string) {
+  const [row] = await run((d) =>
+    d
+      .select({ refreshedAt: priceRefresh.refreshedAt, status: priceRefresh.status })
+      .from(priceRefresh)
+      .where(eq(priceRefresh.cardId, cardId)),
+  )
+  return row ?? null
+}
