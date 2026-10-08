@@ -32,6 +32,7 @@
    - WIF 조건: 저장소 id + push 이벤트 + 이 워크플로 파일(`deploy-api.yml`)의 main/develop만. main은 `api-deploy-prod`(→ `api`만), develop은 `api-deploy-preview`(→ `api-preview`만) 계정으로 나눠 권한을 서비스 단위로 묶음
    - 비밀 값은 **환경마다 Secret Manager 비밀 하나(JSON)** `api-secrets-{prod,preview}` → `API_SECRETS` 환경변수. 무료 한도가 활성 버전 6개라 값마다 따로 두지 않음. 서버는 정해진 비밀 키만 받음
    - 과금 차단: 예산 ₩7,000(크레딧 제외)의 알림이 `infra/billing-guard` 함수를 깨워 실제 비용 ₩1,000에서 결제 연결을 끊음
+     - 감수한 위험(Security I-8): run.app 주소로 대량 호출이 오면 비용 → 차단 → 프로젝트 전체 정지(가용성)로 이어질 수 있다. 최대 인스턴스 2와 가벼운 401 응답으로 비용 상한이 낮아 받아들임
 
 ## 대안
 

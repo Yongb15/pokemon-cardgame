@@ -49,7 +49,8 @@ export function proxyAuth(config: Config) {
  */
 export function clientIp(req: Request, res: Response) {
   if (!res.locals.proxyVerified) return null
-  const value = req.headers['x-real-ip'] ?? req.headers['x-vercel-forwarded-for']
+  // Only x-real-ip: the proxy overwrites it and deletes the forwarded-for headers (Security I-3)
+  const value = req.headers['x-real-ip']
   const ip = (Array.isArray(value) ? value[0] : value)?.split(',')[0]?.trim()
   return ip && /^[0-9a-fA-F:.]{2,45}$/.test(ip) ? ip : null
 }

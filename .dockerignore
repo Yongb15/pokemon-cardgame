@@ -14,3 +14,5 @@
 /db
 /docs
 /infra
+# Credentials the auth action writes into the workspace (Security I-4)
+gha-creds-*.json

@@ -40,8 +40,10 @@ describe('configuration (checked at startup)', () => {
       expect(String(error)).not.toContain('secret-value')
     }
   })
-  it('rejects a short proxy secret', () => {
-    expect(() => loadConfig({ ...baseEnv, PROXY_SECRET: 'short' })).toThrow(/PROXY_SECRET/)
+  it('rejects a short or malformed proxy secret (Security A-4)', () => {
+    for (const bad of ['short', `${SECRET}`, ' '.repeat(40), `${'a'.repeat(39)}=`]) {
+      expect(() => loadConfig({ ...baseEnv, PROXY_SECRET: bad })).toThrow(/PROXY_SECRET/)
+    }
   })
 })
 
@@ -68,6 +70,7 @@ describe('client IP only through the verified proxy (Security)', () => {
   it("uses Vercel's header and never X-Forwarded-For", () => {
     expect(clientIp(req({ 'x-real-ip': '1.2.3.4', 'x-forwarded-for': '9.9.9.9' }), res(true))).toBe('1.2.3.4')
     expect(clientIp(req({ 'x-forwarded-for': '9.9.9.9' }), res(true))).toBeNull()
+    expect(clientIp(req({ 'x-vercel-forwarded-for': '9.9.9.9' }), res(true))).toBeNull()
     expect(clientIp(req({ 'x-real-ip': '<script>' }), res(true))).toBeNull()
   })
 })
@@ -102,7 +105,7 @@ describe('the server', () => {
     const res = await fetch(`${url}/api/v1/nope`, { headers: proxied })
     expect(res.status).toBe(404)
     const body = (await res.json()) as { error: { code: number; message: string } }
-    expect(body.error.code).toBe(404)
+    expect(body.error).toEqual({ message: '찾을 수 없습니다.', code: 404 })
     expect(JSON.stringify(body)).not.toMatch(/stack|at \w+ \(/)
   })
   it('marks every response no-store with the security headers, and hides the framework', async () => {
@@ -145,9 +148,11 @@ describe('malformed requests', () => {
       const res = await fetch(`${url}/api/v1/nope`, {
         method: 'POST',
         headers: { 'x-proxy-auth': SECRET, 'content-type': 'application/json' },
-        body: '{"broken',
+        body: '{"secret_token_abc": <script>',
       })
       expect(res.status).toBe(400)
+      // Fixed text: the parser's message would echo the body (qa Q2-1)
+      expect(await res.json()).toEqual({ error: { message: '요청을 처리할 수 없습니다.', code: 400 } })
     } finally {
       await app.close()
     }

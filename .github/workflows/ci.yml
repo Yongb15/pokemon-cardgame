@@ -30,3 +30,5 @@ jobs:
       - run: npm run build --workspace apps/api
       # Production dependencies only: dev-only findings (drizzle-kit's esbuild) are accepted
       - run: npm audit --omit=dev --audit-level=moderate
+      # The billing kill switch is deployed on its own; if it breaks, nothing stops the spending (Security A-3)
+      - run: npm audit --prefix infra/billing-guard --audit-level=moderate

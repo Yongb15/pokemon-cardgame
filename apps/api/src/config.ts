@@ -8,8 +8,11 @@ const schema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(8080),
   /** Our site's origin: the only allowed Origin for state-changing requests, and the base of redirects */
   PUBLIC_ORIGIN: z.url(),
-  /** Shared with the Vercel proxy; requests without it are refused (fail closed when unset) */
-  PROXY_SECRET: z.string().min(32).optional(),
+  /**
+   * Shared with the Vercel proxy; requests without it are refused (fail closed when unset).
+   * Only the generated format (base64url) passes, so a stray carriage return or a blank value stops the start (Security A-4)
+   */
+  PROXY_SECRET: z.string().regex(/^[A-Za-z0-9_-]{32,256}$/).optional(),
   AUTH_TEST_PROVIDER: z.enum(['0', '1']).default('0'),
 })
 
