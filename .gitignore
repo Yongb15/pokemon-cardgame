@@ -37,3 +37,7 @@ public/sitemap.xml
 
 # Downloaded source data (scripts cache their requests here)
 .cache
+
+# Locally installed agent skills and personal Claude settings
+.claude/skills/
+.claude/settings.local.json
