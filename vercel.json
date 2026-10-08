@@ -5,7 +5,7 @@
   "outputDirectory": "dist",
   "functions": {
     "api/cards.ts": {
-      "includeFiles": "data/**",
+      "includeFiles": "{data/index.json,data/sets.json,data/missing-images.json,data/cards/**}",
       "maxDuration": 10
     },
     "api/cron/prices.ts": {
