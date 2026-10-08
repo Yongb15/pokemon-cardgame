@@ -1,6 +1,6 @@
 // Shows what the app role can do (for Security review): run with the app connection string.
 //   node --env-file=.env scripts/db-check-app-role.mjs
-// Prints the role flags and grants, then tries four things app_rw must not be able to do.
+// Prints the role flags and grants, then tries six things app_rw must not be able to do.
 
 import { neon } from '@neondatabase/serverless'
 const sql = neon(process.env.DATABASE_URL)
@@ -14,5 +14,7 @@ for (const [label, q] of [
   ['create table', 'create table x(a int)'],
   ['insert card_edition_link', "insert into card_edition_link values ('a','ja','b','auto',1,false)"],
   ['truncate price_snapshot', 'truncate price_snapshot'],
+  ['temp table', 'create temp table t(a int)'],
+  ['long card id', "insert into price_refresh values (repeat('x', 41), now(), 'ok')"],
   ['bad variant', "insert into price_snapshot(card_id,edition,source,variant,captured_on,last_seen_on,currency,market) values ('a','en','tcgplayer','evil','2026-01-01','2026-01-01','USD',1)"],
 ]) { try { await sql.query(q); console.log(label, 'ALLOWED (bad)') } catch (e) { console.log(label, 'blocked:', String(e.message).slice(0, 60)) } }

@@ -101,27 +101,34 @@ export const isUsableRate = (lastGood: number | null, rate: number) =>
 
 // --- Display --------------------------------------------------------------------------------------
 
-const VARIANT_ORDER: Variant[] = ['normal', 'holo', 'reverse', 'firstEdition', 'unlimited']
+// Old cards: the Unlimited print is the usual one, 1st Edition the collector's version (qa)
+const VARIANT_ORDER: Variant[] = ['normal', 'holo', 'reverse', 'unlimited', 'firstEdition']
 
-/** The headline variant: normal → holo → reverse → others (qa D-6) */
+/** The headline variant: normal → holo → reverse → unlimited → 1st edition (qa D-6) */
 export function headlineVariant(variants: Iterable<Variant>) {
   const have = new Set(variants)
   return VARIANT_ORDER.find((v) => have.has(v)) ?? null
 }
 
-/** Won rounded to 10 (qa B); below ₩10 there's nothing meaningful to show */
-export function toKrw(amount: number, krwPerUnit: number) {
+/**
+ * Won rounded to 10 (qa B). A price under ₩10 is `belowMin` ("₩10 미만"), which the screen must
+ * keep apart from having no price at all (qa N-1).
+ */
+export function toKrw(amount: number, krwPerUnit: number): { krw: number; belowMin: false } | { krw: null; belowMin: true } {
   const raw = amount * krwPerUnit
-  return raw < 10 ? null : Math.round(raw / 10) * 10
+  return raw < 10 ? { krw: null, belowMin: true } : { krw: Math.round(raw / 10) * 10, belowMin: false }
 }
 
 // --- Validating outside data (Security) -----------------------------------------------------------
 
 export const MAX_PRICE = 100_000
 
-/** A price from TCGdex: a finite number in [0, 100000], else null */
+/**
+ * A price from TCGdex: a finite number in (0, 100000], else null. 0 means "no data" there (e.g.
+ * `trend-holo: 0` on a card with no holo sales), so it's no price, not a cheap one (qa N-1).
+ */
 export function cleanPrice(value: unknown) {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= MAX_PRICE ? value : null
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 && value <= MAX_PRICE ? value : null
 }
 
 export const isSource = (s: string): s is Source => (SOURCES as readonly string[]).includes(s)

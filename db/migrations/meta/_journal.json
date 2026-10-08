@@ -22,6 +22,13 @@
       "when": 1791420903860,
       "tag": "0002_edition_link_none",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1791421170589,
+      "tag": "0003_defense_checks",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,11 @@ import { neon } from '@neondatabase/serverless'
 if (process.env.SEED_CONFIRM !== 'dev') throw new Error('Set SEED_CONFIRM=dev: this rewrites test data (dev branch only)')
 const sql = neon(process.env.DATABASE_URL_OWNER ?? '')
 
+// The flag alone can't tell which branch the URL points to (Security P-1): only the dev branch
+// has this marker table (made by hand there, never by a migration)
+const [{ marker }] = await sql`select to_regclass('public.dev_marker') is not null as marker`
+if (!marker) throw new Error('This database has no dev_marker table: refusing to seed (not the dev branch)')
+
 const DAY = 86_400_000
 const today = new Date(new Date().toISOString().slice(0, 10))
 const day = (offset) => new Date(today.getTime() + offset * DAY).toISOString().slice(0, 10)

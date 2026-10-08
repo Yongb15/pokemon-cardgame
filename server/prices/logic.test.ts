@@ -32,6 +32,8 @@ describe('refresh once per 24 hours', () => {
   it('is not due at 23h59m', () => expect(isRefreshDue(at, new Date('2026-10-08T11:59:00Z'))).toBe(false))
   it('is due at exactly 24h', () => expect(isRefreshDue(at, new Date('2026-10-08T12:00:00Z'))).toBe(true))
   it('is due at 24h01m', () => expect(isRefreshDue(at, new Date('2026-10-08T12:01:00Z'))).toBe(true))
+  it('is never due while refreshed_at is in the future (the qa seed uses 2099)', () =>
+    expect(isRefreshDue(new Date('2099-01-01T00:00:00Z'), at)).toBe(false))
 })
 
 describe('median', () => {
@@ -80,6 +82,28 @@ describe('outliers (qa D-5)', () => {
   it('restarts the count when today is outside ±20% of the run', () => {
     expect(decideOutlier([normal(3), flagged(40), flagged(42)], 49)).toEqual({ flagged: true })
   })
+  it('does not flag exactly 10× or exactly a tenth (both inclusive)', () => {
+    const h = [normal(3), normal(3), normal(3)]
+    expect(decideOutlier(h, 30)).toEqual({ flagged: false, acceptRun: 0 })
+    expect(decideOutlier(h, 0.3)).toEqual({ flagged: false, acceptRun: 0 })
+  })
+  it('uses only the last 7 normal levels as the baseline', () => {
+    // Eight levels: the oldest (100) drops out, so the median is 3 and 31 is flagged
+    const h = [normal(100), normal(3), normal(3), normal(3), normal(3), normal(3), normal(3), normal(3)]
+    expect(decideOutlier(h, 31)).toEqual({ flagged: true })
+  })
+  it('leaves old flagged rows out of the baseline', () => {
+    expect(decideOutlier([normal(3), flagged(40), normal(3), normal(3)], 40)).toEqual({ flagged: true })
+  })
+  it('accepts a new lower level on the 3rd day', () => {
+    expect(decideOutlier([normal(30), normal(30), flagged(2), flagged(2.2)], 2.1)).toEqual({ flagged: false, acceptRun: 2 })
+  })
+  it('breaks the run on a normal row in between', () => {
+    expect(decideOutlier([normal(3), flagged(40), normal(3), flagged(40)], 40)).toEqual({ flagged: true })
+  })
+  it('counts several one-day rows together', () => {
+    expect(decideOutlier([normal(3), flagged(40, 1), flagged(41, 1)], 40)).toEqual({ flagged: false, acceptRun: 2 })
+  })
   it('accepts exactly at the +20% edge', () => {
     expect(decideOutlier([normal(3), flagged(40), flagged(40)], 48)).toEqual({ flagged: false, acceptRun: 2 })
   })
@@ -98,9 +122,18 @@ describe('exchange rates (qa D-1)', () => {
     expect(rateOn(rates, '2026-10-05')?.rateDate).toBe('2026-10-02')
   })
   it('has no rate before the first one', () => expect(rateOn(rates, '2026-09-01')).toBeNull())
+  it('falls back past an unusable Monday into the next weekend', () => {
+    const r = [
+      { rateDate: '2026-10-02', krwPerUnit: 1330, usable: true }, // Fri
+      { rateDate: '2026-10-05', krwPerUnit: 1700, usable: false }, // Mon, unusable
+    ]
+    expect(rateOn(r, '2026-10-10')?.rateDate).toBe('2026-10-02') // Sat after
+  })
   it('rejects a rate more than 20% away from the last good one', () => {
     expect(isUsableRate(1330, 1596)).toBe(true) // +20%
     expect(isUsableRate(1330, 1597)).toBe(false)
+    expect(isUsableRate(1330, 1064)).toBe(true) // −20%
+    expect(isUsableRate(1330, 1063)).toBe(false)
     expect(isUsableRate(null, 1330)).toBe(true)
     expect(isUsableRate(1330, Number.NaN)).toBe(false)
   })
@@ -110,20 +143,20 @@ describe('display', () => {
   it('picks the headline variant normal → holo → reverse (qa D-6)', () => {
     expect(headlineVariant(['reverse', 'normal'])).toBe('normal')
     expect(headlineVariant(['reverse', 'holo'])).toBe('holo')
+    expect(headlineVariant(['firstEdition', 'unlimited'])).toBe('unlimited')
     expect(headlineVariant([])).toBeNull()
   })
-  it('rounds won to 10 and hides values below ₩10', () => {
-    expect(toKrw(3.05, 1338.69)).toBe(4080)
-    expect(toKrw(0.005, 1338.69)).toBeNull()
-    expect(toKrw(1000, 1338.69)).toBe(1338690)
+  it('rounds won to 10 and marks values below ₩10 (not "no price": qa N-1)', () => {
+    expect(toKrw(3.05, 1338.69)).toEqual({ krw: 4080, belowMin: false })
+    expect(toKrw(0.005, 1338.69)).toEqual({ krw: null, belowMin: true })
+    expect(toKrw(1000, 1338.69)).toEqual({ krw: 1338690, belowMin: false })
   })
 })
 
 describe('outside data (Security)', () => {
   it('keeps only finite prices in [0, 100000]', () => {
     expect(cleanPrice(3.05)).toBe(3.05)
-    expect(cleanPrice(0)).toBe(0)
     expect(cleanPrice(100_000)).toBe(100_000)
-    for (const bad of [-1, 100_001, Number.NaN, Infinity, '3', null, undefined]) expect(cleanPrice(bad)).toBeNull()
+    for (const bad of [0, -1, 100_001, Number.NaN, Infinity, '3', null, undefined]) expect(cleanPrice(bad)).toBeNull()
   })
 })

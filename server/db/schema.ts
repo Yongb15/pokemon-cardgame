@@ -29,6 +29,10 @@ export const REFRESH_STATUSES = ['pending', 'ok', 'not_found', 'error'] as const
 const oneOf = (column: string, values: readonly string[]) =>
   sql.raw(`${column} in (${values.map((v) => `'${v}'`).join(', ')})`)
 
+// Card ids are at most 40 characters (like the API's id check), so a code mistake can't fill the
+// database with long junk keys
+const cardIdCheck = (table: string) => check(`${table}_card_id_check`, sql`length(card_id) between 1 and 40`)
+
 /**
  * One row per price level: a new row only when the value changes. `last_seen_on` is the last day
  * the same value was confirmed, so a gap before the next row means refreshes failed (qa D-4).
@@ -58,7 +62,11 @@ export const priceSnapshot = pgTable(
     check('price_snapshot_source_check', oneOf('source', SOURCES)),
     check('price_snapshot_variant_check', oneOf('variant', VARIANTS)),
     check('price_snapshot_currency_check', oneOf('currency', CURRENCIES)),
-    check('price_snapshot_values_check', sql`market >= 0 and market <= 100000 and (low is null or low >= 0)`),
+    check(
+      'price_snapshot_values_check',
+      sql`market between 0 and 100000 and (low is null or low between 0 and 100000) and (avg30 is null or avg30 between 0 and 100000)`,
+    ),
+    cardIdCheck('price_snapshot'),
     check('price_snapshot_seen_check', sql`last_seen_on >= captured_on`),
   ],
 )
@@ -71,7 +79,7 @@ export const priceRefresh = pgTable(
     refreshedAt: timestamp('refreshed_at', { withTimezone: true }).notNull(),
     status: text('status').notNull(),
   },
-  () => [check('price_refresh_status_check', oneOf('status', REFRESH_STATUSES))],
+  () => [check('price_refresh_status_check', oneOf('status', REFRESH_STATUSES)), cardIdCheck('price_refresh')],
 )
 
 /** KRW per unit of a currency, one row per UTC day with a rate (none on weekends: qa D-1) */
@@ -105,6 +113,7 @@ export const cardEditionLink = pgTable(
   (t) => [
     primaryKey({ columns: [t.cardId, t.edition] }),
     check('card_edition_link_edition_check', sql`edition = 'ja'`),
+    cardIdCheck('card_edition_link'),
     // 'none': checked, and there is no Japanese print (an English-only card such as a Trainer Gallery card)
     check('card_edition_link_method_check', sql`method in ('auto', 'manual', 'none')`),
   ],
@@ -118,7 +127,11 @@ export const cardViewDaily = pgTable(
     day: date('day').notNull(),
     views: integer('views').notNull().default(0),
   },
-  (t) => [primaryKey({ columns: [t.cardId, t.day] })],
+  (t) => [
+    primaryKey({ columns: [t.cardId, t.day] }),
+    cardIdCheck('card_view_daily'),
+    check('card_view_daily_views_check', sql`views >= 0`),
+  ],
 )
 
 /** Counters per UTC day: the refresh-on-view budget, and where the daily cron run left off */
@@ -129,5 +142,5 @@ export const dailyCounter = pgTable(
     day: date('day').notNull(),
     value: integer('value').notNull().default(0),
   },
-  (t) => [primaryKey({ columns: [t.name, t.day] })],
+  (t) => [primaryKey({ columns: [t.name, t.day] }), check('daily_counter_value_check', sql`value >= 0`)],
 )
