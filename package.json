@@ -28,7 +28,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router": "^7.18.4",
-    "@card-dex/shared": "*"
+    "@card-dex/shared": "file:./packages/shared"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
