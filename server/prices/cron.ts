@@ -33,19 +33,64 @@ export function isAuthorized(header: string | null, secret = process.env.CRON_SE
   return given.length === expected.length && timingSafeEqual(given, expected)
 }
 
+export interface RunCounts {
+  processed: number
+  changed: number
+  notFound: number
+  failed: number
+  skipped: number
+}
+
+/**
+ * Works through `queue` with a few workers until it's empty or `deadline` (ms timestamp) passes.
+ * One card failing (a DB hiccup, a bad reply) is counted and the run goes on (qa P2-1, Security P-2).
+ */
+export async function runQueue(
+  queue: string[],
+  handle: (id: string) => Promise<{ status: string; changed: number } | 'skipped'>,
+  { concurrency = CONCURRENCY, deadline = Infinity } = {},
+) {
+  const counts: RunCounts = { processed: 0, changed: 0, notFound: 0, failed: 0, skipped: 0 }
+  const worker = async () => {
+    while (queue.length && Date.now() < deadline) {
+      const id = queue.shift()!
+      try {
+        const result = await handle(id)
+        if (result === 'skipped') {
+          counts.skipped++
+          continue
+        }
+        counts.processed++
+        counts.changed += result.changed
+        if (result.status === 'not_found') counts.notFound++
+        if (result.status === 'error') counts.failed++
+      } catch {
+        counts.failed++
+      }
+    }
+  }
+  await Promise.allSettled(Array.from({ length: concurrency }, worker))
+  return { ...counts, left: queue.length }
+}
+
 export async function handleCron(request: Request, now = new Date()) {
   if (!isAuthorized(request.headers.get('authorization'))) return reply({ error: 'unauthorized' }, 401)
   const started = Date.now()
   const today = utcDay(now)
-  const counts = { candidates: 0, processed: 0, changed: 0, notFound: 0, failed: 0, skipped: 0, fx: false }
+  const counts = { candidates: 0, fx: false }
 
+  // A failed rate update doesn't stop the card run
   try {
-    const fx = await fetchFx()
+    const fx = await fetchFx(now)
     if (fx) {
       await saveFx(fx)
       counts.fx = true
     }
+  } catch {
+    counts.fx = false
+  }
 
+  try {
     const { cards, tcgdex } = await loadPriceData()
     // Only cards the source knows (unmapped ones would always come back "not found")
     const fetchable = (id: string) => tcgdex.has(id) && cards.has(id) && !isBasicEnergy(cards.get(id)!)
@@ -63,23 +108,13 @@ export async function handleCron(request: Request, now = new Date()) {
     const queue = [...viewed, ...standard].slice(0, budget())
     counts.candidates = queue.length
 
-    const worker = async () => {
-      while (queue.length && Date.now() - started < TIME_BUDGET_MS) {
-        const id = queue.shift()!
-        // Someone viewing the card may have refreshed it meanwhile
-        if (!(await claimRefresh(id))) {
-          counts.skipped++
-          continue
-        }
-        const result = await refreshCard(id, now)
-        counts.processed++
-        counts.changed += result.changed
-        if (result.status === 'not_found') counts.notFound++
-        if (result.status === 'error') counts.failed++
-      }
-    }
-    await Promise.all(Array.from({ length: CONCURRENCY }, worker))
-    return reply({ ...counts, left: queue.length, ms: Date.now() - started })
+    const run = await runQueue(
+      queue,
+      // Someone viewing the card may have refreshed it meanwhile
+      async (id) => ((await claimRefresh(id)) ? refreshCard(id, now) : 'skipped'),
+      { deadline: started + TIME_BUDGET_MS },
+    )
+    return reply({ ...counts, ...run, ms: Date.now() - started })
   } catch {
     // Counts only: never the error itself (it can hold query or connection details)
     return reply({ error: 'failed', ...counts }, 500)

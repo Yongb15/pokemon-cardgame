@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { isAuthorized } from './cron.js'
-import { parseFx, parseTcgdexCard } from './sources.js'
+import { isAuthorized, runQueue } from './cron.js'
+import { parseFx, parseTcgdexCard, readCapped } from './sources.js'
 
 const fixture = (name: string) =>
   JSON.parse(readFileSync(path.join(import.meta.dirname, 'fixtures', `${name}.json`), 'utf8')) as unknown
@@ -64,19 +64,29 @@ describe('TCGdex parsing edge cases (Security, qa N-1/N-2)', () => {
 
 describe('exchange rates', () => {
   it('crosses through EUR for precise KRW per USD and JPY', () => {
-    const fx = parseFx({ base: 'EUR', date: '2026-10-07', rates: { KRW: 1496.25, USD: 1.1177, JPY: 176.85 } })
+    const fx = parseFx({ base: 'EUR', date: '2026-10-07', rates: { KRW: 1496.25, USD: 1.1177, JPY: 176.85 } }, new Date('2026-10-08T12:00:00Z'))
     expect(fx?.rateDate).toBe('2026-10-07')
     expect(fx?.rates.EUR).toBe(1496.25)
     expect(fx?.rates.USD).toBeCloseTo(1338.69, 1)
     expect(fx?.rates.JPY).toBeCloseTo(8.46, 2)
   })
   it('rejects other bases, bad dates and missing KRW', () => {
-    expect(parseFx({ base: 'KRW', date: '2026-10-07', rates: { USD: 0.00075 } })).toBeNull()
-    expect(parseFx({ base: 'EUR', date: 'yesterday', rates: { KRW: 1496 } })).toBeNull()
-    expect(parseFx({ base: 'EUR', date: '2026-10-07', rates: { USD: 1.1 } })).toBeNull()
+    expect(parseFx({ base: 'KRW', date: '2026-10-07', rates: { USD: 0.00075 } }, new Date('2026-10-08T12:00:00Z'))).toBeNull()
+    expect(parseFx({ base: 'EUR', date: 'yesterday', rates: { KRW: 1496 } }, new Date('2026-10-08T12:00:00Z'))).toBeNull()
+    expect(parseFx({ base: 'EUR', date: '2026-10-07', rates: { USD: 1.1 } }, new Date('2026-10-08T12:00:00Z'))).toBeNull()
+  })
+  it('rejects impossible or far-off dates (Security P-2)', () => {
+    const at = new Date('2026-10-08T12:00:00Z')
+    const body = (date: string) => ({ base: 'EUR', date, rates: { KRW: 1496 } })
+    expect(parseFx(body('9999-99-99'), at)).toBeNull()
+    expect(parseFx(body('2026-02-30'), at)).toBeNull()
+    expect(parseFx(body('2026-09-27'), at)).toBeNull() // 11 days ago
+    expect(parseFx(body('2026-09-28'), at)?.rateDate).toBe('2026-09-28') // 10 days ago
+    expect(parseFx(body('2026-10-09'), at)?.rateDate).toBe('2026-10-09') // tomorrow
+    expect(parseFx(body('2026-10-10'), at)).toBeNull()
   })
   it('drops a rate outside the sane range', () => {
-    const fx = parseFx({ base: 'EUR', date: '2026-10-07', rates: { KRW: 1496, USD: 1e-9 } })
+    const fx = parseFx({ base: 'EUR', date: '2026-10-07', rates: { KRW: 1496, USD: 1e-9 } }, new Date('2026-10-08T12:00:00Z'))
     expect(fx?.rates.USD).toBeUndefined()
   })
 })
@@ -93,5 +103,33 @@ describe('cron authorization fails closed (Security)', () => {
     expect(isAuthorized('Bearer undefined', undefined)).toBe(false)
     expect(isAuthorized('Bearer ', '')).toBe(false)
     expect(isAuthorized(`Bearer ${'a'.repeat(31)}`, 'a'.repeat(31))).toBe(false)
+  })
+})
+
+describe('cron queue keeps going when one card fails (qa P2-1, Security P-2)', () => {
+  it('counts a thrown card as failed and processes the rest', async () => {
+    const run = await runQueue(['a', 'b', 'c', 'd'], async (id) => {
+      if (id === 'b') throw new Error('database error')
+      if (id === 'c') return 'skipped'
+      return { status: id === 'd' ? 'not_found' : 'ok', changed: 1 }
+    })
+    expect(run).toEqual({ processed: 2, changed: 2, notFound: 1, failed: 1, skipped: 1, left: 0 })
+  })
+  it('stops at the deadline and reports what is left', async () => {
+    const run = await runQueue(['a', 'b'], async () => ({ status: 'ok', changed: 0 }), { deadline: 0 })
+    expect(run.left).toBe(2)
+  })
+})
+
+describe('streaming size cap (Security P-3)', () => {
+  it('stops reading past the limit even without a content-length', async () => {
+    const big = new ReadableStream({
+      start(c) {
+        for (let i = 0; i < 5; i++) c.enqueue(new Uint8Array(400))
+        c.close()
+      },
+    })
+    await expect(readCapped(new Response(big), 1000)).rejects.toThrow('too large')
+    await expect(readCapped(new Response('{"a":1}'), 1000)).resolves.toBe('{"a":1}')
   })
 })

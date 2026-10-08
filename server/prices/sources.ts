@@ -38,15 +38,33 @@ async function getJson(url: string, signal?: AbortSignal): Promise<unknown | nul
   if (res.status === 404) return null
   if (!res.ok) throw new SourceError(`HTTP ${res.status}`)
   if (!(res.headers.get('content-type') ?? '').includes('application/json')) throw new SourceError('not JSON')
-  const declared = Number(res.headers.get('content-length') ?? 0)
-  if (declared > MAX_BYTES) throw new SourceError('too large')
-  const text = await res.text()
-  if (text.length > MAX_BYTES) throw new SourceError('too large')
+  const declared = Number(res.headers.get('content-length'))
+  if (Number.isFinite(declared) && declared > MAX_BYTES) throw new SourceError('too large')
+  const text = await readCapped(res, MAX_BYTES)
   try {
     return JSON.parse(text) as unknown
   } catch {
     throw new SourceError('bad JSON')
   }
+}
+
+/** Reads a body while counting bytes, stopping at `max` (a chunked reply has no length up front: Security P-3) */
+export async function readCapped(res: Response, max: number) {
+  if (!res.body) return ''
+  const reader = res.body.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > max) {
+      await reader.cancel()
+      throw new SourceError('too large')
+    }
+    chunks.push(value)
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks))
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -125,7 +143,7 @@ export async function fetchCardPrices(lang: 'en' | 'ja', tcgdexId: string, signa
   if (!TCGDEX_ID.test(tcgdexId)) return { status: 'not_found' }
   try {
     const card = fixturesOn()
-      ? await readFixture(`tcgdex-${lang}-${tcgdexId}`)
+      ? await readFixture(`tcgdex-${lang}-${tcgdexId}`, signal)
       : await getJson(`${TCGDEX}/v2/${lang}/cards/${encodeURIComponent(tcgdexId)}`, signal)
     if (card === null) return { status: 'not_found' }
     return { status: 'ok', rows: parseTcgdexCard(card) }
@@ -140,15 +158,24 @@ export interface FxResult {
 }
 
 /** KRW per USD, EUR and JPY on the latest ECB day */
-export async function fetchFx(signal?: AbortSignal): Promise<FxResult | null> {
+export async function fetchFx(now: Date, signal?: AbortSignal): Promise<FxResult | null> {
   try {
     const body = fixturesOn()
-      ? await readFixture('frankfurter')
+      ? await readFixture('frankfurter', signal)
       : await getJson(`${FRANKFURTER}/v1/latest?base=EUR&symbols=KRW,USD,JPY`, signal)
-    return parseFx(body)
+    return parseFx(body, now)
   } catch {
     return null
   }
+}
+
+/** A real "YYYY-MM-DD" from 10 days ago to tomorrow (ECB days lag; "9999-99-99" isn't one: Security P-2) */
+function isRecentDay(day: string, now: Date) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false
+  const t = Date.parse(`${day}T00:00:00Z`)
+  if (!Number.isFinite(t) || new Date(t).toISOString().slice(0, 10) !== day) return false
+  const today = Date.parse(`${now.toISOString().slice(0, 10)}T00:00:00Z`)
+  return t >= today - 10 * 86_400_000 && t <= today + 86_400_000
 }
 
 const positive = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0
@@ -158,9 +185,9 @@ const positive = (v: unknown): v is number => typeof v === 'number' && Number.is
  * five-digit rounded tiny numbers (USD 0.00075 → ₩1,333, 0.4% off), so we cross through EUR:
  * KRW per USD = KRW per EUR ÷ USD per EUR.
  */
-export function parseFx(body: unknown): FxResult | null {
+export function parseFx(body: unknown, now: Date): FxResult | null {
   if (!isObject(body) || body.base !== 'EUR' || !isObject(body.rates)) return null
-  if (typeof body.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(body.date)) return null
+  if (typeof body.date !== 'string' || !isRecentDay(body.date, now)) return null
   const krwPerEur = body.rates.KRW
   if (!positive(krwPerEur)) return null
   const rates: FxResult['rates'] = { EUR: krwPerEur }
@@ -177,7 +204,7 @@ export function parseFx(body: unknown): FxResult | null {
 
 // --- Fixtures (dev/preview only) -----------------------------------------------------------------
 
-async function readFixture(name: string): Promise<unknown | null> {
+async function readFixture(name: string, signal?: AbortSignal): Promise<unknown | null> {
   const { readFile } = await import('node:fs/promises')
   const path = await import('node:path')
   const file = path.join(process.cwd(), 'server/prices/fixtures', `${name.replace(/[^\w.-]/g, '_')}.json`)
@@ -191,7 +218,11 @@ async function readFixture(name: string): Promise<unknown | null> {
   // Special fixtures: { "fixture": "error" } fails, { "fixture": "timeout" } waits past the timeout
   if (isObject(body) && body.fixture === 'error') throw new SourceError('fixture error')
   if (isObject(body) && body.fixture === 'timeout') {
-    await new Promise((r) => setTimeout(r, TIMEOUT_MS + 1000))
+    // Like a real hung request: ends at the caller's abort or our own timeout (qa P2-2)
+    await new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, TIMEOUT_MS)
+      signal?.addEventListener('abort', () => (clearTimeout(timer), resolve()), { once: true })
+    })
     throw new SourceError('fixture timeout')
   }
   return body
