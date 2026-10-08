@@ -138,6 +138,32 @@ erDiagram
 - [ ] 외부 링크는 `noopener noreferrer`, 검색어 인코딩
 - [ ] CSP `connect-src 'self'` 유지(브라우저는 우리 API만 호출)
 
+### Security 설계 검토 반영 (2026-10-08)
+
+**필수**
+1. 존재하지 않는 카드 id는 DB·외부 요청 전에 404(카드 목록 Map 확인) — 무작위 id로 DB를 채우는 용량 공격 차단
+2. 갱신 권한을 **원자적으로 선점**한 요청만 TCGdex 호출:
+   `INSERT … ON CONFLICT (card_id) DO UPDATE SET refreshed_at = now(), status = 'pending' WHERE price_refresh.refreshed_at < now() - interval '24 hours' RETURNING card_id`
+   실패·시간 초과도 그날의 1회로 친다(오류 재시도가 증폭 경로가 되지 않게)
+3. `range`는 `30d|90d`만(그 외 400), 다른 쿼리 파라미터는 무시 — 캐시 우회 방지
+4. `CRON_SECRET`이 없거나 32자 미만이면 항상 401(fail closed), `timingSafeEqual` 비교, Production·Preview에 서로 다른 Sensitive 값, 응답 `no-store`·처리 수만
+5. `app_rw` 권한은 테이블별로 좁힌다
+   - `price_snapshot`: SELECT, INSERT (+ 주 단위 정리용 DELETE)
+   - `price_refresh`, `fx_rate`: SELECT, INSERT, UPDATE
+   - `card_view_daily`: SELECT, INSERT, UPDATE, DELETE(30일 정리)
+   - `card_edition_link`: SELECT만(쓰기는 소유자 역할 스크립트)
+   - TRUNCATE·REFERENCES·TRIGGER·스키마 CREATE 없음, `statement_timeout = '5s'`, 연결 수 제한, 새 테이블마다 GRANT를 마이그레이션에 명시
+6. 외부 응답 검증: 호스트 상수 고정·경로는 `encodeURIComponent`·다른 호스트로 리다이렉트 금지, 응답 1MB 상한·content-type 확인, 숫자는 `isFinite`·0 이상·상한(100,000), **통화·variant는 허용 목록**(PK라서), 환율이 전날 대비 ±20% 넘으면 저장만 하고 직전 정상값 사용
+
+**권고 (채택)**
+- 조회 시 갱신의 **하루 전체 예산**(3,000회, DB 카운터) — 넘으면 저장된 값만
+- 조회 시 3초 기다리지 않고 **저장된 값을 바로 응답**, 갱신은 `waitUntil`로 뒤에서 → 다음 요청에 새 값
+- Cron 예산 중 조회수 기반은 최대 30%(나머지는 스탠다드 카드), 조회수는 캐시 미스일 때만 기록
+- 오류·404 응답은 짧게 캐시하거나 `no-store`
+- Cron은 Hobby 실행 시간 한도를 확인하고, 넘으면 커서로 이어서 처리
+- 로그에는 정리된 메시지만(쿼리·파라미터·접속 정보가 담긴 오류 객체 통째 금지), 마이그레이션은 로컬에서 소유자로만
+- 새 의존성(drizzle-orm, @neondatabase/serverless, drizzle-kit) `npm audit`, TCGdex `ja` 데이터는 고정 커밋
+
 ## 7. 작업 순서
 
 1. Drizzle 스키마·마이그레이션, `app_rw` 역할 생성(dev → production)
