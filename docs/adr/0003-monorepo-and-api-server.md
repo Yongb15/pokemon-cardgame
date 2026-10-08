@@ -15,7 +15,7 @@
 
 1. **npm workspaces 모노레포**
    ```
-   apps/web        지금의 React 앱 + Vercel Functions(카드·시세, 그대로)
+   (루트)          지금의 React 앱 + Vercel Functions(카드·시세) — 옮기지 않음(qa R-1: 데이터 경로 유지)
    apps/api        NestJS API 서버 (로그인·세션·사용자 데이터, 이후 경매)
    packages/shared DB 스키마(Drizzle)·입력 검증(zod)·API 타입 — 웹과 API가 같은 정의를 씀
    ```
