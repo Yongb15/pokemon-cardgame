@@ -217,11 +217,13 @@ function EditionPrices({ view, data, rangeDays }: { view: EditionView; data: Pri
             .map((g) => (g.from === g.to ? shortDate(g.from) : `${shortDate(g.from)}–${shortDate(g.to)}`))
             .join(', ')}${history.gaps.length > 2 ? ' 외' : ''} 시세 확인 못 함(점선)`}
       </p>
-      <p className={p.note}>원화 그래프는 환율 변동을 포함해요. 1% 미만 변동은 같은 값으로 보여요.</p>
+      <p className={p.note}>원화 그래프는 환율 변동을 포함해요.</p>
 
       {history.points.length > 0 && (
         <details className={p.table}>
           <summary>날짜별 시세 표</summary>
+          {/* Inside the folded table, not under the chart: one more line would overflow the box on phones (qa K-1) */}
+          <p className={p.note}>작은 변동(1% 또는 2센트 미만)은 같은 값으로 보여요.</p>
           <table>
             <caption className={p.srOnly}>최근 {rangeDays}일 날짜별 원화 시세</caption>
             <thead>

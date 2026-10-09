@@ -14,7 +14,8 @@
 /* Narrow phones wrap the headline and the other prices onto more lines (qa H-1: up to 545px) */
 @media (max-width: 374px) {
   .box {
-    min-height: 560px;
+    /* The worst case at 320px is about 563px (an English card with three other prices) (qa K-1) */
+    min-height: 590px;
   }
 }
 
