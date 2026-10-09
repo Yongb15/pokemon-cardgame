@@ -5,6 +5,7 @@ import {
   cleanDeckName,
   cleanText,
   DECK_FORMATS,
+  isCardId,
   isDeckFormat,
   MAX_DECK_NAME,
   MAX_DECKS,
@@ -19,6 +20,9 @@ export interface DeckInput {
   name: string
   format: DeckFormat
   cards: DeckCard[]
+  /** For the deck list (the editor works them out): a card in the deck, and failing rules */
+  coverId: string | null
+  problems: number | null
 }
 
 export interface DeckRecord extends DeckInput {
@@ -33,6 +37,8 @@ export const deckView = (d: DeckRecord) => ({
   name: d.name,
   format: d.format,
   cards: d.cards,
+  coverId: d.coverId,
+  problems: d.problems,
   version: d.version,
   updatedAt: d.updatedAt.toISOString(),
 })
@@ -43,6 +49,8 @@ const deckBody = z.strictObject({
   name: z.string().max(MAX_DECK_NAME * 4),
   format: z.enum(DECK_FORMATS),
   cards: z.unknown(),
+  coverId: z.string().max(40).nullable().optional(),
+  problems: z.number().int().min(0).max(999).nullable().optional(),
 })
 const updateBody = deckBody.extend({ version: z.number().int().min(1).max(2_147_483_647) })
 
@@ -61,10 +69,18 @@ export function parseDeckUpdate(body: unknown): (DeckInput & { version: number }
 }
 
 /** A signed-in save is refused, not cut, when the cleaned name is over 50 characters (qa D5-3) */
-function deckInput(data: { name: string; format: DeckFormat; cards: unknown }): DeckInput | null {
+function deckInput(data: {
+  name: string
+  format: DeckFormat
+  cards: unknown
+  coverId?: string | null
+  problems?: number | null
+}): DeckInput | null {
   const name = cleanText(data.name, MAX_DECK_NAME * 4)
   if (!name || [...name].length > MAX_DECK_NAME || !validCards(data.cards)) return null
-  return { name, format: data.format, cards: data.cards }
+  const coverId = data.coverId ?? null
+  if (coverId !== null && !isCardId(coverId)) return null
+  return { name, format: data.format, cards: data.cards, coverId, problems: data.problems ?? null }
 }
 
 // --- Importing browser decks ---------------------------------------------------------------------
@@ -99,6 +115,8 @@ export function parseImport(body: unknown): { items: ImportItem[]; invalid: numb
       name: (typeof d.name === 'string' && cleanDeckName(d.name)) || DEFAULT_NAME,
       format: isDeckFormat(d.format) ? d.format : 'standard',
       cards: sanitizeCards(d.cards),
+      coverId: isCardId(d.coverId) ? d.coverId : null,
+      problems: Number.isInteger(d.problems) && (d.problems as number) >= 0 && (d.problems as number) <= 999 ? (d.problems as number) : null,
       updatedAt: typeof d.updatedAt === 'number' && Number.isFinite(d.updatedAt) ? d.updatedAt : 0,
     })
   }
@@ -135,7 +153,7 @@ export function planImport(items: ImportItem[], existing: { sourceIds: Set<strin
     else {
       const name = importedName(item.name, names)
       names.add(name)
-      plan.insert.push({ sourceId: item.sourceId, name, format: item.format, cards: item.cards })
+      plan.insert.push({ sourceId: item.sourceId, name, format: item.format, cards: item.cards, coverId: item.coverId, problems: item.problems })
     }
   }
   return plan

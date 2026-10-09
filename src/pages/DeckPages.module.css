@@ -414,3 +414,45 @@
   border-radius: 14px;
   background: var(--surface);
 }
+
+/* Account decks: the list while it loads (same spot, no shift) */
+.listSkeleton {
+  /* About a screen of deck cards: the real list doesn't push the footer down when it arrives (qa C-6) */
+  height: max(240px, 70vh);
+  border-radius: 14px;
+  background: var(--skeleton);
+}
+
+/* Editor: account deck save status */
+.saveState {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.saveState::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.saveState[data-state='saved']::before {
+  background: var(--ok);
+}
+
+.saveState[data-state='error']::before,
+.saveState[data-state='conflict']::before {
+  background: var(--bad);
+}
+
+.conflict {
+  composes: alert;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

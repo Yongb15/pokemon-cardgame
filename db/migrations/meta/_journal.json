@@ -71,6 +71,20 @@
       "when": 1791512330548,
       "tag": "0009_decks_clock_timestamp",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791514463395,
+      "tag": "0010_deck_list_extras",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791514465441,
+      "tag": "0011_api_rw_deck_list_extras",
+      "breakpoints": true
     }
   ]
 }
