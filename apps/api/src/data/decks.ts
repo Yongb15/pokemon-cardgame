@@ -3,6 +3,7 @@
 
 import {
   cleanDeckName,
+  cleanText,
   DECK_FORMATS,
   isDeckFormat,
   MAX_DECK_NAME,
@@ -59,9 +60,10 @@ export function parseDeckUpdate(body: unknown): (DeckInput & { version: number }
   return input && { ...input, version: parsed.data.version }
 }
 
+/** A signed-in save is refused, not cut, when the cleaned name is over 50 characters (qa D5-3) */
 function deckInput(data: { name: string; format: DeckFormat; cards: unknown }): DeckInput | null {
-  const name = cleanDeckName(data.name)
-  if (!name || !validCards(data.cards)) return null
+  const name = cleanText(data.name, MAX_DECK_NAME * 4)
+  if (!name || [...name].length > MAX_DECK_NAME || !validCards(data.cards)) return null
   return { name, format: data.format, cards: data.cards }
 }
 

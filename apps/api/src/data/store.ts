@@ -87,7 +87,11 @@ export class PgDataStore implements UserDataStore {
   constructor(private readonly db: NodePgDatabase) {}
 
   async listDecks(userId: string) {
-    const rows = await this.db.select(deckColumns).from(decks).where(eq(decks.userId, userId)).orderBy(desc(decks.updatedAt))
+    const rows = await this.db
+      .select(deckColumns)
+      .from(decks)
+      .where(eq(decks.userId, userId))
+      .orderBy(desc(decks.updatedAt), desc(decks.createdAt), decks.id)
     return rows.map(toRecord)
   }
 
@@ -137,13 +141,15 @@ export class PgDataStore implements UserDataStore {
         count: existing.length,
       })
       const imported: ImportResult['imported'] = []
-      for (const deck of plan.insert) {
+      // Oldest first, so each later insert gets a later clock_timestamp(): the list shows them in the
+      // browser's order (qa D5-2). The plan itself is newest first (who gets the free slots).
+      for (const deck of [...plan.insert].reverse()) {
         const { rows } = await tx.execute<{ id: string }>(
           sql`insert into ${decks} (user_id, source_id, name, format, cards)
               values (${userId}, ${deck.sourceId}, ${deck.name}, ${deck.format}, ${JSON.stringify(deck.cards)}::jsonb)
               returning id`,
         )
-        imported.push({ sourceId: deck.sourceId, id: rows[0]!.id })
+        imported.unshift({ sourceId: deck.sourceId, id: rows[0]!.id })
       }
       return { imported, duplicates: plan.duplicates, overLimit: plan.overLimit }
     })

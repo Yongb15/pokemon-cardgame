@@ -15,7 +15,7 @@
 //   DELETE /api/v1/me  { confirm }        → 204 (the account and everything in it; confirm = nickname)
 
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Patch, Post, Put, Req, Res } from '@nestjs/common'
-import { cleanNickname, isCardId, MAX_DECKS } from '@card-dex/shared'
+import { cleanNickname, cleanText, isCardId, MAX_DECKS } from '@card-dex/shared'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { SERVICES, type Services } from '../auth/auth.controller.js'
@@ -183,7 +183,8 @@ export class MeController extends UserRoutes {
   async leave(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: unknown) {
     const user = await this.writer(req, res)
     const parsed = z.strictObject({ confirm: z.string().max(200) }).safeParse(body)
-    if (!parsed.success || cleanNickname(parsed.data.confirm) !== user.nickname) {
+    // Cleaned but never cut: "<20-character nickname>x" must not match (qa D5-1)
+    if (!parsed.success || cleanText(parsed.data.confirm, 200) !== user.nickname) {
       throw new PublicError('확인을 위해 지금 닉네임을 정확히 입력해 주세요.', 400)
     }
     await this.data.deleteUser(user.id)

@@ -97,8 +97,9 @@ export const decks = account.table(
     format: text('format').notNull(),
     cards: jsonb('cards').$type<{ id: string; count: number }[]>().notNull(),
     version: integer('version').notNull().default(1),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    // clock_timestamp(), not now(): decks imported in one transaction keep their order (qa D5-2)
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
   },
   (t) => [
     index('decks_user_idx').on(t.userId, t.updatedAt),

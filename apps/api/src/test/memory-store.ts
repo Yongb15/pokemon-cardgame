@@ -126,11 +126,15 @@ export class MemoryDataStore implements UserDataStore {
       names: new Set(existing.map((d) => d.name)),
       count: existing.length,
     })
-    const imported = plan.insert.map(({ sourceId, ...input }) => {
-      const deck = { ...input, id: randomUUID(), version: 1, updatedAt: this.now(), userId, sourceId }
-      this.decks.push(deck)
-      return { sourceId, id: deck.id }
-    })
+    // Oldest first, like PgDataStore: later inserts get later times (qa D5-2)
+    const imported = [...plan.insert]
+      .reverse()
+      .map(({ sourceId, ...input }) => {
+        const deck = { ...input, id: randomUUID(), version: 1, updatedAt: this.now(), userId, sourceId }
+        this.decks.push(deck)
+        return { sourceId, id: deck.id }
+      })
+      .reverse()
     return { imported, duplicates: plan.duplicates, overLimit: plan.overLimit }
   }
 

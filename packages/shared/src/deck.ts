@@ -39,10 +39,11 @@ export const isCardCount = (n: unknown): n is number => Number.isInteger(n) && (
  */
 export const cleanDeckName = (name: string) => cleanText(name, MAX_DECK_NAME)
 
-/** A nickname after cleaning, or null when fewer than 2 characters are left */
+/** A nickname after cleaning, or null unless 2–20 characters are left: too long is refused, not cut (qa D5-3) */
 export function cleanNickname(name: string) {
-  const clean = cleanText(name, NICKNAME_MAX)
-  return [...clean].length >= NICKNAME_MIN ? clean : null
+  const clean = cleanText(name, NICKNAME_MAX * 10)
+  const length = [...clean].length
+  return length >= NICKNAME_MIN && length <= NICKNAME_MAX ? clean : null
 }
 
 /** Merges duplicate ids, drops invalid entries and caps the number of distinct cards */

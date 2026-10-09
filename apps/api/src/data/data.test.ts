@@ -157,6 +157,7 @@ describe('user data routes (test sign-in, in-memory store)', () => {
       deck({ extra: 1 }),
       deck({ name: '​ ' }),
       deck({ name: 'x'.repeat(201) }),
+      deck({ name: 'x'.repeat(51) }), // too long is refused, not cut (qa D5-3)
       deck({ format: 'constructor' }),
       deck({ cards: [{ id: 'sv1-1', count: 1 }, { id: 'sv1-1', count: 1 }] }),
       deck({ cards: [{ id: '<script>', count: 1 }] }),
@@ -243,6 +244,7 @@ describe('user data routes (test sign-in, in-memory store)', () => {
     const phone = await signIn('leaver')
     const laptop = await signIn('leaver')
     expect((await call('/api/v1/me', { method: 'PATCH', session: phone, body: { nickname: 'a' } })).status).toBe(400)
+    expect((await call('/api/v1/me', { method: 'PATCH', session: phone, body: { nickname: '가'.repeat(21) } })).status).toBe(400)
     expect((await call('/api/v1/me', { method: 'PATCH', session: phone, body: { nickname: 'x', admin: true } })).status).toBe(400)
     const renamed = await call('/api/v1/me', { method: 'PATCH', session: phone, body: { nickname: ' 피카‮츄 ' } })
     expect(renamed.body.user).toEqual({ nickname: '피카츄', providers: ['test'] })
@@ -259,7 +261,7 @@ describe('user data routes (test sign-in, in-memory store)', () => {
     const again = await signIn('leaver')
     const me = [...accounts.accounts].find(([key]) => key === 'test:leaver')![1]
     // The nickname must be typed to confirm (Security S5-2)
-    for (const body of [undefined, {}, { confirm: '다른이름' }, { confirm: '피카츄', x: 1 }]) {
+    for (const body of [undefined, {}, { confirm: '다른이름' }, { confirm: '피카츄x' }, { confirm: '피카츄', x: 1 }]) {
       expect((await call('/api/v1/me', { method: 'DELETE', session: again, body })).status).toBe(400)
     }
     const left = await call('/api/v1/me', { method: 'DELETE', session: again, body: { confirm: ' 피카츄 ' } })

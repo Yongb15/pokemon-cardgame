@@ -36,6 +36,7 @@ describe('deck rules', () => {
     expect(cleanNickname('  피카‮츄  ')).toBe('피카츄')
     expect(cleanNickname('a')).toBeNull()
     expect(cleanNickname('​​')).toBeNull()
-    expect(cleanNickname('가'.repeat(25))).toBe('가'.repeat(20))
+    expect(cleanNickname('가'.repeat(20))).toBe('가'.repeat(20))
+    expect(cleanNickname('가'.repeat(21))).toBeNull()
   })
 })
