@@ -72,6 +72,7 @@ const subject = `check-${Date.now()}`
 try {
   console.log('isDevDatabase:', await store.isDevDatabase())
   console.log('missing privileges at start-up check:', await store.missingPrivileges())
+  console.log('excess privileges at start-up check:', await store.excessPrivileges())
   const a = await store.signIn('test', subject, '트레이너0001')
   const [b, c] = await Promise.all([store.signIn('test', subject, '트레이너0002'), store.signIn('test', subject, '트레이너0003')])
   console.log('same account on repeat/concurrent sign-in:', a === b && b === c)

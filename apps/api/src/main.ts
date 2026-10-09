@@ -16,6 +16,8 @@ if (store) {
     console.error(`database grants don't match this code (missing: ${missing.join(', ')}); refusing to start`)
     process.exit(1)
   }
+  const excess = await store.excessPrivileges()
+  if (excess.length) console.warn(`database grants wider than needed: ${excess.join(', ')}`)
 }
 
 let testProvider = null

@@ -5,7 +5,7 @@ import type { NestExpressApplication } from '@nestjs/platform-express'
 import { json } from 'express'
 import { AuthController, SERVICES, TestAuthController, type Services } from './auth/auth.controller.js'
 import { originCheck, RateLimiter } from './auth/guards.js'
-import { googleProvider, type Provider } from './auth/providers.js'
+import { googleProvider, kakaoProvider, type Provider } from './auth/providers.js'
 import { Sessions } from './auth/sessions.js'
 import type { AccountStore } from './auth/store.js'
 import type { TestProvider } from './auth/test-provider.js'
@@ -29,8 +29,9 @@ class AppModule {
 export interface Dependencies {
   store?: AccountStore | null
   testProvider?: TestProvider | null
-  /** Tests swap Google's endpoints for a local fake */
+  /** Tests swap the real providers' endpoints for local fakes */
   google?: Provider | null
+  kakao?: Provider | null
 }
 
 /** Wires the providers that the configuration enables */
@@ -39,6 +40,8 @@ export function buildServices(config: Config, deps: Dependencies = {}): Services
   const providers = new Map<string, Provider>()
   const google = deps.google ?? (config.googleReady ? googleProvider(config) : null)
   if (google && store) providers.set('google', google)
+  const kakao = deps.kakao ?? (config.kakaoReady ? kakaoProvider(config) : null)
+  if (kakao && store) providers.set('kakao', kakao)
   const testProvider = config.AUTH_TEST_PROVIDER === '1' && store ? (deps.testProvider ?? null) : null
   if (testProvider) providers.set('test', testProvider)
   return {

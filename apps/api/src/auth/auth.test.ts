@@ -7,7 +7,7 @@ import { MemoryStore } from '../test/memory-store.js'
 import { pkceChallenge, randomToken, seal, sha256, unseal } from './crypto.js'
 import { RateLimiter } from './guards.js'
 import { safeNext } from './next.js'
-import { googleProvider, verifyIdToken } from './providers.js'
+import { googleProvider, kakaoProvider, verifyIdToken } from './providers.js'
 import { Sessions } from './sessions.js'
 import { createTestProvider } from './test-provider.js'
 
@@ -126,6 +126,40 @@ describe("Google's sign-in request", () => {
     expect(url.searchParams.get('code_challenge_method')).toBe('S256')
     expect(url.searchParams.get('redirect_uri')).toBe(`${ORIGIN}/api/v1/auth/google/callback`)
     expect(url.searchParams.get('response_type')).toBe('code')
+  })
+})
+
+const KAKAO_ENV = { KAKAO_CLIENT_ID: '0'.repeat(32), KAKAO_CLIENT_SECRET: 'k'.repeat(32) }
+
+describe("Kakao's sign-in request", () => {
+  it('asks for openid only, with PKCE S256 and the fixed redirect URI', () => {
+    const url = new URL(kakaoProvider(loadConfig({ ...env, ...KAKAO_ENV })).authorizeUrl({ state: 's', nonce: 'n', challenge: 'c' }))
+    expect(url.origin + url.pathname).toBe('https://kauth.kakao.com/oauth/authorize')
+    expect(url.searchParams.get('client_id')).toBe('0'.repeat(32))
+    expect(url.searchParams.get('scope')).toBe('openid')
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256')
+    expect(url.searchParams.get('nonce')).toBe('n')
+    expect(url.searchParams.get('redirect_uri')).toBe(`${ORIGIN}/api/v1/auth/kakao/callback`)
+  })
+  it("refuses another provider's token, and the other way round", async () => {
+    const { publicKey, privateKey } = await generateKeyPair('RS256')
+    const keys = createLocalJWKSet({ keys: [{ ...(await exportJWK(publicKey)), alg: 'RS256', kid: 'k' }] })
+    const config = loadConfig({ ...env, ...KAKAO_ENV, GOOGLE_CLIENT_ID: '1-a.apps.googleusercontent.com', GOOGLE_CLIENT_SECRET: 'secret-123' })
+    const sign = (iss: string, aud: string) =>
+      new SignJWT({ nonce: 'n' }).setProtectedHeader({ alg: 'RS256', kid: 'k' }).setSubject('1').setIssuer(iss).setAudience(aud).setIssuedAt().setExpirationTime('5m').sign(privateKey)
+    const kakao = kakaoProvider(config, keys)
+    const google = googleProvider(config, keys)
+    expect(await kakao.verify(await sign('https://kauth.kakao.com', '0'.repeat(32)), 'n')).toBe('1')
+    await expect(kakao.verify(await sign('https://accounts.google.com', '0'.repeat(32)), 'n')).rejects.toThrow()
+    await expect(kakao.verify(await sign('https://kauth.kakao.com', '1-a.apps.googleusercontent.com'), 'n')).rejects.toThrow()
+    await expect(google.verify(await sign('https://kauth.kakao.com', '1-a.apps.googleusercontent.com'), 'n')).rejects.toThrow()
+  })
+  it('turns on only with both values, in the right shape', () => {
+    expect(loadConfig({ ...env, ...KAKAO_ENV }).kakaoReady).toBe(true)
+    expect(loadConfig({ ...env, KAKAO_CLIENT_ID: '0'.repeat(32) }).kakaoReady).toBe(false)
+    expect(() => loadConfig({ ...env, ...KAKAO_ENV, KAKAO_CLIENT_ID: 'not-a-key' })).toThrow(/KAKAO_CLIENT_ID/)
+    const bundle = JSON.stringify({ PROXY_SECRET: SECRET, OAUTH_COOKIE_KEY: KEY, DATABASE_URL: 'postgresql://a:b@h/db', KAKAO_CLIENT_SECRET: 'k'.repeat(32) })
+    expect(loadConfig({ APP_ENV: 'preview', PUBLIC_ORIGIN: ORIGIN, API_SECRETS: bundle, KAKAO_CLIENT_ID: '0'.repeat(32) }).kakaoReady).toBe(true)
   })
 })
 
@@ -396,8 +430,9 @@ describe('production', () => {
       expect((await call('/api/v1/auth/test/start?sub=qa1')).status).toBe(404)
       expect((await call('/api/v1/auth/test/authorize?state=a&nonce=b&code_challenge=c&sub=qa1')).status).toBe(404)
       expect((await call('/api/v1/auth/test/callback?code=a&state=b')).status).toBe(404)
-      // and Google is off until configured
+      // and Google and Kakao are off until configured
       expect((await call('/api/v1/auth/google/start')).status).toBe(404)
+      expect((await call('/api/v1/auth/kakao/start')).status).toBe(404)
       // previews are not allowed origins in production
       const out = await call('/api/v1/auth/logout', { method: 'POST', origin: 'https://pokemon-card-dex-git-develop-dydqls-projects.vercel.app' })
       expect(out.status).toBe(403)

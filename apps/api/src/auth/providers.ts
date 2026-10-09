@@ -78,26 +78,49 @@ async function exchangeAtTokenEndpoint(url: string, form: Record<string, string>
   return body.id_token
 }
 
-// Google's endpoints from its fixed discovery document (accounts.google.com/.well-known/openid-configuration)
-const GOOGLE = {
+/** One OpenID provider's fixed endpoints, from its discovery document (never fetched at run time) */
+interface Endpoints {
+  authorize: string
+  token: string
+  jwks: string
+  issuers: string[]
+}
+
+// accounts.google.com/.well-known/openid-configuration
+const GOOGLE: Endpoints = {
   authorize: 'https://accounts.google.com/o/oauth2/v2/auth',
   token: 'https://oauth2.googleapis.com/token',
   jwks: 'https://www.googleapis.com/oauth2/v3/certs',
   issuers: ['https://accounts.google.com', 'accounts.google.com'],
 }
 
+// kauth.kakao.com/.well-known/openid-configuration (RS256, PKCE S256)
+const KAKAO: Endpoints = {
+  authorize: 'https://kauth.kakao.com/oauth/authorize',
+  token: 'https://kauth.kakao.com/oauth/token',
+  jwks: 'https://kauth.kakao.com/.well-known/jwks.json',
+  issuers: ['https://kauth.kakao.com'],
+}
+
 /** The redirect_uri is fixed by configuration, never built from the request's Host (Security) */
 export const callbackUrl = (config: Config, provider: ProviderName) =>
   `${config.PUBLIC_ORIGIN}/api/v1/auth/${provider}/callback`
 
-export function googleProvider(config: Config, keys: JWTVerifyGetKey = createRemoteJWKSet(new URL(GOOGLE.jwks))): Provider {
-  const clientId = config.GOOGLE_CLIENT_ID!
-  const clientSecret = config.GOOGLE_CLIENT_SECRET!
-  const redirectUri = callbackUrl(config, 'google')
+interface OidcClient {
+  name: ProviderName
+  endpoints: Endpoints
+  clientId: string
+  clientSecret: string
+  redirectUri: string
+  keys: JWTVerifyGetKey
+}
+
+/** Authorization code flow with state, nonce and PKCE, the same for every real provider */
+function oidcProvider({ name, endpoints, clientId, clientSecret, redirectUri, keys }: OidcClient): Provider {
   return {
-    name: 'google',
+    name,
     authorizeUrl({ state, nonce, challenge }) {
-      const url = new URL(GOOGLE.authorize)
+      const url = new URL(endpoints.authorize)
       url.search = new URLSearchParams({
         client_id: clientId,
         redirect_uri: redirectUri,
@@ -113,7 +136,7 @@ export function googleProvider(config: Config, keys: JWTVerifyGetKey = createRem
       return url.toString()
     },
     exchange: (code, verifier) =>
-      exchangeAtTokenEndpoint(GOOGLE.token, {
+      exchangeAtTokenEndpoint(endpoints.token, {
         grant_type: 'authorization_code',
         code,
         code_verifier: verifier,
@@ -121,6 +144,28 @@ export function googleProvider(config: Config, keys: JWTVerifyGetKey = createRem
         client_id: clientId,
         client_secret: clientSecret,
       }),
-    verify: (idToken, nonce) => verifyIdToken(idToken, nonce, { keys, issuers: GOOGLE.issuers, clientId }),
+    verify: (idToken, nonce) => verifyIdToken(idToken, nonce, { keys, issuers: endpoints.issuers, clientId }),
   }
+}
+
+export function googleProvider(config: Config, keys: JWTVerifyGetKey = createRemoteJWKSet(new URL(GOOGLE.jwks))): Provider {
+  return oidcProvider({
+    name: 'google',
+    endpoints: GOOGLE,
+    clientId: config.GOOGLE_CLIENT_ID!,
+    clientSecret: config.GOOGLE_CLIENT_SECRET!,
+    redirectUri: callbackUrl(config, 'google'),
+    keys,
+  })
+}
+
+export function kakaoProvider(config: Config, keys: JWTVerifyGetKey = createRemoteJWKSet(new URL(KAKAO.jwks))): Provider {
+  return oidcProvider({
+    name: 'kakao',
+    endpoints: KAKAO,
+    clientId: config.KAKAO_CLIENT_ID!,
+    clientSecret: config.KAKAO_CLIENT_SECRET!,
+    redirectUri: callbackUrl(config, 'kakao'),
+    keys,
+  })
 }
