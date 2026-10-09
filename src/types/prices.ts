@@ -25,6 +25,8 @@ export interface EditionView {
   }
   summary: { min: number; max: number; changePct: number | null } | null
   staleDays: number | null
+  /** Cardmarket's 30-day average for the same print: a reference while our history is short */
+  avg30: Price | null
 }
 
 export type JaEdition =
