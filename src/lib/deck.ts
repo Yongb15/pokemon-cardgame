@@ -38,6 +38,8 @@ export interface Deck {
   /** Saved by the editor so the deck list can show a cover and the rule status without fetching */
   coverId?: string
   problems?: number
+  /** Account decks only: the version the next save must name (optimistic lock) */
+  version?: number
 }
 
 function sanitizeDeck(raw: unknown): Deck | null {
@@ -119,6 +121,12 @@ export function putDeck(deck: Deck) {
 
 export function deleteDeck(id: string) {
   saveDecks(loadDecks().filter((d) => d.id !== id))
+}
+
+/** Several at once (the ones moved into the account) */
+export function deleteDecks(ids: Iterable<string>) {
+  const gone = new Set(ids)
+  saveDecks(loadDecks().filter((d) => !gone.has(d.id)))
 }
 
 export function createDeck(init: Partial<Pick<Deck, 'name' | 'format' | 'cards'>> = {}): Deck {

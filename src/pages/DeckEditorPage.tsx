@@ -1,11 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import CardPicker from '../components/deck/CardPicker'
 import DeckCardList from '../components/deck/DeckCardList'
 import DeckChecks from '../components/deck/DeckChecks'
 import ExportDialog from '../components/deck/ExportDialog'
 import { NotFoundState } from '../components/ListStates'
-import { useCardInfo, useDecks } from '../hooks/useDecks'
+import {
+  copyName,
+  createInAccount,
+  errorMessage,
+  loadAccountDecks,
+  reloadFromAccount,
+  saveInAccount,
+} from '../hooks/useAccountDecks'
+import { removeFromLibrary, useDeckLibrary } from '../hooks/useDeckLibrary'
+import { useCardInfo } from '../hooks/useDecks'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import {
   checkDeck,
@@ -13,7 +22,6 @@ import {
   copiesByName,
   DECK_SIZE,
   deckSize,
-  deleteDeck,
   exportDeckList,
   FORMATS,
   isDeckFormat,
@@ -29,8 +37,9 @@ import styles from './DeckPages.module.css'
 
 export default function DeckEditorPage() {
   const { deckId } = useParams()
-  const decks = useDecks()
-  const deck = decks.find((d) => d.id === deckId)
+  const library = useDeckLibrary()
+  const decks = library.mode === 'local' || (library.mode === 'account' && library.status === 'ready') ? library.decks : null
+  const deck = decks?.find((d) => d.id === deckId)
 
   useEffect(() => {
     document.title = `${deck?.name ?? '덱을 찾을 수 없어요'} · Pokémon Card Dex`
@@ -38,6 +47,27 @@ export default function DeckEditorPage() {
       document.title = 'Pokémon Card Dex'
     }
   }, [deck?.name])
+
+  if (library.mode === 'account' && library.status === 'error') {
+    return (
+      <main className={styles.main}>
+        <p className={styles.alert} role="alert">
+          {library.message}{' '}
+          <button type="button" className={styles.linkButton} onClick={() => void loadAccountDecks()}>
+            다시 시도
+          </button>
+        </p>
+      </main>
+    )
+  }
+  // Signed in or not isn't known yet, or the account's decks are on their way
+  if (!decks) {
+    return (
+      <main className={styles.main}>
+        <div className={styles.listSkeleton} aria-busy="true" aria-label="덱을 불러오는 중" />
+      </main>
+    )
+  }
 
   if (!deck) {
     return (
@@ -47,7 +77,7 @@ export default function DeckEditorPage() {
           title="덱을 찾을 수 없어요"
           description={
             <>
-              이 브라우저에 저장된 덱이 아니거나 삭제됐어요.
+              {library.mode === 'account' ? '계정에 없는 덱이거나 삭제됐어요.' : '이 브라우저에 저장된 덱이 아니거나 삭제됐어요.'}
               <br />
               <Link to="/decks">내 덱 목록으로</Link>
             </>
@@ -56,11 +86,84 @@ export default function DeckEditorPage() {
       </main>
     )
   }
-  return <Editor key={deck.id} deck={deck} />
+  return <Editor key={deck.id} deck={deck} mode={library.mode === 'account' ? 'account' : 'local'} />
 }
 
-function Editor({ deck }: { deck: Deck }) {
+type SaveState = 'saved' | 'pending' | 'saving' | 'error' | 'conflict'
+const SAVE_TEXT: Record<SaveState, string> = {
+  saved: '저장됨',
+  pending: '저장 대기 중…',
+  saving: '저장 중…',
+  error: '저장하지 못했어요',
+  conflict: '저장 멈춤',
+}
+const AUTOSAVE_MS = 800
+
+function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' }) {
   const navigate = useNavigate()
+  // Account decks are edited in memory and saved a moment later (docs/design/deck-sync.webp);
+  // browser decks save on every change, as before
+  const [draft, setDraft] = useState(stored)
+  const deck = mode === 'account' ? draft : stored
+  const [saveState, setSaveState] = useState<SaveState>('saved')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const latest = useRef(stored)
+  const edits = useRef(0)
+  const timer = useRef<number | undefined>(undefined)
+  const inflight = useRef(false)
+  const conflicted = useRef(false)
+
+  async function flush() {
+    window.clearTimeout(timer.current)
+    timer.current = undefined
+    if (inflight.current || conflicted.current) return
+    inflight.current = true
+    const sent = edits.current
+    setSaveState('saving')
+    try {
+      const result = await saveInAccount(latest.current)
+      if (result === 'conflict') {
+        // Another device saved first: keep this screen's changes, stop saving, let the user choose
+        conflicted.current = true
+        setSaveState('conflict')
+        return
+      }
+      latest.current = { ...latest.current, version: result.version, updatedAt: result.updatedAt }
+      setDraft((d) => ({ ...d, version: result.version }))
+      setSaveError(null)
+      setSaveState(edits.current === sent ? 'saved' : 'pending')
+    } catch (error) {
+      setSaveState('error')
+      setSaveError(errorMessage(error, '저장하지 못했어요. 인터넷 연결을 확인해 주세요.'))
+    } finally {
+      inflight.current = false
+      // Changes made while this save was on its way go next
+      if (edits.current !== sent && !conflicted.current && timer.current === undefined) schedule()
+    }
+  }
+
+  function schedule() {
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => {
+      timer.current = undefined
+      void flush()
+    }, AUTOSAVE_MS)
+  }
+
+  // Leaving with a change not yet saved: send it now; closing the tab first asks
+  useEffect(() => {
+    if (mode !== 'account') return
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (timer.current !== undefined || inflight.current) event.preventDefault()
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      if (timer.current !== undefined) void flush()
+    }
+    // Once per editor: flush reads refs only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode])
   const isNarrow = useMediaQuery('(max-width: 900px)')
   const [tab, setTab] = useState<'cards' | 'deck'>('cards')
   const [name, setName] = useState(deck.name)
@@ -76,10 +179,42 @@ function Editor({ deck }: { deck: Deck }) {
   const nameCounts = copiesByName(deck.cards, info)
 
   function save(next: Partial<Deck>) {
+    if (mode === 'account') {
+      latest.current = { ...latest.current, ...next }
+      setDraft(latest.current)
+      edits.current += 1
+      if (conflicted.current) return // kept on screen; the user chooses what to do with it
+      setSaveState('pending')
+      schedule()
+      return
+    }
     try {
       putDeck({ ...deck, ...next })
     } catch {
       setNotice({ kind: 'error', text: '브라우저에 저장하지 못했어요. 시크릿 모드이거나 저장 공간이 부족할 수 있어요.' })
+    }
+  }
+
+  async function loadLatest() {
+    try {
+      const fresh = await reloadFromAccount(deck.id)
+      latest.current = fresh
+      conflicted.current = false
+      setDraft(fresh)
+      setName(fresh.name)
+      setSaveState('saved')
+      setSaveError(null)
+    } catch (error) {
+      setSaveError(errorMessage(error))
+    }
+  }
+
+  async function saveAsCopy() {
+    try {
+      const copy = await createInAccount({ name: copyName(deck.name), format: deck.format, cards: deck.cards })
+      navigate(`/decks/${copy.id}`, { replace: true, state: { notice: '내 변경을 사본으로 저장했어요.' } })
+    } catch (error) {
+      setSaveError(errorMessage(error))
     }
   }
 
@@ -88,6 +223,10 @@ function Editor({ deck }: { deck: Deck }) {
   useEffect(() => {
     if (loading || error) return
     if (deck.coverId === coverId && deck.problems === problems) return
+    if (mode === 'account') {
+      if (!conflicted.current) save({ coverId, problems })
+      return
+    }
     try {
       putDeck({ ...deck, coverId, problems })
     } catch {
@@ -122,14 +261,19 @@ function Editor({ deck }: { deck: Deck }) {
     }
   }
 
-  function remove() {
+  async function remove() {
     if (!window.confirm(`“${deck.name}” 덱을 삭제할까요? 되돌릴 수 없어요.`)) return
     try {
-      deleteDeck(deck.id)
+      window.clearTimeout(timer.current)
+      timer.current = undefined
+      await removeFromLibrary(mode, deck.id)
       // The list page moves focus to its heading, so keyboard users don't land on <body>
       navigate('/decks', { replace: true, state: { focusHeading: true } })
-    } catch {
-      setNotice({ kind: 'error', text: '삭제하지 못했어요. 브라우저 저장소를 사용할 수 없어요.' })
+    } catch (error) {
+      setNotice({
+        kind: 'error',
+        text: mode === 'account' ? errorMessage(error, '삭제하지 못했어요.') : '삭제하지 못했어요. 브라우저 저장소를 사용할 수 없어요.',
+      })
     }
   }
 
@@ -153,6 +297,37 @@ function Editor({ deck }: { deck: Deck }) {
           onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
         />
       </div>
+
+      {mode === 'account' && (
+        <>
+          <span className={styles.saveState} data-state={saveState} role="status">
+            {SAVE_TEXT[saveState]}
+          </span>
+          {saveState === 'error' && (
+            <p className={styles.alert} role="alert">
+              {saveError}{' '}
+              <button type="button" className={styles.linkButton} onClick={() => void flush()}>
+                다시 시도
+              </button>
+            </p>
+          )}
+          {saveState === 'conflict' && (
+            <div className={styles.conflict} role="alert">
+              <b>다른 기기에서 이 덱이 바뀌었어요.</b>
+              <span>지금 화면의 변경은 저장되지 않았고, 그대로 남아 있어요. 자동 저장은 멈췄어요.</span>
+              {saveError && <span>{saveError}</span>}
+              <span className={styles.actions}>
+                <button type="button" className={styles.button} onClick={() => void loadLatest()}>
+                  최신 버전 불러오기
+                </button>
+                <button type="button" className={`${styles.button} ${styles.primary}`} onClick={() => void saveAsCopy()}>
+                  내 변경을 사본으로 저장
+                </button>
+              </span>
+            </div>
+          )}
+        </>
+      )}
 
       <div className={styles.segments} role="radiogroup" aria-label="포맷">
         {Object.entries(FORMATS).map(([value, label]) => (
@@ -218,7 +393,7 @@ function Editor({ deck }: { deck: Deck }) {
         <button type="button" className={styles.button} onClick={() => setExporting(true)} disabled={!total || loading}>
           PTCG Live로 내보내기
         </button>
-        <button type="button" className={`${styles.button} ${styles.danger}`} onClick={remove}>
+        <button type="button" className={`${styles.button} ${styles.danger}`} onClick={() => void remove()}>
           삭제
         </button>
       </div>

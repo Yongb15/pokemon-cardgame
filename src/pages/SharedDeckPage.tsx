@@ -4,8 +4,10 @@ import DeckCardList from '../components/deck/DeckCardList'
 import DeckChecks from '../components/deck/DeckChecks'
 import ExportDialog from '../components/deck/ExportDialog'
 import { NotFoundState } from '../components/ListStates'
+import { errorMessage } from '../hooks/useAccountDecks'
+import { createInLibrary, useDeckLibrary } from '../hooks/useDeckLibrary'
 import { useCardInfo } from '../hooks/useDecks'
-import { checkDeck, createDeck, DECK_SIZE, deckFromShareParams, deckSize, exportDeckList, FORMATS, problemCount } from '../lib/deck'
+import { checkDeck, DECK_SIZE, deckFromShareParams, deckSize, exportDeckList, FORMATS, problemCount } from '../lib/deck'
 import styles from './DeckPages.module.css'
 
 /** A deck opened from a share link: read-only until the viewer saves a copy of their own */
@@ -14,7 +16,10 @@ export default function SharedDeckPage() {
   const shared = useMemo(() => deckFromShareParams(params), [params])
   const navigate = useNavigate()
   const [exporting, setExporting] = useState(false)
-  const [saveError, setSaveError] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const library = useDeckLibrary()
+  const mode = library.mode === 'account' ? 'account' : 'local'
   const ids = useMemo(() => shared?.cards.map((c) => c.id) ?? [], [shared])
   const { info, loading, error, unknownIds } = useCardInfo(ids)
 
@@ -47,13 +52,19 @@ export default function SharedDeckPage() {
   const checks = checkDeck(shared.cards, shared.format, info)
   const problems = problemCount(checks)
 
-  function saveCopy() {
+  // Always a new deck: a link never overwrites one the viewer already has. Signed in, it goes to
+  // the account; signed out, to this browser (qa)
+  async function saveCopy() {
+    setSaving(true)
+    setSaveError(null)
     try {
-      // Always a new deck: a link never overwrites one the viewer already has
-      const deck = createDeck(shared!)
+      const deck = await createInLibrary(mode, shared!)
       navigate(`/decks/${deck.id}`)
-    } catch {
-      setSaveError(true)
+    } catch (error) {
+      setSaveError(
+        mode === 'account' ? errorMessage(error) : '브라우저에 저장하지 못했어요. 시크릿 모드이거나 저장 공간이 부족할 수 있어요.',
+      )
+      setSaving(false)
     }
   }
 
@@ -65,13 +76,18 @@ export default function SharedDeckPage() {
         <p>
           <b>공유받은 덱이에요</b> 저장하면 내 덱 목록에 새 덱으로 추가돼요. 기존 덱은 바뀌지 않아요.
         </p>
-        <button type="button" className={`${styles.button} ${styles.primary}`} onClick={saveCopy}>
-          내 덱으로 저장
+        <button
+          type="button"
+          className={`${styles.button} ${styles.primary}`}
+          onClick={() => void saveCopy()}
+          disabled={saving || library.mode === 'checking'}
+        >
+          {saving ? '저장하는 중…' : mode === 'account' ? '내 계정에 저장' : '내 덱으로 저장'}
         </button>
       </div>
       {saveError && (
         <p className={styles.alert} role="alert">
-          브라우저에 저장하지 못했어요. 시크릿 모드이거나 저장 공간이 부족할 수 있어요.
+          {saveError}
         </p>
       )}
 

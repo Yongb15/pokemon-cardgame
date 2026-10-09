@@ -36,7 +36,7 @@ describe('pure import rules', () => {
   })
 
   it('imports newest first into the free slots and reports the rest', () => {
-    const item = (sourceId: string, updatedAt: number): ImportItem => ({ sourceId, updatedAt, name: sourceId, format: 'standard', cards: [] })
+    const item = (sourceId: string, updatedAt: number): ImportItem => ({ sourceId, updatedAt, name: sourceId, format: 'standard', cards: [], coverId: null, problems: null })
     const plan = planImport([item('old', 1), item('dup', 5), item('new', 9)], {
       sourceIds: new Set(['dup']),
       names: new Set(),
@@ -120,7 +120,11 @@ describe('user data routes (test sign-in, in-memory store)', () => {
     const created = await call('/api/v1/decks', { method: 'POST', session, body: deck({ name: '  리자몽‮ 덱 ' }) })
     expect(created.status).toBe(201)
     const { id, version } = created.body.deck
-    expect(created.body.deck).toMatchObject({ name: '리자몽 덱', format: 'standard', version: 1 })
+    expect(created.body.deck).toMatchObject({ name: '리자몽 덱', format: 'standard', version: 1, coverId: null, problems: null })
+    // The list extras the editor saves
+    const withCover = await call('/api/v1/decks', { method: 'POST', session, body: deck({ coverId: 'sv3-125', problems: 2 }) })
+    expect(withCover.body.deck).toMatchObject({ coverId: 'sv3-125', problems: 2 })
+    await call(`/api/v1/decks/${withCover.body.deck.id}`, { method: 'DELETE', session })
     expect(JSON.stringify(created.body)).not.toMatch(/user/i)
 
     expect((await call('/api/v1/decks', { session })).body.decks.map((d: { id: string }) => d.id)).toEqual([id])
@@ -158,6 +162,10 @@ describe('user data routes (test sign-in, in-memory store)', () => {
       deck({ name: '​ ' }),
       deck({ name: 'x'.repeat(201) }),
       deck({ name: 'x'.repeat(51) }), // too long is refused, not cut (qa D5-3)
+      deck({ coverId: '../x' }),
+      deck({ problems: -1 }),
+      deck({ problems: 1000 }),
+      deck({ problems: 1.5 }),
       deck({ format: 'constructor' }),
       deck({ cards: [{ id: 'sv1-1', count: 1 }, { id: 'sv1-1', count: 1 }] }),
       deck({ cards: [{ id: '<script>', count: 1 }] }),
@@ -180,7 +188,7 @@ describe('user data routes (test sign-in, in-memory store)', () => {
   it('stops at 100 decks (422)', async () => {
     const session = await signIn('full')
     const me = [...accounts.accounts].find(([key]) => key === 'test:full')![1]
-    for (let i = 0; i < 100; i++) await data.createDeck(me, { name: `덱 ${i}`, format: 'standard', cards: [] })
+    for (let i = 0; i < 100; i++) await data.createDeck(me, { name: `덱 ${i}`, format: 'standard', cards: [], coverId: null, problems: null })
     const res = await call('/api/v1/decks', { method: 'POST', session, body: deck() })
     expect(res.status).toBe(422)
     expect(res.body.error.message).toBe('덱은 100개까지 저장할 수 있어요.')

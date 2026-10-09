@@ -77,3 +77,35 @@ export const getFavorites = () => accountFetch<{ cards: string[] }>('/favorites'
 export const addFavorite = (cardId: string) => accountFetch<void>(`/favorites/${encodeURIComponent(cardId)}`, { method: 'PUT' })
 export const removeFavorite = (cardId: string) =>
   accountFetch<void>(`/favorites/${encodeURIComponent(cardId)}`, { method: 'DELETE' })
+
+// --- Account decks (docs/auth/design.md "5단계 API") ---------------------------------------------
+
+export interface AccountDeckBody {
+  name: string
+  format: 'standard' | 'expanded' | 'unlimited'
+  cards: { id: string; count: number }[]
+  coverId: string | null
+  problems: number | null
+}
+
+export interface AccountDeck extends AccountDeckBody {
+  id: string
+  version: number
+  updatedAt: string
+}
+
+export interface ImportResult {
+  imported: { sourceId: string; id: string }[]
+  duplicates: string[]
+  overLimit: string[]
+  invalid: number
+}
+
+export const listAccountDecks = () => accountFetch<{ decks: AccountDeck[] }>('/decks')
+export const getAccountDeck = (id: string) => accountFetch<{ deck: AccountDeck }>(`/decks/${encodeURIComponent(id)}`)
+export const createAccountDeck = (body: AccountDeckBody) => accountFetch<{ deck: AccountDeck }>('/decks', { method: 'POST', body })
+export const saveAccountDeck = (id: string, body: AccountDeckBody, version: number) =>
+  accountFetch<{ deck: AccountDeck }>(`/decks/${encodeURIComponent(id)}`, { method: 'PUT', body: { ...body, version } })
+export const deleteAccountDeck = (id: string) => accountFetch<void>(`/decks/${encodeURIComponent(id)}`, { method: 'DELETE' })
+export const importDecks = (decks: (AccountDeckBody & { sourceId: string; updatedAt: number })[]) =>
+  accountFetch<ImportResult>('/decks/import', { method: 'POST', body: { decks } })
