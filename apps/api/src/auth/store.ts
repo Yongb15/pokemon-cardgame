@@ -10,7 +10,7 @@ import { oauthAccounts, sessions, users, type Provider } from '../db/schema.js'
 export const MAX_SESSIONS = 20
 
 /** What the queries below use: [table in schema account, column or null for the table, privilege] */
-const REQUIRED_PRIVILEGES: [string, string | null, string][] = [
+export const REQUIRED_PRIVILEGES: [string, string | null, string][] = [
   ['users', null, 'SELECT'],
   ['users', 'nickname', 'INSERT'],
   ['users', null, 'DELETE'],
@@ -137,15 +137,15 @@ export class PgStore implements AccountStore {
    * grants disagree refuses to start, so the deploy fails and the old revision keeps serving
    * (qa B3-1: a narrowing migration ran before the matching image). Returns what is missing.
    */
-  async missingPrivileges(): Promise<string[]> {
-    const checks = REQUIRED_PRIVILEGES.map(([table, column, privilege]) =>
+  async missingPrivileges(required = REQUIRED_PRIVILEGES): Promise<string[]> {
+    const checks = required.map(([table, column, privilege]) =>
       column
         ? sql`has_column_privilege(${`account.${table}`}, ${column}, ${privilege})`
         : sql`has_table_privilege(${`account.${table}`}, ${privilege})`,
     )
     const { rows } = await this.db.execute<{ ok: boolean[] }>(sql`select array[${sql.join(checks, sql`, `)}] as ok`)
     const ok = rows[0]?.ok ?? []
-    return REQUIRED_PRIVILEGES.filter((_, i) => ok[i] !== true).map(([t, c, p]) => `${p} ${t}${c ? `.${c}` : ''}`)
+    return required.filter((_, i) => ok[i] !== true).map(([t, c, p]) => `${p} ${t}${c ? `.${c}` : ''}`)
   }
 
   /**

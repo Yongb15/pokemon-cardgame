@@ -10,6 +10,8 @@
 
     /* Bundler mode */
     "moduleResolution": "bundler",
+    /* @card-dex/shared: read its TypeScript source, not the built copy the API server runs */
+    "customConditions": ["source"],
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",

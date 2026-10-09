@@ -5,6 +5,13 @@
   "description": "Rules and types shared by the web app and the API server",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
   }
 }

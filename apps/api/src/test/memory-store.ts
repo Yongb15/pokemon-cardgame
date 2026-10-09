@@ -4,7 +4,10 @@
 
 import { randomUUID } from 'node:crypto'
 import type { Provider } from '../db/schema.js'
+import { MAX_DECKS } from '@card-dex/shared'
 import { MAX_SESSIONS, type AccountStore, type SessionRecord } from '../auth/store.js'
+import { planImport, type DeckInput, type DeckRecord, type ImportItem } from '../data/decks.js'
+import { MAX_FAVORITES, type ImportResult, type SaveResult, type UserDataStore } from '../data/store.js'
 
 interface Session {
   hash: string
@@ -59,5 +62,114 @@ export class MemoryStore implements AccountStore {
 
   async isDevDatabase() {
     return this.dev
+  }
+}
+
+/** In-memory UserDataStore over a MemoryStore's users and sessions (same contract as PgDataStore) */
+export class MemoryDataStore implements UserDataStore {
+  decks: (DeckRecord & { userId: string; sourceId: string | null })[] = []
+  favorites: { userId: string; cardId: string; at: number }[] = []
+  private clock = 0
+
+  constructor(private readonly accounts: MemoryStore) {}
+
+  private mine(userId: string) {
+    return this.decks.filter((d) => d.userId === userId)
+  }
+
+  private view(d: DeckRecord): DeckRecord {
+    return { id: d.id, name: d.name, format: d.format, cards: d.cards, version: d.version, updatedAt: d.updatedAt }
+  }
+
+  /** Strictly increasing times, so "newest first" is well defined within one test */
+  private now() {
+    this.clock += 1
+    return new Date(Date.UTC(2026, 9, 9) + this.clock)
+  }
+
+  async listDecks(userId: string) {
+    return this.mine(userId)
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      .map((d) => this.view(d))
+  }
+
+  async getDeck(userId: string, id: string) {
+    const d = this.mine(userId).find((x) => x.id === id)
+    return d ? this.view(d) : null
+  }
+
+  async createDeck(userId: string, input: DeckInput) {
+    if (this.mine(userId).length >= MAX_DECKS) return null
+    const deck = { ...input, id: randomUUID(), version: 1, updatedAt: this.now(), userId, sourceId: null }
+    this.decks.push(deck)
+    return this.view(deck)
+  }
+
+  async updateDeck(userId: string, id: string, input: DeckInput, version: number): Promise<SaveResult> {
+    const d = this.mine(userId).find((x) => x.id === id)
+    if (!d) return 'not-found'
+    if (d.version !== version) return 'conflict'
+    Object.assign(d, input, { version: d.version + 1, updatedAt: this.now() })
+    return this.view(d)
+  }
+
+  async deleteDeck(userId: string, id: string) {
+    const before = this.decks.length
+    this.decks = this.decks.filter((d) => !(d.userId === userId && d.id === id))
+    return this.decks.length < before
+  }
+
+  async importDecks(userId: string, items: ImportItem[]): Promise<ImportResult> {
+    const existing = this.mine(userId)
+    const plan = planImport(items, {
+      sourceIds: new Set(existing.map((d) => d.sourceId).filter((s): s is string => !!s)),
+      names: new Set(existing.map((d) => d.name)),
+      count: existing.length,
+    })
+    const imported = plan.insert.map(({ sourceId, ...input }) => {
+      const deck = { ...input, id: randomUUID(), version: 1, updatedAt: this.now(), userId, sourceId }
+      this.decks.push(deck)
+      return { sourceId, id: deck.id }
+    })
+    return { imported, duplicates: plan.duplicates, overLimit: plan.overLimit }
+  }
+
+  async listFavorites(userId: string) {
+    return this.favorites
+      .filter((f) => f.userId === userId)
+      .sort((a, b) => b.at - a.at)
+      .map((f) => f.cardId)
+  }
+
+  async addFavorite(userId: string, cardId: string) {
+    const mine = this.favorites.filter((f) => f.userId === userId)
+    if (mine.some((f) => f.cardId === cardId)) return true
+    if (mine.length >= MAX_FAVORITES) return false
+    this.favorites.push({ userId, cardId, at: this.now().getTime() })
+    return true
+  }
+
+  async removeFavorite(userId: string, cardId: string) {
+    this.favorites = this.favorites.filter((f) => !(f.userId === userId && f.cardId === cardId))
+  }
+
+  async counts(userId: string) {
+    return { decks: this.mine(userId).length, favorites: this.favorites.filter((f) => f.userId === userId).length }
+  }
+
+  async setNickname(userId: string, nickname: string) {
+    this.accounts.users.get(userId)!.nickname = nickname
+  }
+
+  async deleteSessions(userId: string) {
+    this.accounts.sessions = this.accounts.sessions.filter((s) => s.userId !== userId)
+  }
+
+  async deleteUser(userId: string) {
+    this.accounts.users.delete(userId)
+    for (const [key, id] of this.accounts.accounts) if (id === userId) this.accounts.accounts.delete(key)
+    await this.deleteSessions(userId)
+    this.decks = this.decks.filter((d) => d.userId !== userId)
+    this.favorites = this.favorites.filter((f) => f.userId !== userId)
   }
 }
