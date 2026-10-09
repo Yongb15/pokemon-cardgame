@@ -16,6 +16,14 @@ function cardsApi(): Plugin {
       } catch {
         // no .env: the prices API answers 500 locally, everything else works
       }
+      // /api/prices/top is its own function on Vercel too (server/prices/top.ts)
+      server.middlewares.use('/api/prices/top', async (req, res) => {
+        const { handleTop } = (await server.ssrLoadModule('/server/prices/top.ts')) as typeof import('./server/prices/top.js')
+        const response = await handleTop(new URL(req.url ?? '/', 'http://localhost').searchParams)
+        res.statusCode = response.status
+        response.headers.forEach((value: string, key: string) => res.setHeader(key, value))
+        res.end(await response.text())
+      })
       server.middlewares.use('/api/cards', async (req, res) => {
         // /api/cards/:id/prices is its own function on Vercel (server/prices/api.ts)
         const prices = /^\/([^/?]+)\/prices(?:\?|$)/.exec(req.url ?? '')

@@ -40,22 +40,6 @@
   color: var(--accent-text); /* --accent is under 4.5:1 for 15px text */
 }
 
-.soon {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text-muted);
-}
-
-.tag {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: var(--surface-muted);
-  color: var(--text);
-}
-
 @media (max-width: 640px) {
   .inner {
     height: 56px;
@@ -64,10 +48,13 @@
   .nav {
     gap: 18px;
   }
+}
 
-  /* Phones: just the two working sections */
-  .soon {
-    display: none;
+/* Three sections and the account on the narrowest phones */
+@media (max-width: 360px) {
+  .nav {
+    gap: 12px;
+    font-size: 14px;
   }
 }
 
