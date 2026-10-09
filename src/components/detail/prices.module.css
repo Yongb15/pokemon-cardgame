@@ -114,8 +114,16 @@
   stroke-width: 1.5;
 }
 
+/* A zero-length path: the round caps make a 6px dot that the stretched chart can't squash */
 .dot {
-  fill: var(--accent);
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.nowrap {
+  white-space: nowrap;
 }
 
 /* Cardmarket's 30-day average: a row of dots, apart from the dashed gap links */

@@ -59,12 +59,25 @@ function firstEdition(data: Prices): Edition {
 }
 
 /**
- * A line chart of the daily won prices; unchecked days are drawn dashed (qa D-4). Cardmarket's
- * 30-day average is a faint level line, so even a first day's price has something to compare with.
+ * Cardmarket's 30-day average as the chart's level line, in won: only against a headline from the
+ * same market (TCGplayer and Cardmarket prices differ a lot: qa A-2), and only within 10× of the
+ * latest price, like outliers (D-5): one odd sale can swing a thin market's average (qa A-4)
+ */
+function averageLine(view: EditionView): number | null {
+  const avg = view.avg30
+  const latest = view.latest
+  if (!avg || avg.krw === null || !latest || latest.krw === null || avg.source !== latest.source) return null
+  const ratio = avg.krw / latest.krw
+  return ratio > 10 || ratio < 0.1 ? null : avg.krw
+}
+
+/**
+ * A line chart of the daily won prices; unchecked days are drawn dashed (qa D-4). The 30-day
+ * average is a dotted level line, so even a first day's price has something to compare with.
  */
 function PriceChart({ view, rangeDays, today }: { view: EditionView; rangeDays: number; today: string }) {
   const points = view.history.points.filter((pt) => pt.krw !== null) as { date: string; krw: number }[]
-  const average = view.avg30?.krw ?? null
+  const average = averageLine(view)
   // The chart's place is kept even without a line, so every state has the same height (qa: CLS)
   if (points.length < (average === null ? 2 : 1)) return <div className={p.chartEmpty} aria-hidden="true" />
   const W = 600
@@ -123,7 +136,13 @@ function PriceChart({ view, rangeDays, today }: { view: EditionView; rangeDays: 
         run.length > 1 ? (
           <path key={run[0].date} className={p.line} d={path(run)} vectorEffect="non-scaling-stroke" />
         ) : (
-          <circle key={run[0].date} className={p.dot} cx={x(run[0].date)} cy={y(run[0].krw)} r={3} />
+          // A zero-length stroke with round caps: stays a round dot in the stretched chart (qa A-3)
+          <path
+            key={run[0].date}
+            className={p.dot}
+            d={`M${x(run[0].date).toFixed(1)},${y(run[0].krw).toFixed(1)} h0`}
+            vectorEffect="non-scaling-stroke"
+          />
         ),
       )}
     </svg>
@@ -135,6 +154,9 @@ function EditionPrices({ view, data, rangeDays }: { view: EditionView; data: Pri
   const { summary, history } = view
   const refreshFailed = data.refresh.status === 'error'
   const fetching = data.refresh.status === 'pending' || data.refresh.refreshing
+  const drawn = averageLine(view) !== null
+  // Won with the original amount, or just the one amount when there's no won (qa A-1)
+  const avgText = view.avg30 && (view.avg30.krw !== null ? `${won(view.avg30.krw)} (${amountText(view.avg30)})` : priceText(view.avg30))
   return (
     <>
       <div className={p.headline}>
@@ -179,10 +201,18 @@ function EditionPrices({ view, data, rangeDays }: { view: EditionView; data: Pri
             }`
           : history.before
             ? `최근 ${rangeDays}일 동안 확인된 시세가 없어요 (마지막 ${history.before.krw !== null ? won(history.before.krw) : '-'}, ${shortDate(history.before.date)})`
-            : view.avg30
+            : drawn
               ? '우리 기록은 매일 하루치씩 쌓이는 중이에요.'
               : '그래프를 그릴 만큼 기록이 아직 쌓이지 않았어요.'}
-        {view.avg30 && ` · 점(···) 선은 Cardmarket 최근 30일 평균 ${priceText(view.avg30)} (${amountText(view.avg30)})`}
+        {view.avg30 && (
+          <>
+            {' · '}
+            {drawn && <span className={p.nowrap}>점(···) 선은 </span>}
+            {/* Against a TCGplayer headline the average is another market's: say so (qa A-2) */}
+            {view.latest?.source === view.avg30.source ? 'Cardmarket' : '유럽 시장(Cardmarket)'} 최근 30일 평균{' '}
+            {avgText}
+          </>
+        )}
         {history.gaps.length > 0 &&
           ` · ${history.gaps
             .slice(0, 2)

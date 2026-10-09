@@ -130,5 +130,7 @@ describe('edition view', () => {
     expect(editionView([row(0, 0, 1), row(0, 0, 2, { ...cm, avg30: 2 })], rates, 30, today).avg30?.variant).toBe('holo')
     expect(editionView([row(0, 0, 1), row(0, 0, 2, { ...cm, avg30: null })], rates, 30, today).avg30).toBeNull()
     expect(editionView([row(0, 0, 1)], rates, 30, today).avg30).toBeNull()
+    // Stored as 0 after rounding: no price (qa A-1)
+    expect(editionView([row(0, 0, 1), row(0, 0, 2, { ...cm, avg30: 0 })], rates, 30, today).avg30).toBeNull()
   })
 })

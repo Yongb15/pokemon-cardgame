@@ -175,5 +175,6 @@ function average(groups: Map<string, StoredRow[]>, variant: Variant, rates: Rate
   const cardmarket = [...groups.keys()].filter((k) => k.startsWith('cardmarket:')).map((k) => k.split(':')[1] as Variant)
   const pick = cardmarket.includes(variant) ? variant : headlineVariant(cardmarket)
   const row = pick && groups.get(`cardmarket:${pick}`)!.at(-1)
-  return row && row.avg30 != null ? price({ ...row, market: row.avg30 }, rates) : null
+  // 0 is an average under €0.005 that rounded away when stored: no price, not a free card (qa A-1)
+  return row && row.avg30 != null && row.avg30 > 0 ? price({ ...row, market: row.avg30 }, rates) : null
 }
