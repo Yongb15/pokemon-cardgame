@@ -5,7 +5,19 @@
 // Migrations come from drizzle-kit like the price tables (drizzle.config.ts lists this file too).
 
 import { sql } from 'drizzle-orm'
-import { check, customType, index, pgSchema, primaryKey, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import {
+  check,
+  customType,
+  index,
+  integer,
+  jsonb,
+  pgSchema,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core'
 
 export const account = pgSchema('account')
 
@@ -64,5 +76,55 @@ export const sessions = account.table(
     index('sessions_expires_idx').on(t.expiresAt),
     check('sessions_token_hash_check', sql`octet_length(token_hash) = 32`),
     check('sessions_expiry_check', sql`expires_at <= created_at + interval '90 days'`),
+  ],
+)
+
+/**
+ * Account decks. `cards` is [{ id, count }] checked by the API (packages/shared validCards) and,
+ * as a backstop, the CHECKs here. `version` is the optimistic lock: a save names the version it
+ * edited, and a save of an older one is refused (409). `source_id` is the browser deck's id for
+ * imports: importing the same browser deck twice finds the first copy (qa I-2).
+ */
+export const decks = account.table(
+  'decks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    sourceId: text('source_id'),
+    name: text('name').notNull(),
+    format: text('format').notNull(),
+    cards: jsonb('cards').$type<{ id: string; count: number }[]>().notNull(),
+    version: integer('version').notNull().default(1),
+    // clock_timestamp(), not now(): decks imported in one transaction keep their order (qa D5-2)
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    index('decks_user_idx').on(t.userId, t.updatedAt),
+    uniqueIndex('decks_user_source_idx').on(t.userId, t.sourceId),
+    check('decks_name_check', sql`char_length(name) between 1 and 50`),
+    check('decks_format_check', sql`format in ('standard', 'expanded', 'unlimited')`),
+    check('decks_cards_check', sql`jsonb_typeof(cards) = 'array' and jsonb_array_length(cards) <= 60`),
+    check('decks_source_check', sql`source_id is null or source_id ~ '^[A-Za-z0-9_-]{1,64}$'`),
+    check('decks_version_check', sql`version >= 1`),
+  ],
+)
+
+/** Hearted cards: just ids (the card data lives on the web side) */
+export const favorites = account.table(
+  'favorites',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    cardId: text('card_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.cardId] }),
+    index('favorites_user_idx').on(t.userId, t.createdAt),
+    check('favorites_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
   ],
 )

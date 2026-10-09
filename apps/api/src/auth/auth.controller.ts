@@ -9,6 +9,8 @@ import { Controller, Get, HttpCode, Inject, NotFoundException, Param, Post, Quer
 import { randomInt } from 'node:crypto'
 import type { Request, Response } from 'express'
 import type { Config } from '../config.js'
+import type { UserDataStore } from '../data/store.js'
+import type { RateLimiter } from './guards.js'
 import { clearCookie, OAUTH_COOKIE, readCookie, setCookie } from './cookies.js'
 import { pkceChallenge, randomToken, safeEqual, seal, unseal } from './crypto.js'
 import { isSafePath, safeNext } from './next.js'
@@ -27,6 +29,10 @@ export interface Services {
   providers: Map<string, Provider>
   testProvider: TestProvider | null
   cookieKey: Buffer | null
+  /** Decks, favorites, nickname, leaving (null without a database) */
+  data: UserDataStore | null
+  /** Writes per signed-in user */
+  writeLimit: RateLimiter
 }
 
 /** What the oauth cookie carries between start and callback (10 minutes, single use) */

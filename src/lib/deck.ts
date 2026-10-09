@@ -2,28 +2,31 @@
 // Everything that comes from outside (storage, a pasted list, a link) goes through the same
 // sanitizer, so a tampered value can only ever become a smaller, valid deck.
 
-import { cleanText } from '@card-dex/shared'
+import {
+  CARD_ID as ID_PATTERN,
+  cleanDeckName,
+  DECK_SIZE,
+  isCardCount,
+  isDeckFormat,
+  MAX_COPIES,
+  MAX_DECK_NAME,
+  MAX_COUNT,
+  MAX_DECKS,
+  sanitizeCards,
+  type DeckCard,
+  type DeckFormat,
+} from '@card-dex/shared'
 import bundledSets from '../data/sets.json'
 import type { CardListItem } from '../types/card'
 
-export const FORMATS = {
+// The rules themselves are shared with the API server (packages/shared)
+export { cleanDeckName, DECK_SIZE, isDeckFormat, MAX_COPIES, MAX_DECK_NAME, sanitizeCards }
+export type { DeckCard, DeckFormat }
+
+export const FORMATS: Record<DeckFormat, string> = {
   standard: '스탠다드',
   expanded: '익스팬디드',
   unlimited: '언리미티드',
-} as const
-export type DeckFormat = keyof typeof FORMATS
-
-export const DECK_SIZE = 60
-export const MAX_COPIES = 4
-export const MAX_DECK_NAME = 50
-/** Distinct cards a deck can hold (one per slot of a 60-card deck) */
-const MAX_ENTRIES = DECK_SIZE
-const MAX_COUNT = DECK_SIZE
-const ID_PATTERN = /^[\w.!?-]{1,40}$/
-
-export interface DeckCard {
-  id: string
-  count: number
 }
 
 export interface Deck {
@@ -35,34 +38,6 @@ export interface Deck {
   /** Saved by the editor so the deck list can show a cover and the rule status without fetching */
   coverId?: string
   problems?: number
-}
-
-export const isDeckFormat = (value: unknown): value is DeckFormat =>
-  typeof value === 'string' && Object.hasOwn(FORMATS, value)
-
-const isCount = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= MAX_COUNT
-
-/**
- * Collapses spacing and drops invisible control/format characters (e.g. U+202E, which flips the
- * text after it so "gnp.exe" reads "exe.png"), keeping the zero-width joiner emoji are built with
- */
-export function cleanDeckName(name: string) {
-  // The same rule the API server applies (packages/shared)
-  return cleanText(name, MAX_DECK_NAME)
-}
-
-/** Merges duplicate ids, drops invalid entries and caps the number of distinct cards */
-export function sanitizeCards(raw: unknown): DeckCard[] {
-  if (!Array.isArray(raw)) return []
-  const counts = new Map<string, number>()
-  for (const entry of raw) {
-    if (!entry || typeof entry !== 'object') continue
-    const { id, count } = entry as Record<string, unknown>
-    if (typeof id !== 'string' || !ID_PATTERN.test(id) || !isCount(count)) continue
-    if (!counts.has(id) && counts.size >= MAX_ENTRIES) continue
-    counts.set(id, Math.min(MAX_COUNT, (counts.get(id) ?? 0) + count))
-  }
-  return [...counts].map(([id, count]) => ({ id, count }))
 }
 
 function sanitizeDeck(raw: unknown): Deck | null {
@@ -94,7 +69,6 @@ export function newDeckId() {
 
 const STORAGE_KEY = 'card-dex:decks'
 const STORAGE_VERSION = 1
-const MAX_DECKS = 100
 
 let cache: Deck[] | null = null
 const listeners = new Set<() => void>()
@@ -302,7 +276,7 @@ export function parseDeckList(input: string) {
     }
     const [, rawCount, name, rawCode, rawNumber] = m
     const count = Number(rawCount)
-    if (!isCount(count)) {
+    if (!isCardCount(count)) {
       problems.push({ line, text, reason: `수량은 1~${MAX_COUNT}장이어야 해요` })
       return
     }
@@ -371,7 +345,7 @@ export function deckFromShareParams(params: URLSearchParams): Pick<Deck, 'name' 
     return { id: part.slice(0, star), count: /^\d{1,2}$/.test(count) ? Number(count) : NaN }
   })
   // Any unreadable entry means the link was cut or edited: refuse it rather than show part of it
-  if (entries.some((e) => !ID_PATTERN.test(e.id) || !isCount(e.count))) return null
+  if (entries.some((e) => !ID_PATTERN.test(e.id) || !isCardCount(e.count))) return null
   const cards = sanitizeCards(entries)
   if (!cards.length) return null
   return { name: cleanDeckName(params.get('name') ?? '') || '공유받은 덱', format, cards }

@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react'
-import { defineConfig, type Plugin } from 'vite'
+import { defaultClientConditions, defaultServerConditions, defineConfig, type Plugin } from 'vite'
 
 /**
  * Serves /api/cards from the dev server with the same code as the Vercel Function
@@ -46,4 +46,7 @@ function cardsApi(): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), cardsApi()],
+  // @card-dex/shared: its TypeScript source (the API server runs the built copy, packages/shared/dist)
+  resolve: { conditions: ['source', ...defaultClientConditions] },
+  ssr: { resolve: { conditions: ['source', ...defaultServerConditions] } },
 })

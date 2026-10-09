@@ -5,9 +5,9 @@
   "description": "NestJS API server: login, sessions, user data (Cloud Run)",
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "npm run build --workspace @card-dex/shared --prefix ../.. && tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
-    "dev": "node --env-file=../../.env --watch --import tsx src/main.ts"
+    "dev": "node --env-file=../../.env --watch --conditions=source --import tsx src/main.ts"
   },
   "dependencies": {
     "@card-dex/shared": "file:../../packages/shared",
