@@ -88,7 +88,9 @@ export default function FavoritesPage() {
 
       {removed && (
         <p className={styles.notice} role="status">
-          {removed.name}을(를) 관심 카드에서 뺐어요.{' '}
+          {/* "찾을 수 없는 카드(id)" ends in a bracket: plain "를" reads better there (qa Info) */}
+          {removed.name}
+          {removed.name.endsWith(')') ? '를' : '을(를)'} 관심 카드에서 뺐어요.{' '}
           {/* Re-adding puts it first again: the server keeps when it was hearted (qa H-4) */}
           <button type="button" ref={undoRef} className={styles.linkButton} onClick={() => void onUndo()}>
             다시 담기

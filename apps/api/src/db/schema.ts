@@ -96,6 +96,9 @@ export const decks = account.table(
     name: text('name').notNull(),
     format: text('format').notNull(),
     cards: jsonb('cards').$type<{ id: string; count: number }[]>().notNull(),
+    /** For the deck list, saved by the editor: the cover card and how many rules fail */
+    coverId: text('cover_id'),
+    problems: integer('problems'),
     version: integer('version').notNull().default(1),
     // clock_timestamp(), not now(): decks imported in one transaction keep their order (qa D5-2)
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
@@ -109,6 +112,8 @@ export const decks = account.table(
     check('decks_cards_check', sql`jsonb_typeof(cards) = 'array' and jsonb_array_length(cards) <= 60`),
     check('decks_source_check', sql`source_id is null or source_id ~ '^[A-Za-z0-9_-]{1,64}$'`),
     check('decks_version_check', sql`version >= 1`),
+    check('decks_cover_check', sql`cover_id is null or cover_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
+    check('decks_problems_check', sql`problems is null or problems between 0 and 999`),
   ],
 )
 

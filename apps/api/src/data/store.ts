@@ -20,6 +20,10 @@ export const DATA_PRIVILEGES: [string, string | null, string][] = [
   ['decks', 'name', 'INSERT'],
   ['decks', 'format', 'INSERT'],
   ['decks', 'cards', 'INSERT'],
+  ['decks', 'cover_id', 'INSERT'],
+  ['decks', 'problems', 'INSERT'],
+  ['decks', 'cover_id', 'UPDATE'],
+  ['decks', 'problems', 'UPDATE'],
   ['decks', 'name', 'UPDATE'],
   ['decks', 'format', 'UPDATE'],
   ['decks', 'cards', 'UPDATE'],
@@ -76,6 +80,8 @@ const deckColumns = {
   name: decks.name,
   format: decks.format,
   cards: decks.cards,
+  coverId: decks.coverId,
+  problems: decks.problems,
   version: decks.version,
   updatedAt: decks.updatedAt,
 }
@@ -106,8 +112,8 @@ export class PgDataStore implements UserDataStore {
       const [{ n }] = (await tx.select({ n: sql<number>`count(*)::int` }).from(decks).where(eq(decks.userId, userId))) as [{ n: number }]
       if (n >= MAX_DECKS) return null
       const { rows } = await tx.execute<{ id: string; version: number; updated_at: Date }>(
-        sql`insert into ${decks} (user_id, name, format, cards)
-            values (${userId}, ${input.name}, ${input.format}, ${JSON.stringify(input.cards)}::jsonb)
+        sql`insert into ${decks} (user_id, name, format, cards, cover_id, problems)
+            values (${userId}, ${input.name}, ${input.format}, ${JSON.stringify(input.cards)}::jsonb, ${input.coverId}, ${input.problems})
             returning id, version, updated_at`,
       )
       const row = rows[0]!
@@ -118,7 +124,15 @@ export class PgDataStore implements UserDataStore {
   async updateDeck(userId: string, id: string, input: DeckInput, version: number): Promise<SaveResult> {
     const [row] = await this.db
       .update(decks)
-      .set({ name: input.name, format: input.format, cards: input.cards, version: sql`${decks.version} + 1`, updatedAt: sql`now()` })
+      .set({
+        name: input.name,
+        format: input.format,
+        cards: input.cards,
+        coverId: input.coverId,
+        problems: input.problems,
+        version: sql`${decks.version} + 1`,
+        updatedAt: sql`now()`,
+      })
       .where(and(eq(decks.id, id), eq(decks.userId, userId), eq(decks.version, version)))
       .returning(deckColumns)
     if (row) return toRecord(row)
@@ -145,8 +159,8 @@ export class PgDataStore implements UserDataStore {
       // browser's order (qa D5-2). The plan itself is newest first (who gets the free slots).
       for (const deck of [...plan.insert].reverse()) {
         const { rows } = await tx.execute<{ id: string }>(
-          sql`insert into ${decks} (user_id, source_id, name, format, cards)
-              values (${userId}, ${deck.sourceId}, ${deck.name}, ${deck.format}, ${JSON.stringify(deck.cards)}::jsonb)
+          sql`insert into ${decks} (user_id, source_id, name, format, cards, cover_id, problems)
+              values (${userId}, ${deck.sourceId}, ${deck.name}, ${deck.format}, ${JSON.stringify(deck.cards)}::jsonb, ${deck.coverId}, ${deck.problems})
               returning id`,
         )
         imported.unshift({ sourceId: deck.sourceId, id: rows[0]!.id })

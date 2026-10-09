@@ -78,7 +78,16 @@ export class MemoryDataStore implements UserDataStore {
   }
 
   private view(d: DeckRecord): DeckRecord {
-    return { id: d.id, name: d.name, format: d.format, cards: d.cards, version: d.version, updatedAt: d.updatedAt }
+    return {
+      id: d.id,
+      name: d.name,
+      format: d.format,
+      cards: d.cards,
+      coverId: d.coverId,
+      problems: d.problems,
+      version: d.version,
+      updatedAt: d.updatedAt,
+    }
   }
 
   /** Strictly increasing times, so "newest first" is well defined within one test */
