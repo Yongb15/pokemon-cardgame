@@ -53,6 +53,21 @@ export default function PricesPage() {
   const setParam = params.get('set') ?? ''
   const set = SETS.some((s) => s.id === setParam) ? setParam : ''
   const key = `${edition}|${set}`
+  const unknownSet = setParam !== '' && !set
+
+  // A value the page can't use (?edition=ko, a set that doesn't exist) is taken out of the address,
+  // so a shared link shows what this page showed (qa P-4)
+  const rawEdition = params.get('edition')
+  const tidy = (rawEdition !== null && rawEdition !== 'ja') || unknownSet
+  const [missingSet, setMissingSet] = useState(false)
+  useEffect(() => {
+    if (!tidy) return
+    const query = new URLSearchParams()
+    if (edition !== 'en') query.set('edition', edition)
+    if (set) query.set('set', set)
+    setParams(query, { replace: true })
+  }, [tidy, edition, set, setParams])
+  if (unknownSet && !missingSet) setMissingSet(true)
   const [result, setResult] = useState<{ key: string; data?: TopResponse; error?: boolean } | null>(null)
   const [reload, setReload] = useState(0)
 
@@ -89,6 +104,7 @@ export default function PricesPage() {
     if (e !== 'en') query.set('edition', e)
     if (s) query.set('set', s)
     setParams(query, { replace: true })
+    setMissingSet(false)
   }
 
   return (
@@ -102,9 +118,9 @@ export default function PricesPage() {
       </div>
 
       <div className={styles.controls}>
-        <div className={styles.segments} role="radiogroup" aria-label="판">
+        <div className={styles.segments} role="group" aria-label="판">
           {EDITIONS.map(([value, text]) => (
-            <button key={value} type="button" role="radio" aria-checked={edition === value} className={styles.segment} onClick={() => update({ edition: value })}>
+            <button key={value} type="button" aria-pressed={edition === value} className={styles.segment} onClick={() => update({ edition: value })}>
               {text}
             </button>
           ))}
@@ -125,6 +141,12 @@ export default function PricesPage() {
           {edition === 'en' ? 'TCGplayer 시장가(없으면 Cardmarket)' : 'Cardmarket 추세가 · 일본판과 연결된 카드만'} · 원화 환산
         </p>
       </div>
+
+      {missingSet && (
+        <p className={styles.alert} role="status">
+          없는 세트라 전체 세트를 보여 드려요.
+        </p>
+      )}
 
       {current?.error ? (
         <p className={styles.alert} role="alert">
