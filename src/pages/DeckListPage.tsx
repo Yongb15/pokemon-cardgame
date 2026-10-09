@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router'
 import type { ImportResult } from '../api/account'
 import CardImg from '../components/CardImg'
 import ImportDialog from '../components/deck/ImportDialog'
-import { errorMessage, importBrowserDecks, loadAccountDecks } from '../hooks/useAccountDecks'
+import { errorMessage, importBrowserDecks, loadAccountDecks, refreshAccountDecks } from '../hooks/useAccountDecks'
 import { createInLibrary, useDeckLibrary } from '../hooks/useDeckLibrary'
 import { useDecks } from '../hooks/useDecks'
 import { DECK_SIZE, deckSize, FORMATS, smallImageUrl, type Deck, type DeckCard } from '../lib/deck'
@@ -76,6 +76,15 @@ export default function DeckListPage() {
   }, [])
 
   const mode = library.mode === 'account' ? 'account' : 'local'
+
+  // Coming back to the list: pick up decks changed on another device meanwhile (qa C-2)
+  const listReady = library.mode === 'account' && library.status === 'ready'
+  const refreshed = useRef(false)
+  useEffect(() => {
+    if (!listReady || refreshed.current) return
+    refreshed.current = true
+    void refreshAccountDecks()
+  }, [listReady])
 
   async function create(init?: { name: string; cards: DeckCard[] }) {
     if (busy) return

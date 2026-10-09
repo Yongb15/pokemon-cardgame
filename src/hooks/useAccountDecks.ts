@@ -70,6 +70,20 @@ export async function loadAccountDecks() {
   }
 }
 
+/**
+ * The list again without the loading state: another device may have added or changed decks since
+ * this tab loaded it (qa C-2). Failures keep what's shown.
+ */
+export async function refreshAccountDecks() {
+  if (state.status !== 'ready') return
+  try {
+    const { decks } = await listAccountDecks()
+    if (state.status === 'ready') set({ status: 'ready', decks: decks.map(toDeck) })
+  } catch {
+    // keep the list we have
+  }
+}
+
 /** A new account deck (throws the API's error: 422 at the limit, 401…) */
 export async function createInAccount(init: Partial<Pick<Deck, 'name' | 'format' | 'cards'>>) {
   const { deck } = await createAccountDeck(

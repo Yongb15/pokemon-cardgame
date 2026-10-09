@@ -417,7 +417,8 @@
 
 /* Account decks: the list while it loads (same spot, no shift) */
 .listSkeleton {
-  height: 240px;
+  /* About a screen of deck cards: the real list doesn't push the footer down when it arrives (qa C-6) */
+  height: max(240px, 70vh);
   border-radius: 14px;
   background: var(--skeleton);
 }

@@ -40,6 +40,16 @@ export default function DeckEditorPage() {
   const library = useDeckLibrary()
   const decks = library.mode === 'local' || (library.mode === 'account' && library.status === 'ready') ? library.decks : null
   const deck = decks?.find((d) => d.id === deckId)
+  const [lookup, setLookup] = useState<{ id: string; state: 'loading' | 'missing' } | null>(null)
+  const lookupState = lookup && lookup.id === deckId ? lookup.state : null
+  if (library.mode === 'account' && library.status === 'ready' && !deck && deckId && lookupState === null) {
+    setLookup({ id: deckId, state: 'loading' })
+  }
+  useEffect(() => {
+    if (lookupState !== 'loading' || !deckId) return
+    // Found: it lands in the list (and this page shows it); not found or not ours: 404
+    reloadFromAccount(deckId).catch(() => setLookup({ id: deckId, state: 'missing' }))
+  }, [lookupState, deckId])
 
   useEffect(() => {
     document.title = `${deck?.name ?? '덱을 찾을 수 없어요'} · Pokémon Card Dex`
@@ -60,8 +70,9 @@ export default function DeckEditorPage() {
       </main>
     )
   }
-  // Signed in or not isn't known yet, or the account's decks are on their way
-  if (!decks) {
+  // Signed in or not isn't known yet, or the account's decks are on their way; or the account has
+  // a deck this tab's list doesn't (made on another device): ask for it by id (qa C-2)
+  if (!decks || (library.mode === 'account' && !deck && lookupState !== 'missing')) {
     return (
       <main className={styles.main}>
         <div className={styles.listSkeleton} aria-busy="true" aria-label="덱을 불러오는 중" />
@@ -105,7 +116,13 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
   // browser decks save on every change, as before
   const [draft, setDraft] = useState(stored)
   const deck = mode === 'account' ? draft : stored
-  const [saveState, setSaveState] = useState<SaveState>('saved')
+  const [saveState, setSaveStateOnly] = useState<SaveState>('saved')
+  const saveStateRef = useRef<SaveState>('saved')
+  const setSaveState = (next: SaveState) => {
+    saveStateRef.current = next
+    setSaveStateOnly(next)
+  }
+  const conflictBox = useRef<HTMLDivElement>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const latest = useRef(stored)
   const edits = useRef(0)
@@ -154,7 +171,9 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
   useEffect(() => {
     if (mode !== 'account') return
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (timer.current !== undefined || inflight.current) event.preventDefault()
+      // Also when saving stopped (conflict) or failed: the screen holds changes the account doesn't (qa C-4)
+      const unsaved = saveStateRef.current === 'error' || saveStateRef.current === 'conflict'
+      if (timer.current !== undefined || inflight.current || unsaved) event.preventDefault()
     }
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => {
@@ -164,6 +183,27 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
     // Once per editor: flush reads refs only
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode])
+
+  // Open on the account's latest copy: the list this tab loaded may be older (qa C-1)
+  useEffect(() => {
+    if (mode !== 'account') return
+    reloadFromAccount(stored.id)
+      .then((fresh) => {
+        if (edits.current > 0) return // already editing: the next save settles it (or reports a conflict)
+        latest.current = fresh
+        setDraft(fresh)
+        setName(fresh.name)
+      })
+      .catch(() => {
+        // keep the list's copy; a save will say if something is wrong
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, stored.id])
+
+  // A conflict moves focus to its choices (qa C-7)
+  useEffect(() => {
+    if (saveState === 'conflict') conflictBox.current?.focus()
+  }, [saveState])
   const isNarrow = useMediaQuery('(max-width: 900px)')
   const [tab, setTab] = useState<'cards' | 'deck'>('cards')
   const [name, setName] = useState(deck.name)
@@ -224,7 +264,9 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
     if (loading || error) return
     if (deck.coverId === coverId && deck.problems === problems) return
     if (mode === 'account') {
-      if (!conflicted.current) save({ coverId, problems })
+      // Kept for the next real save: opening a deck mustn't save (bumps the version: qa C-1, C-5)
+      latest.current = { ...latest.current, coverId, problems }
+      setDraft(latest.current)
       return
     }
     try {
@@ -232,7 +274,7 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
     } catch {
       // only list-page extras; an edit that can't be saved already shows the storage error
     }
-  })
+  }, [loading, error, deck, coverId, problems, mode])
 
   function change(card: CardListItem, delta: 1 | -1) {
     const current = counts.get(card.id) ?? 0
@@ -312,7 +354,7 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
             </p>
           )}
           {saveState === 'conflict' && (
-            <div className={styles.conflict} role="alert">
+            <div className={styles.conflict} role="alert" ref={conflictBox} tabIndex={-1}>
               <b>다른 기기에서 이 덱이 바뀌었어요.</b>
               <span>지금 화면의 변경은 저장되지 않았고, 그대로 남아 있어요. 자동 저장은 멈췄어요.</span>
               {saveError && <span>{saveError}</span>}
@@ -432,6 +474,16 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
                   <b>{total}</b> / {DECK_SIZE}
                   {!loading && problems > 0 && <span className={styles.bottomProblems}> · 문제 {problems}개</span>}
                 </p>
+                {mode === 'account' &&
+                  (saveState === 'conflict' || saveState === 'error' ? (
+                    <p className={styles.bottomProblems} role="alert">
+                      {saveState === 'conflict' ? '저장 멈춤: 다른 기기에서 바뀌었어요' : '저장하지 못했어요'} · 덱 탭에서 확인
+                    </p>
+                  ) : (
+                    <span className={styles.saveState} data-state={saveState}>
+                      {SAVE_TEXT[saveState]}
+                    </span>
+                  ))}
                 <div className={styles.bar} aria-hidden="true">
                   <i style={{ width: `${Math.min(100, (total / DECK_SIZE) * 100)}%` }} />
                 </div>
