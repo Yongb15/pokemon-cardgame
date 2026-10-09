@@ -77,6 +77,11 @@ export async function refreshCard(cardId: string, now: Date, signal?: AbortSigna
   }
 
   const en = await fetchCardPrices('en', theirId, signal)
+  if (en.status === 'rate_limited') {
+    // Nothing stored; marked as an error so it's tried again (the collector slows down and may stop)
+    await setRefreshStatus(cardId, 'error')
+    return { status: 'rate_limited' as const, changed: 0, retryAfter: en.retryAfter }
+  }
   let changed = 0
   if (en.status === 'ok') changed += await savePrices(cardId, 'en', en.rows, today)
 

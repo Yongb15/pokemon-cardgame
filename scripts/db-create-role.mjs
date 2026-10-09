@@ -14,7 +14,7 @@ import { randomBytes } from 'node:crypto'
 import { writeFile } from 'node:fs/promises'
 import { neon } from '@neondatabase/serverless'
 
-const ROLES = ['app_rw', 'api_rw']
+const ROLES = ['app_rw', 'api_rw', 'collector_rw']
 const role = process.argv[2]
 const out = process.argv[3]
 const ownerUrl = process.env.DATABASE_URL_OWNER
@@ -37,7 +37,7 @@ if (exists) {
 } else {
   await sql.query(
     `create role ${role} with login password '${password}' ` +
-      'nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls connection limit 20',
+      `nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls connection limit ${role === 'collector_rw' ? 5 : 20}`,
   )
 }
 await sql.query(`alter role ${role} set statement_timeout = '5s'`)

@@ -63,7 +63,7 @@ export async function runQueue(
         counts.processed++
         counts.changed += result.changed
         if (result.status === 'not_found') counts.notFound++
-        if (result.status === 'error') counts.failed++
+        if (result.status === 'error' || result.status === 'rate_limited') counts.failed++
       } catch {
         counts.failed++
       }

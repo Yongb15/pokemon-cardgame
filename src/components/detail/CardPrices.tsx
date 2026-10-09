@@ -217,7 +217,7 @@ function EditionPrices({ view, data, rangeDays }: { view: EditionView; data: Pri
             .map((g) => (g.from === g.to ? shortDate(g.from) : `${shortDate(g.from)}–${shortDate(g.to)}`))
             .join(', ')}${history.gaps.length > 2 ? ' 외' : ''} 시세 확인 못 함(점선)`}
       </p>
-      <p className={p.note}>원화 그래프는 환율 변동을 포함해요.</p>
+      <p className={p.note}>원화 그래프는 환율 변동을 포함해요. 1% 미만 변동은 같은 값으로 보여요.</p>
 
       {history.points.length > 0 && (
         <details className={p.table}>
