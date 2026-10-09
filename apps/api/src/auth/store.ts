@@ -120,6 +120,21 @@ export class PgStore implements AccountStore {
     await this.db.update(sessions).set({ expiresAt, lastSeenAt: now }).where(eq(sessions.tokenHash, tokenHash))
   }
 
+  /**
+   * Expired sessions, in bounded batches until none are left (Security U-2: the privacy policy
+   * promises 30/90 days, so they can't wait for the next sign-in). Returns how many went.
+   */
+  async deleteExpiredSessions(batch = 500, maxBatches = 20) {
+    let total = 0
+    for (let i = 0; i < maxBatches; i++) {
+      const expired = this.db.select({ tokenHash: sessions.tokenHash }).from(sessions).where(lt(sessions.expiresAt, sql`now()`)).limit(batch)
+      const gone = await this.db.delete(sessions).where(inArray(sessions.tokenHash, expired)).returning({ tokenHash: sessions.tokenHash })
+      total += gone.length
+      if (gone.length < batch) break
+    }
+    return total
+  }
+
   async deleteSession(tokenHash: Buffer) {
     await this.db.delete(sessions).where(eq(sessions.tokenHash, tokenHash))
   }
