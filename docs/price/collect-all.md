@@ -10,7 +10,7 @@
   - `.github/workflows/collect-prices.yml`: `schedule` 매일 19:30 UTC(04:30 KST, Vercel Cron 03:00 다음) + 수동 실행(`workflow_dispatch`). PR·push로는 돌지 않음
   - `permissions: contents: read`만, `actions/checkout`은 `persist-credentials: false`, 사용하는 액션은 커밋 SHA로 고정
   - `concurrency`로 동시에 하나만, `timeout-minutes: 120`
-  - 비밀 값은 GitHub **Environment `prices-production`**에만 둠: `PRICE_DATABASE_URL`(운영 `app_rw`, 시세 테이블만 읽고 쓰는 기존 계정). Environment는 `main` 브랜치에서만 쓸 수 있게 제한 → 다른 브랜치·포크 PR의 워크플로는 비밀에 접근 불가
+  - 비밀 값은 GitHub **Environment `prices-production`**에만 둠: `PRICE_DATABASE_URL`(운영 `collector_rw`, 수집 전용 계정). Environment는 `main` 브랜치에서만 쓸 수 있게 제한 → 다른 브랜치·포크 PR의 워크플로는 비밀에 접근 불가
 - **스크립트** `scripts/collect-prices.ts`(기존 `server/prices/` 코드 재사용)
   1. 오늘 환율 한 번 저장(`fetchFx` → `saveFx`)
   2. 대상: 연결된 모든 카드 중 마지막 갱신이 20시간 넘은 것, 한 번도 안 된 카드 → 오래된 순
@@ -27,7 +27,7 @@
 - TCGdex: 무료 공개 API, 공식 요청 제한 문서는 없음 → 동시 3개·간격·연속 실패 시 중단으로 보수적으로
 
 ## 보안 검토 포인트
-- 운영 DB 접속 주소를 GitHub에 맡김: 최소 권한 `app_rw`(account 스키마 접근 불가), Environment + main 브랜치 제한, 로그 출력 금지
+- 운영 DB 접속 주소를 GitHub에 맡김: 수집 전용 최소 권한 `collector_rw`(아래 D-1, account 스키마 접근 불가), Environment + main 브랜치 제한, 로그 출력 금지
 - 워크플로 주입: 외부 입력(이슈·PR 제목 등)을 쓰지 않음, `pull_request_target` 없음
 - 공급망: 액션 SHA 고정, `npm ci --ignore-scripts`
 
