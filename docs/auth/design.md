@@ -227,7 +227,7 @@ erDiagram
 | GET | `/api/v1/me/summary` | `{ decks, favorites }` (탈퇴 확인 대화상자용) |
 | PATCH | `/api/v1/me` `{ nickname }` | `{ user }` · 2~20자 아니면 400 |
 | POST | `/api/v1/me/logout-all` | 204, 모든 기기의 세션 삭제 |
-| DELETE | `/api/v1/me` | 204, 계정과 로그인 수단·세션·덱·관심 카드 전부 삭제(CASCADE) |
+| DELETE | `/api/v1/me` `{ confirm }` | 204, 계정과 로그인 수단·세션·덱·관심 카드 전부 삭제(CASCADE) · `confirm`이 지금 닉네임과 다르면 400(Security S5-2: 실수·스크립트로 탈퇴되지 않게) |
 
 - **덱 모양**: `{ id, name, format, cards: [{id, count}], version, updatedAt }`. 사용자 id는 내보내지 않음
 - **검증**(packages/shared): 이름은 `cleanDeckName` 후 1~50자, 형식 3종, 카드는 엄격 검사 `validCards`(최대 60종, id 형식, 수량 1~60, 중복 id·알 수 없는 필드 거부). 요청 본문은 zod `strictObject`라 모르는 필드가 있으면 400. 카드가 실제로 있는지는 API 서버가 카드 데이터를 갖고 있지 않아 형식만 본다(웹은 모르는 카드를 "찾을 수 없는 카드"로 보여 줌)
@@ -235,3 +235,4 @@ erDiagram
 - **한도 경쟁**: 덱 100개·관심 카드 500장은 사용자별 트랜잭션 advisory lock 안에서 세고 넣는다(동시 요청 두 개가 둘 다 99를 보고 101이 되는 일 방지)
 - **권한**(마이그레이션 0008): `decks` SELECT·DELETE, INSERT(user_id, source_id, name, format, cards), UPDATE(name, format, cards, version, updated_at) / `favorites` SELECT·DELETE, INSERT(user_id, card_id). id·version 기본값·created_at은 API가 정할 수 없음. 시작 시 이 목록을 확인(없으면 시작 거부)
 - **카카오 연결 끊기**: 탈퇴할 때 카카오 쪽 연결 해제(unlink)는 하지 않는다. 카카오 액세스 토큰을 저장하지 않고(로그인 때 sub만 씀), 대신 쓸 수 있는 Admin 키는 사용자 관리 전체 권한이라 쓰지 않기로 함(Security K-2). 우리 쪽 데이터는 즉시 전부 지워지고, 카카오 "연결된 서비스" 목록에는 남는다 → 처리방침에 안내(6단계)
+- **Security 검토 반영(5단계)**: S5-2 탈퇴 확인 문구(닉네임 입력), S5-3 가져오기 경로는 세션 쿠키가 없으면 본문을 읽기 전에 401. **S5-1(6단계·M7 숙제)**: 닉네임이 남에게 보이기 시작하면 예약어(운영자·관리자·admin·system·포켓몬 공식 등) 금지, 헷갈리는 문자(키릴 о 등) 정책, React 밖(OG 태그·알림 등)에 넣을 때 escape

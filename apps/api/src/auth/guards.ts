@@ -3,6 +3,7 @@
 import type { NextFunction, Request, Response } from 'express'
 import type { Config } from '../config.js'
 import { clientIp } from '../http.js'
+import { readCookie, SESSION_COOKIE } from './cookies.js'
 
 /** This project's Vercel previews (team dydqls-projects) — never every *.vercel.app (Security) */
 const PREVIEW_ORIGIN = /^https:\/\/pokemon-card-dex-[a-z0-9-]{1,40}-dydqls-projects\.vercel\.app$/
@@ -73,4 +74,10 @@ export class RateLimiter {
       res.status(429).json({ error: { message: '요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.', code: 429 } })
     }
   }
+}
+
+/** 401 before parsing anything when there's no session cookie at all (the session itself is checked later) */
+export function requireSessionCookie(req: Request, res: Response, next: NextFunction) {
+  if (readCookie(req, SESSION_COOKIE)) return next()
+  res.status(401).json({ error: { message: '로그인이 필요합니다.', code: 401 } })
 }

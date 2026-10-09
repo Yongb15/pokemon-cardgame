@@ -206,6 +206,8 @@ describe('user data routes (test sign-in, in-memory store)', () => {
     const again = await call('/api/v1/decks/import', { method: 'POST', session, body: { decks: browser } })
     expect(again.body).toMatchObject({ imported: [], duplicates: expect.arrayContaining(['a1', 'b2']) })
     expect((await call('/api/v1/decks/import', { method: 'POST', session, body: { decks: [], x: 1 } })).status).toBe(400)
+    // No session cookie: refused before the body is read (Security S5-3)
+    expect((await call('/api/v1/decks/import', { method: 'POST', body: { decks: [] } })).status).toBe(401)
     expect((await call('/api/v1/decks/import', { method: 'POST', session, body: { decks: Array(101).fill({}) } })).status).toBe(400)
   })
 
@@ -256,7 +258,11 @@ describe('user data routes (test sign-in, in-memory store)', () => {
 
     const again = await signIn('leaver')
     const me = [...accounts.accounts].find(([key]) => key === 'test:leaver')![1]
-    const left = await call('/api/v1/me', { method: 'DELETE', session: again })
+    // The nickname must be typed to confirm (Security S5-2)
+    for (const body of [undefined, {}, { confirm: '다른이름' }, { confirm: '피카츄', x: 1 }]) {
+      expect((await call('/api/v1/me', { method: 'DELETE', session: again, body })).status).toBe(400)
+    }
+    const left = await call('/api/v1/me', { method: 'DELETE', session: again, body: { confirm: ' 피카츄 ' } })
     expect(left.status).toBe(204)
     expect((await call('/api/v1/me', { session: again })).body).toEqual({ user: null })
     expect(accounts.users.has(me)).toBe(false)

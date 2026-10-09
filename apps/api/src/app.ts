@@ -4,7 +4,7 @@ import { NestFactory } from '@nestjs/core'
 import type { NestExpressApplication } from '@nestjs/platform-express'
 import { json } from 'express'
 import { AuthController, SERVICES, TestAuthController, type Services } from './auth/auth.controller.js'
-import { originCheck, RateLimiter } from './auth/guards.js'
+import { originCheck, RateLimiter, requireSessionCookie } from './auth/guards.js'
 import { DecksController, FavoritesController, MeController } from './data/data.controller.js'
 import type { UserDataStore } from './data/store.js'
 import { googleProvider, kakaoProvider, type Provider } from './auth/providers.js'
@@ -81,7 +81,8 @@ export async function createApp(config: Config, deps: Dependencies = {}): Promis
   // Sign-in start/callback: 30 a minute per visitor
   app.use('/api/v1/auth', new RateLimiter(30, 60_000).middleware())
   // Small bodies only; a deck import (up to 100 decks of 60 cards) gets more room
-  app.use('/api/v1/decks/import', json({ limit: '256kb' }))
+  // Without a session cookie that bigger body isn't even read (Security S5-3)
+  app.use('/api/v1/decks/import', requireSessionCookie, json({ limit: '256kb' }))
   app.use(json({ limit: '64kb' }))
   app.setGlobalPrefix('api/v1')
   app.useGlobalFilters(new ErrorFilter())

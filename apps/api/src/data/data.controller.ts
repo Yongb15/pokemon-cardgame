@@ -12,7 +12,7 @@
 //   GET    /api/v1/me/summary             → { decks, favorites } (counts for the leave dialog)
 //   PATCH  /api/v1/me  { nickname }       → { user }
 //   POST   /api/v1/me/logout-all          → 204 (every device)
-//   DELETE /api/v1/me                     → 204 (the account and everything in it)
+//   DELETE /api/v1/me  { confirm }        → 204 (the account and everything in it; confirm = nickname)
 
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Patch, Post, Put, Req, Res } from '@nestjs/common'
 import { cleanNickname, isCardId, MAX_DECKS } from '@card-dex/shared'
@@ -177,10 +177,15 @@ export class MeController extends UserRoutes {
     clearCookie(res, SESSION_COOKIE)
   }
 
+  /** The user types their nickname to confirm: no account goes by a stray click or script (Security S5-2) */
   @Delete()
   @HttpCode(204)
-  async leave(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async leave(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: unknown) {
     const user = await this.writer(req, res)
+    const parsed = z.strictObject({ confirm: z.string().max(200) }).safeParse(body)
+    if (!parsed.success || cleanNickname(parsed.data.confirm) !== user.nickname) {
+      throw new PublicError('확인을 위해 지금 닉네임을 정확히 입력해 주세요.', 400)
+    }
     await this.data.deleteUser(user.id)
     clearCookie(res, SESSION_COOKIE)
   }
