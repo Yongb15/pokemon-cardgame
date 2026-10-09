@@ -113,4 +113,22 @@ describe('edition view', () => {
   it('has no change with a single point', () => {
     expect(editionView([row(0, 0, 0.15)], rates, 30, today).summary?.changePct).toBeNull()
   })
+
+  it("shows Cardmarket's 30-day average for the headline's print", () => {
+    const cm = { source: 'cardmarket', currency: 'EUR' }
+    const view = editionView(
+      [row(0, 0, 1), row(-3, 0, 2, { ...cm, variant: 'holo', avg30: 4 }), row(-3, 0, 1.2, { ...cm, avg30: 1.4 })],
+      rates,
+      30,
+      today,
+    )
+    expect(view.avg30).toMatchObject({ krw: 2100, amount: 1.4, currency: 'EUR', source: 'cardmarket', variant: 'normal' })
+  })
+
+  it("falls back to Cardmarket's own print, and has none without an average", () => {
+    const cm = { source: 'cardmarket', currency: 'EUR', variant: 'holo' }
+    expect(editionView([row(0, 0, 1), row(0, 0, 2, { ...cm, avg30: 2 })], rates, 30, today).avg30?.variant).toBe('holo')
+    expect(editionView([row(0, 0, 1), row(0, 0, 2, { ...cm, avg30: null })], rates, 30, today).avg30).toBeNull()
+    expect(editionView([row(0, 0, 1)], rates, 30, today).avg30).toBeNull()
+  })
 })

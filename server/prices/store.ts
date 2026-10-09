@@ -162,7 +162,11 @@ export async function savePrices(cardId: string, edition: 'en' | 'ja', rows: Pri
     if (previous && previous.market === value && last?.capturedOn !== today) {
       // Same level again: extend it
       writes.push(
-        d.update(priceSnapshot).set({ lastSeenOn: today }).where(and(key, eq(priceSnapshot.capturedOn, previous.capturedOn))),
+        // The 30-day average moves even when the price holds: keep the latest
+        d
+          .update(priceSnapshot)
+          .set({ lastSeenOn: today, avg30: row.avg30 === null ? null : round2(row.avg30) })
+          .where(and(key, eq(priceSnapshot.capturedOn, previous.capturedOn))),
       )
     } else {
       writes.push(
@@ -254,6 +258,7 @@ export async function getPriceRows(cardId: string) {
         capturedOn: priceSnapshot.capturedOn,
         lastSeenOn: priceSnapshot.lastSeenOn,
         market: priceSnapshot.market,
+        avg30: priceSnapshot.avg30,
         flagged: priceSnapshot.flagged,
       })
       .from(priceSnapshot)

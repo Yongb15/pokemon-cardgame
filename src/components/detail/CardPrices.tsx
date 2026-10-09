@@ -58,18 +58,23 @@ function firstEdition(data: Prices): Edition {
   return 'en'
 }
 
-/** A line chart of the daily won prices; unchecked days are drawn dashed (qa D-4) */
+/**
+ * A line chart of the daily won prices; unchecked days are drawn dashed (qa D-4). Cardmarket's
+ * 30-day average is a faint level line, so even a first day's price has something to compare with.
+ */
 function PriceChart({ view, rangeDays, today }: { view: EditionView; rangeDays: number; today: string }) {
   const points = view.history.points.filter((pt) => pt.krw !== null) as { date: string; krw: number }[]
+  const average = view.avg30?.krw ?? null
   // The chart's place is kept even without a line, so every state has the same height (qa: CLS)
-  if (points.length < 2) return <div className={p.chartEmpty} aria-hidden="true" />
+  if (points.length < (average === null ? 2 : 1)) return <div className={p.chartEmpty} aria-hidden="true" />
   const W = 600
   const H = 120
   const PAD = 8
   const dayIndex = (day: string) => rangeDays - 1 - Math.round((Date.parse(today) - Date.parse(day)) / 86_400_000)
   // At least ±10% around the middle, so a 2% wobble doesn't look like a crash
-  const lo = Math.min(...points.map((pt) => pt.krw))
-  const hi = Math.max(...points.map((pt) => pt.krw))
+  const levels = [...points.map((pt) => pt.krw), ...(average === null ? [] : [average])]
+  const lo = Math.min(...levels)
+  const hi = Math.max(...levels)
   const mid = (lo + hi) / 2
   const half = Math.max((hi - lo) / 2, mid * 0.1, 1)
   const min = mid - half
@@ -89,6 +94,16 @@ function PriceChart({ view, rangeDays, today }: { view: EditionView; rangeDays: 
 
   return (
     <svg className={p.chart} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      {average !== null && (
+        <line
+          className={p.avgLine}
+          x1={PAD}
+          y1={y(average)}
+          x2={W - PAD}
+          y2={y(average)}
+          vectorEffect="non-scaling-stroke"
+        />
+      )}
       {runs.slice(1).map((run, i) => {
         const from = runs[i].at(-1)!
         const to = run[0]
@@ -164,7 +179,10 @@ function EditionPrices({ view, data, rangeDays }: { view: EditionView; data: Pri
             }`
           : history.before
             ? `최근 ${rangeDays}일 동안 확인된 시세가 없어요 (마지막 ${history.before.krw !== null ? won(history.before.krw) : '-'}, ${shortDate(history.before.date)})`
-            : '그래프를 그릴 만큼 기록이 아직 쌓이지 않았어요.'}
+            : view.avg30
+              ? '우리 기록은 매일 하루치씩 쌓이는 중이에요.'
+              : '그래프를 그릴 만큼 기록이 아직 쌓이지 않았어요.'}
+        {view.avg30 && ` · 점(···) 선은 Cardmarket 최근 30일 평균 ${priceText(view.avg30)} (${amountText(view.avg30)})`}
         {history.gaps.length > 0 &&
           ` · ${history.gaps
             .slice(0, 2)

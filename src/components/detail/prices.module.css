@@ -118,6 +118,15 @@
   fill: var(--accent);
 }
 
+/* Cardmarket's 30-day average: a row of dots, apart from the dashed gap links */
+.avgLine {
+  stroke: var(--text-muted);
+  stroke-width: 2;
+  stroke-dasharray: 0 6;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
 .table summary {
   font-size: 13px;
   color: var(--text);
