@@ -50,6 +50,13 @@ export async function signOut() {
   clearSession()
 }
 
+/** For other stores that follow the session (favorites, account decks); returns an unsubscribe */
+export function onSessionChange(listener: (session: Session) => void) {
+  const wrapped = () => listener(session)
+  listeners.add(wrapped)
+  return () => listeners.delete(wrapped)
+}
+
 function subscribe(listener: () => void) {
   listeners.add(listener)
   if (session.status === 'unknown' && !pending) void refreshSession()

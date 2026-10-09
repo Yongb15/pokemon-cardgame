@@ -1,0 +1,41 @@
+.wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.heart {
+  height: 34px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.heart:hover:not(:disabled) {
+  border-color: var(--text-muted);
+}
+
+.heart[aria-pressed='true'] {
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.heart:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--warn-text);
+}

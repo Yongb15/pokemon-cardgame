@@ -72,3 +72,8 @@ export function safeNext(value: string | null | undefined) {
   if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\') || value.length > 200) return '/'
   return value.startsWith('/login') ? '/' : value
 }
+
+export const getFavorites = () => accountFetch<{ cards: string[] }>('/favorites')
+export const addFavorite = (cardId: string) => accountFetch<void>(`/favorites/${encodeURIComponent(cardId)}`, { method: 'PUT' })
+export const removeFavorite = (cardId: string) =>
+  accountFetch<void>(`/favorites/${encodeURIComponent(cardId)}`, { method: 'DELETE' })
