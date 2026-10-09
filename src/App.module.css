@@ -1,0 +1,24 @@
+.notice,
+.expired {
+  width: calc(100% - var(--gutter) * 2);
+  max-width: var(--page-width);
+  margin: 16px auto 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.notice {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.expired {
+  background: var(--warn-soft);
+  color: var(--warn-text);
+}
+
+.expired a {
+  color: inherit;
+  font-weight: 700;
+}

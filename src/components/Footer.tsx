@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import styles from './Footer.module.css'
 
 export default function Footer() {
@@ -15,6 +16,9 @@ export default function Footer() {
         ·포켓몬코리아 공식 카드 검색·자체 번역{' '}
         · 이미지: Pokémon TCG API · Pokémon은 Nintendo / Creatures / GAME FREAK의 상표이며, 이 사이트는 비공식 팬
         프로젝트입니다.
+      </p>
+      <p className={styles.inner}>
+        <Link to="/privacy">개인정보처리방침</Link> · <Link to="/terms">이용약관</Link>
       </p>
     </footer>
   )

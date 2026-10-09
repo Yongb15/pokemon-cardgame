@@ -9,6 +9,9 @@ import CardDetailPage from './pages/CardDetailPage.tsx'
 import CardListPage from './pages/CardListPage.tsx'
 import DeckEditorPage from './pages/DeckEditorPage.tsx'
 import DeckListPage from './pages/DeckListPage.tsx'
+import LoginPage from './pages/LoginPage.tsx'
+import MyPage from './pages/MyPage.tsx'
+import { PrivacyPage, TermsPage } from './pages/PolicyPages.tsx'
 import SharedDeckPage from './pages/SharedDeckPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
 
@@ -30,6 +33,10 @@ const router = createBrowserRouter([
       { path: 'decks', element: <DeckListPage /> },
       { path: 'decks/shared', element: <SharedDeckPage /> },
       { path: 'decks/:deckId', element: <DeckEditorPage /> },
+      { path: 'login', element: <LoginPage /> },
+      { path: 'me', element: <MyPage /> },
+      { path: 'privacy', element: <PrivacyPage /> },
+      { path: 'terms', element: <TermsPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

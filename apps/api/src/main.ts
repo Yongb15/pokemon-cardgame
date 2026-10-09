@@ -32,5 +32,15 @@ if (config.AUTH_TEST_PROVIDER === '1') {
   testProvider = await createTestProvider()
 }
 
+// Expired sessions go within the hour, whether or not anyone signs in (Security U-2)
+if (store) {
+  const sweep = () =>
+    store.deleteExpiredSessions().catch((error: unknown) => {
+      console.warn('expired-session sweep failed:', error instanceof Error ? error.name : 'unknown')
+    })
+  void sweep()
+  setInterval(() => void sweep(), 60 * 60 * 1000).unref()
+}
+
 const app = await createApp(config, { store, data, testProvider })
 await app.listen(config.PORT, '0.0.0.0')
