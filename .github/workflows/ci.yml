@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop, 'feature/**']
+  pull_request:
+
+# Read-only token: this workflow only checks the code
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+      - run: npm run build --workspace apps/api
+      # Production dependencies only: dev-only findings (drizzle-kit's esbuild) are accepted
+      - run: npm audit --omit=dev --audit-level=moderate
+      # The billing kill switch is deployed on its own; if it breaks, nothing stops the spending (Security A-3)
+      - run: npm audit --prefix infra/billing-guard --audit-level=moderate

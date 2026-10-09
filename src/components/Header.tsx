@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router'
+import AccountMenu from './AccountMenu'
 import styles from './Header.module.css'
 
 function Logo() {
@@ -15,24 +16,26 @@ export default function Header() {
   const { pathname } = useLocation()
   const onCards = pathname === '/' || pathname.startsWith('/cards/')
   const onDecks = pathname === '/decks' || pathname.startsWith('/decks/')
+  const onPrices = pathname === '/prices'
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
         <Link className={styles.logo} to="/">
           <Logo />
-          Card Dex
+          <span className={styles.logoText}>Card Dex</span>
         </Link>
         <nav className={styles.nav} aria-label="주요 메뉴">
           <Link className={onCards ? styles.active : undefined} to="/" aria-current={onCards ? 'page' : undefined}>
             카드
           </Link>
-          <span className={styles.soon}>
-            세트 <span className={styles.tag}>준비 중</span>
-          </span>
+          <Link className={onPrices ? styles.active : undefined} to="/prices" aria-current={onPrices ? 'page' : undefined}>
+            시세
+          </Link>
           <Link className={onDecks ? styles.active : undefined} to="/decks" aria-current={onDecks ? 'page' : undefined}>
             덱 빌더
           </Link>
         </nav>
+        <AccountMenu />
       </div>
     </header>
   )

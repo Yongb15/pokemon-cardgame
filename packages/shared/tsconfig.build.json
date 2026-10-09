@@ -1,0 +1,17 @@
+{
+  // The compiled copy the API server runs (Node can't run TypeScript from node_modules).
+  // The web app and the tests read src/ directly through the "source" export condition.
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["ES2023"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "strict": true,
+    "declaration": true,
+    "skipLibCheck": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"]
+}

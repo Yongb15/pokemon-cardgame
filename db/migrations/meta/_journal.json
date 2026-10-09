@@ -29,6 +29,62 @@
       "when": 1791421170589,
       "tag": "0003_defense_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791456326495,
+      "tag": "0004_account_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791456349367,
+      "tag": "0005_api_rw_grants",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791458270125,
+      "tag": "0006_api_rw_insert_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791511130299,
+      "tag": "0007_user_data",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1791511140176,
+      "tag": "0008_api_rw_user_data",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1791512330548,
+      "tag": "0009_decks_clock_timestamp",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1791514463395,
+      "tag": "0010_deck_list_extras",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1791514465441,
+      "tag": "0011_api_rw_deck_list_extras",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,17 @@
+{
+  "name": "@card-dex/shared",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Rules and types shared by the web app and the API server",
+  "type": "module",
+  "exports": {
+    ".": {
+      "source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  }
+}

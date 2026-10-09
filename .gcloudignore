@@ -1,0 +1,3 @@
+# Cloud Build uploads (gcloud builds submit): only what the API image needs
+#!include:.gitignore
+#!include:.dockerignore

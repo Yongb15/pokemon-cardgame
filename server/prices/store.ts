@@ -162,7 +162,11 @@ export async function savePrices(cardId: string, edition: 'en' | 'ja', rows: Pri
     if (previous && previous.market === value && last?.capturedOn !== today) {
       // Same level again: extend it
       writes.push(
-        d.update(priceSnapshot).set({ lastSeenOn: today }).where(and(key, eq(priceSnapshot.capturedOn, previous.capturedOn))),
+        // The 30-day average moves even when the price holds: keep the latest
+        d
+          .update(priceSnapshot)
+          .set({ lastSeenOn: today, avg30: row.avg30 === null ? null : round2(row.avg30) })
+          .where(and(key, eq(priceSnapshot.capturedOn, previous.capturedOn))),
       )
     } else {
       writes.push(
@@ -254,6 +258,7 @@ export async function getPriceRows(cardId: string) {
         capturedOn: priceSnapshot.capturedOn,
         lastSeenOn: priceSnapshot.lastSeenOn,
         market: priceSnapshot.market,
+        avg30: priceSnapshot.avg30,
         flagged: priceSnapshot.flagged,
       })
       .from(priceSnapshot)
@@ -281,4 +286,26 @@ export async function getRefresh(cardId: string) {
       .where(eq(priceRefresh.cardId, cardId)),
   )
   return row ?? null
+}
+
+/**
+ * Every card's latest unflagged level per source and print in one edition, confirmed on or after
+ * `sinceDay`: what the price ranking ranks (one row per card × source × variant)
+ */
+export async function getLatestLevels(edition: 'en' | 'ja', sinceDay: string) {
+  const result = await run((d) =>
+    d.execute(sql`
+      select distinct on (card_id, source, variant) card_id, source, variant, currency, market, last_seen_on
+      from ${priceSnapshot}
+      where edition = ${edition} and flagged = false and last_seen_on >= ${sinceDay}
+      order by card_id, source, variant, captured_on desc`),
+  )
+  return rowsOf(result).map((r) => ({
+    cardId: String(r.card_id),
+    source: String(r.source),
+    variant: String(r.variant),
+    currency: String(r.currency),
+    market: Number(r.market),
+    lastSeenOn: String(r.last_seen_on).slice(0, 10),
+  }))
 }

@@ -11,6 +11,8 @@ export interface StoredRow {
   capturedOn: string
   lastSeenOn: string
   market: number
+  /** Cardmarket's own 30-day average sale price (TCGplayer gives none) */
+  avg30?: number | null
   flagged: boolean
 }
 
@@ -51,6 +53,11 @@ export interface EditionView {
   summary: { min: number; max: number; changePct: number | null } | null
   /** Days since the price was last confirmed, when that's more than a day ago (qa S-1) */
   staleDays: number | null
+  /**
+   * Cardmarket's 30-day average for the same print, as of its latest check: a reference while our
+   * own daily history is still short (we only have prices from the day we started collecting)
+   */
+  avg30: Price | null
 }
 
 export type Rates = Map<string, FxRow[]>
@@ -89,7 +96,14 @@ export function editionView(rows: StoredRow[], rates: Rates, rangeDays: number, 
     }
   }
   if (!headKey) {
-    return { latest: null, others: [], history: { points: [], gaps: [], excluded: [], before: null }, summary: null, staleDays: null }
+    return {
+      latest: null,
+      others: [],
+      history: { points: [], gaps: [], excluded: [], before: null },
+      summary: null,
+      staleDays: null,
+      avg30: null,
+    }
   }
 
   const head = groups.get(headKey)!
@@ -146,5 +160,21 @@ export function editionView(rows: StoredRow[], rates: Rates, rangeDays: number, 
     : null
 
   const age = daysBetween(last.lastSeenOn, today)
-  return { latest, others, history: { points, gaps, excluded, before }, summary, staleDays: age > 1 ? age : null }
+  return {
+    latest,
+    others,
+    history: { points, gaps, excluded, before },
+    summary,
+    staleDays: age > 1 ? age : null,
+    avg30: average(groups, variant as Variant, rates),
+  }
+}
+
+/** Cardmarket's 30-day average for the headline's print (else its own headline print) */
+function average(groups: Map<string, StoredRow[]>, variant: Variant, rates: Rates): Price | null {
+  const cardmarket = [...groups.keys()].filter((k) => k.startsWith('cardmarket:')).map((k) => k.split(':')[1] as Variant)
+  const pick = cardmarket.includes(variant) ? variant : headlineVariant(cardmarket)
+  const row = pick && groups.get(`cardmarket:${pick}`)!.at(-1)
+  // 0 is an average under €0.005 that rounded away when stored: no price, not a free card (qa A-1)
+  return row && row.avg30 != null && row.avg30 > 0 ? price({ ...row, market: row.avg30 }, rates) : null
 }
