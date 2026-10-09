@@ -6,7 +6,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { BatchItem } from 'drizzle-orm/batch'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { cardEditionLink, dailyCounter, fxRate, priceRefresh, priceSnapshot } from '../db/schema.js'
-import { daysBetween, decideOutlier, isUsableRate, type Currency, type LevelRow } from './logic.js'
+import { daysBetween, decideOutlier, isSameLevel, isUsableRate, type Currency, type LevelRow } from './logic.js'
 import type { FxResult, PriceRow } from './sources.js'
 
 export class DbError extends Error {}
@@ -37,12 +37,14 @@ const rowsOf = (result: unknown) => ((result as { rows?: unknown[] }).rows ?? []
  * Claims today's refresh of a card: only the request that gets `true` fetches. A failed or timed
  * out fetch keeps the claim, so errors can't be retried into many outside requests (Security).
  */
-export async function claimRefresh(cardId: string): Promise<boolean> {
+export async function claimRefresh(cardId: string, afterHours = 24): Promise<boolean> {
+  // A daily job that starts a little earlier each day uses a shorter gap (the collector: 20 h)
+  const hours = Math.max(1, Math.min(24, Math.floor(afterHours)))
   const result = await run((d) =>
     d.execute(sql`
       insert into price_refresh (card_id, refreshed_at, status) values (${cardId}, now(), 'pending')
       on conflict (card_id) do update set refreshed_at = now(), status = 'pending'
-      where price_refresh.refreshed_at < now() - interval '24 hours'
+      where price_refresh.refreshed_at < now() - make_interval(hours => ${hours})
       returning card_id`),
   )
   return rowsOf(result).length === 1
@@ -82,14 +84,19 @@ export async function recordView(cardId: string, day: string) {
 
 /** Card ids whose last refresh is at least 24 hours old, plus when (oldest first) */
 export async function refreshTimes(cardIds: string[]) {
-  if (!cardIds.length) return new Map<string, Date>()
-  const rows = await run((d) =>
-    d
-      .select({ cardId: priceRefresh.cardId, refreshedAt: priceRefresh.refreshedAt })
-      .from(priceRefresh)
-      .where(inArray(priceRefresh.cardId, cardIds)),
-  )
-  return new Map(rows.map((r) => [r.cardId, r.refreshedAt]))
+  const times = new Map<string, Date>()
+  // In chunks: the collector asks about every card at once
+  for (let i = 0; i < cardIds.length; i += 2000) {
+    const chunk = cardIds.slice(i, i + 2000)
+    const rows = await run((d) =>
+      d
+        .select({ cardId: priceRefresh.cardId, refreshedAt: priceRefresh.refreshedAt })
+        .from(priceRefresh)
+        .where(inArray(priceRefresh.cardId, chunk)),
+    )
+    for (const r of rows) times.set(r.cardId, r.refreshedAt)
+  }
+  return times
 }
 
 /** The most viewed cards over the last `days` days */
@@ -159,8 +166,9 @@ export async function savePrices(cardId: string, edition: 'en' | 'ja', rows: Pri
     const flagged = decision.flagged
     const previous = history.at(-1)
 
-    if (previous && previous.market === value && last?.capturedOn !== today) {
-      // Same level again: extend it
+    // The outlier check comes first: a flagged price never merges into a normal level (or back)
+    if (previous && previous.flagged === flagged && isSameLevel(previous.market, value) && last?.capturedOn !== today) {
+      // Same level again (within 1%): extend it
       writes.push(
         // The 30-day average moves even when the price holds: keep the latest
         d

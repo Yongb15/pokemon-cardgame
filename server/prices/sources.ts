@@ -21,21 +21,43 @@ export interface PriceRow {
   avg30: number | null
 }
 
-export type FetchResult = { status: 'ok'; rows: PriceRow[] } | { status: 'not_found' } | { status: 'error' }
+export type FetchResult =
+  | { status: 'ok'; rows: PriceRow[] }
+  | { status: 'not_found' }
+  | { status: 'error' }
+  /** 429 or 503: the source asks us to slow down (seconds to wait, when it says) */
+  | { status: 'rate_limited'; retryAfter: number | null }
 
 export const fixturesOn = () => process.env.PRICE_FIXTURES === '1' && process.env.VERCEL_ENV !== 'production'
 
 class SourceError extends Error {}
+
+/** The source said "slow down" (429/503) */
+class RateLimited extends SourceError {
+  readonly retryAfter: number | null
+
+  constructor(retryAfter: number | null) {
+    super('rate limited')
+    this.retryAfter = retryAfter
+  }
+}
+
+/** Who is asking, and where to reach us (docs/price/collect-all.md D-3) */
+export const USER_AGENT = 'card-dex-collector (+https://github.com/Yongb15/pokemon-cardgame)'
 
 /** GET JSON from a fixed host: no redirects, JSON only, at most 1 MB, with a timeout */
 async function getJson(url: string, signal?: AbortSignal): Promise<unknown | null> {
   const timeout = AbortSignal.timeout(TIMEOUT_MS)
   const res = await fetch(url, {
     redirect: 'error',
-    headers: { accept: 'application/json' },
+    headers: { accept: 'application/json', 'user-agent': USER_AGENT },
     signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
   })
   if (res.status === 404) return null
+  if (res.status === 429 || res.status === 503) {
+    const wait = Number(res.headers.get('retry-after'))
+    throw new RateLimited(Number.isFinite(wait) && wait > 0 ? Math.min(wait, 600) : null)
+  }
   if (!res.ok) throw new SourceError(`HTTP ${res.status}`)
   if (!(res.headers.get('content-type') ?? '').includes('application/json')) throw new SourceError('not JSON')
   const declared = Number(res.headers.get('content-length'))
@@ -147,8 +169,8 @@ export async function fetchCardPrices(lang: 'en' | 'ja', tcgdexId: string, signa
       : await getJson(`${TCGDEX}/v2/${lang}/cards/${encodeURIComponent(tcgdexId)}`, signal)
     if (card === null) return { status: 'not_found' }
     return { status: 'ok', rows: parseTcgdexCard(card) }
-  } catch {
-    return { status: 'error' }
+  } catch (error) {
+    return error instanceof RateLimited ? { status: 'rate_limited', retryAfter: error.retryAfter } : { status: 'error' }
   }
 }
 

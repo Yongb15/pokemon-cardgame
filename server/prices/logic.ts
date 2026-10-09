@@ -134,3 +134,15 @@ export function cleanPrice(value: unknown) {
 export const isSource = (s: string): s is Source => (SOURCES as readonly string[]).includes(s)
 export const isVariant = (s: string): s is Variant => (VARIANTS as readonly string[]).includes(s)
 export const isCurrency = (s: string): s is Currency => (CURRENCIES as readonly string[]).includes(s)
+
+/**
+ * A price within 1% (or 0.02 in its currency) of the stored level is the same level: no new row,
+ * just a longer "last seen" (docs/price/collect-all.md D-2, keeps storage small). The comparison is
+ * always against the stored level, never yesterday's raw value, so a slow drift still makes a new
+ * level once it adds up to 1% (Security).
+ */
+export const SAME_LEVEL_RATIO = 0.01
+export const SAME_LEVEL_MIN = 0.02
+export function isSameLevel(level: number, value: number) {
+  return Math.abs(value - level) < Math.max(Math.abs(level) * SAME_LEVEL_RATIO, SAME_LEVEL_MIN)
+}

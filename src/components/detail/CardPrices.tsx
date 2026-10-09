@@ -222,6 +222,8 @@ function EditionPrices({ view, data, rangeDays }: { view: EditionView; data: Pri
       {history.points.length > 0 && (
         <details className={p.table}>
           <summary>날짜별 시세 표</summary>
+          {/* Inside the folded table, not under the chart: one more line would overflow the box on phones (qa K-1) */}
+          <p className={p.note}>작은 변동(1% 또는 2센트 미만)은 같은 값으로 보여요.</p>
           <table>
             <caption className={p.srOnly}>최근 {rangeDays}일 날짜별 원화 시세</caption>
             <thead>
