@@ -201,16 +201,14 @@ function EditionPrices({ view, data, rangeDays }: { view: EditionView; data: Pri
             }`
           : history.before
             ? `최근 ${rangeDays}일 동안 확인된 시세가 없어요 (마지막 ${history.before.krw !== null ? won(history.before.krw) : '-'}, ${shortDate(history.before.date)})`
-            : drawn
-              ? '우리 기록은 매일 하루치씩 쌓이는 중이에요.'
-              : '그래프를 그릴 만큼 기록이 아직 쌓이지 않았어요.'}
+            : // With an average to show, it takes this line: short, so narrow phones keep one line (qa H-1)
+              !view.avg30 && '그래프를 그릴 만큼 기록이 아직 쌓이지 않았어요.'}
         {view.avg30 && (
           <>
-            {' · '}
-            {drawn && <span className={p.nowrap}>점(···) 선은 </span>}
+            {(summary && history.points.length > 1) || history.before ? ' · ' : ''}
+            {drawn && <span className={p.nowrap}>점(···) 선: </span>}
             {/* Against a TCGplayer headline the average is another market's: say so (qa A-2) */}
-            {view.latest?.source === view.avg30.source ? 'Cardmarket' : '유럽 시장(Cardmarket)'} 최근 30일 평균{' '}
-            {avgText}
+            {view.latest?.source === view.avg30.source ? 'Cardmarket' : 'Cardmarket(유럽)'} 30일 평균 {avgText}
           </>
         )}
         {history.gaps.length > 0 &&
