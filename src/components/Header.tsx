@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router'
+import AccountMenu from './AccountMenu'
 import styles from './Header.module.css'
 
 function Logo() {
@@ -33,6 +34,7 @@ export default function Header() {
             덱 빌더
           </Link>
         </nav>
+        <AccountMenu />
       </div>
     </header>
   )
