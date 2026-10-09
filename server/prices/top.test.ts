@@ -55,7 +55,7 @@ describe('price ranking', () => {
 
 describe('the /api/prices/top request', () => {
   it('refuses unknown parameters and bad values before touching the database', async () => {
-    for (const query of ['edition=ko', 'edition=en&x=1', 'set=../x', 'set=' + 'a'.repeat(21), 'range=30d']) {
+    for (const query of ['edition=ko', 'edition=en&x=1', 'set=../x', 'set=' + 'a'.repeat(21), 'range=30d', 'edition=en&edition=ja', 'edition=en&edition=en&edition=en', 'set=&edition=en', 'edition=']) {
       const res = await handleTop(new URLSearchParams(query))
       expect(res.status, query).toBe(400)
       expect(res.headers.get('cache-control')).toBe('no-store')

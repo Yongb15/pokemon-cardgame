@@ -71,13 +71,24 @@ function json(body: unknown, status: number, cache: string) {
 const OK_CACHE = 'public, max-age=0, s-maxage=3600, stale-while-revalidate=21600'
 const fail = (status: number, message: string) => json({ error: { message, code: status } }, status, 'no-store')
 
+const MEMO_MS = 10 * 60 * 1000
+const memory = new Map<string, { body: unknown; expires: number }>()
+
 /** `edition` and `set` are the only parameters; anything else is refused (like /prices: Security) */
 export async function handleTop(params: URLSearchParams, now = new Date()) {
-  for (const key of params.keys()) if (key !== 'edition' && key !== 'set') return fail(400, 'Bad request')
+  // One URL per answer: a repeated or empty parameter would make endless cache misses (Security T-1)
+  const keys = [...params.keys()]
+  if (keys.some((key) => key !== 'edition' && key !== 'set') || keys.length !== new Set(keys).size) return fail(400, 'Bad request')
+  if ([...params.values()].some((value) => value === '')) return fail(400, 'Bad request')
   const edition = params.get('edition') ?? 'en'
   const set = params.get('set') ?? ''
   if (edition !== 'en' && edition !== 'ja') return fail(400, 'Bad request')
   if (set && !SET_ID.test(set)) return fail(400, 'Bad request')
+
+  // Also in this instance's memory for 10 minutes, so edge misses don't each read the database
+  const memoKey = `${edition}|${set}|${utcDay(now)}`
+  const memo = memory.get(memoKey)
+  if (memo && memo.expires > now.getTime()) return json(memo.body, 200, OK_CACHE)
 
   try {
     const { cards } = await loadPriceData()
@@ -90,7 +101,10 @@ export async function handleTop(params: URLSearchParams, now = new Date()) {
       const card = cards.get(id)
       return !!card && !isBasicEnergy(card) && (!set || card.set === set)
     }
-    return json({ edition, set: set || null, today, cards: rank(levels, rates, today, keep) }, 200, OK_CACHE)
+    const body = { edition, set: set || null, today, cards: rank(levels, rates, today, keep) }
+    if (memory.size > 400) memory.clear() // at most every set × 2 editions; this just bounds it
+    memory.set(memoKey, { body, expires: now.getTime() + MEMO_MS })
+    return json(body, 200, OK_CACHE)
   } catch {
     // Never the error itself: it can hold query or connection details
     return fail(500, 'Server error')
