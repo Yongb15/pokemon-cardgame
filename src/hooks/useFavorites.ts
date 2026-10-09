@@ -9,7 +9,12 @@ import { onSessionChange, useSession, type Session } from './useSession'
 export type Favorites =
   | { status: 'idle' | 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; ids: string[] }
+  | {
+      status: 'ready'
+      ids: string[]
+      /** The heart pressed before signing in, saved (error null) or not, for its button to say (qa H-3) */
+      auto?: { cardId: string; error: string | null }
+    }
 
 let state: Favorites = { status: 'idle' }
 let signedIn = false
@@ -45,33 +50,66 @@ function takePendingHeart() {
 const message = (error: unknown) =>
   error instanceof AccountApiError ? error.message : '관심 카드를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'
 
+/** What the server last confirmed per card (only cards touched since loading; the rest: `loaded`) */
+let loaded = new Set<string>()
+const confirmed = new Map<string, boolean>()
+const desired = new Map<string, boolean>()
+const inflight = new Set<string>()
+
+const serverHas = (cardId: string) => confirmed.get(cardId) ?? loaded.has(cardId)
+
+function show(cardId: string, on: boolean) {
+  if (state.status !== 'ready') return
+  const rest = state.ids.filter((id) => id !== cardId)
+  set({ ...state, ids: on ? [cardId, ...rest] : rest })
+}
+
 export async function loadFavorites() {
   set({ status: 'loading' })
   try {
     const { cards } = await getFavorites()
+    loaded = new Set(cards)
+    confirmed.clear()
+    desired.clear()
     set({ status: 'ready', ids: cards })
+    // A heart pressed before signing in: save it now and say so either way (qa H-3)
     const pending = takePendingHeart()
-    if (pending && !cards.includes(pending)) await toggleFavorite(pending)
+    if (pending && !cards.includes(pending)) {
+      const failed = await toggleFavorite(pending)
+      if (state.status === 'ready') set({ ...state, auto: { cardId: pending, error: failed } })
+    }
   } catch (error) {
     set({ status: 'error', message: message(error) })
   }
 }
 
-/** Adds or removes a heart; resolves to an error message when the save failed (and was undone) */
+/**
+ * Adds or removes a heart. The heart flips at once; requests for one card go one at a time, and
+ * after each the latest wish is sent again if it changed meanwhile, so quick repeated presses end
+ * where the last press left them (qa H-1). Resolves to an error message when a save failed: the
+ * heart then goes back to what the server has.
+ */
 export async function toggleFavorite(cardId: string): Promise<string | null> {
   if (state.status !== 'ready') return null
-  const had = state.ids.includes(cardId)
-  set({ status: 'ready', ids: had ? state.ids.filter((id) => id !== cardId) : [cardId, ...state.ids] })
+  const want = !state.ids.includes(cardId)
+  desired.set(cardId, want)
+  show(cardId, want)
+  if (inflight.has(cardId)) return null // the running loop picks up the new wish
+  inflight.add(cardId)
   try {
-    await (had ? removeFavorite(cardId) : addFavorite(cardId))
-    return null
-  } catch (error) {
-    // Put it back where it was
-    if (state.status === 'ready') {
-      const now = state.ids
-      set({ status: 'ready', ids: had ? [cardId, ...now.filter((id) => id !== cardId)] : now.filter((id) => id !== cardId) })
+    for (;;) {
+      const target = desired.get(cardId)!
+      if (target === serverHas(cardId)) return null
+      await (target ? addFavorite(cardId) : removeFavorite(cardId))
+      confirmed.set(cardId, target)
     }
+  } catch (error) {
+    const has = serverHas(cardId)
+    desired.set(cardId, has)
+    show(cardId, has)
     return error instanceof AccountApiError ? error.message : '저장하지 못했어요. 잠시 후 다시 시도해 주세요.'
+  } finally {
+    inflight.delete(cardId)
   }
 }
 

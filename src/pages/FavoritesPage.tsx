@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router'
 import { getCardsBatch } from '../api/cards'
 import CardGrid from '../components/CardGrid'
@@ -22,6 +22,12 @@ export default function FavoritesPage() {
   const [removed, setRemoved] = useState<{ id: string; name: string } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const ids = useMemo(() => (favorites.status === 'ready' ? favorites.ids : []), [favorites])
+  const undoRef = useRef<HTMLButtonElement>(null)
+
+  // The remove button is gone with its tile: keyboard focus goes to "다시 담기" (qa Info)
+  useEffect(() => {
+    if (removed) undoRef.current?.focus()
+  }, [removed])
 
   useEffect(() => {
     document.title = '관심 카드 · Pokémon Card Dex'
@@ -50,11 +56,11 @@ export default function FavoritesPage() {
 
   if (session.status === 'out') return <Navigate to="/login?next=%2Ffavorites" replace />
 
-  const onRemove = async (card: CardListItem) => {
+  const onRemove = async (id: string, name: string) => {
     setError(null)
-    const failed = await toggleFavorite(card.id)
+    const failed = await toggleFavorite(id)
     if (failed) setError(failed)
-    else setRemoved({ id: card.id, name: card.nameKo ?? card.name })
+    else setRemoved({ id, name })
   }
 
   const onUndo = async () => {
@@ -64,7 +70,8 @@ export default function FavoritesPage() {
     setRemoved(null)
   }
 
-  const shown = ids.map((id) => cards.get(id)).filter((c): c is CardListItem => !!c)
+  // Ids the card data no longer has still take a slot: show them so they can be removed (qa H-2)
+  const shown = ids.filter((id) => cards.has(id) || tried.has(id))
   const loading = session.status === 'unknown' || favorites.status === 'idle' || favorites.status === 'loading'
 
   return (
@@ -82,8 +89,9 @@ export default function FavoritesPage() {
       {removed && (
         <p className={styles.notice} role="status">
           {removed.name}을(를) 관심 카드에서 뺐어요.{' '}
-          <button type="button" className={styles.linkButton} onClick={() => void onUndo()}>
-            되돌리기
+          {/* Re-adding puts it first again: the server keeps when it was hearted (qa H-4) */}
+          <button type="button" ref={undoRef} className={styles.linkButton} onClick={() => void onUndo()}>
+            다시 담기
           </button>
         </p>
       )}
@@ -118,19 +126,31 @@ export default function FavoritesPage() {
             </p>
           )}
           <CardGrid busy={missing.length > 0}>
-            {shown.map((card) => (
-              <div key={card.id} className={styles.favTile}>
-                <CardTile card={card} />
-                <button
-                  type="button"
-                  className={styles.favRemove}
-                  aria-label={`${card.nameKo ?? card.name} 관심 카드에서 빼기`}
-                  onClick={() => void onRemove(card)}
-                >
-                  <HeartIcon filled />
-                </button>
-              </div>
-            ))}
+            {shown.map((id) => {
+              const card = cards.get(id)
+              const name = card ? (card.nameKo ?? card.name) : `찾을 수 없는 카드(${id})`
+              return (
+                <div key={id} className={styles.favTile}>
+                  {card ? (
+                    <CardTile card={card} />
+                  ) : (
+                    <div className={styles.goneTile}>
+                      <b>찾을 수 없는 카드</b>
+                      <span className={styles.small}>{id}</span>
+                      <span className={styles.small}>카드 데이터에서 빠졌어요.</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    className={styles.favRemove}
+                    aria-label={`${name} 관심 카드에서 빼기`}
+                    onClick={() => void onRemove(id, name)}
+                  >
+                    <HeartIcon filled />
+                  </button>
+                </div>
+              )
+            })}
           </CardGrid>
         </>
       )}

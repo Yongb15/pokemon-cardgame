@@ -29,6 +29,8 @@ export default function HeartButton({ cardId, cardName }: { cardId: string; card
   const { pathname, search } = useLocation()
   const [error, setError] = useState<string | null>(null)
   const on = favorites.status === 'ready' && favorites.ids.includes(cardId)
+  // This card's heart was pressed before signing in and saved (or not) on the way back (qa H-3)
+  const auto = favorites.status === 'ready' && favorites.auto?.cardId === cardId ? favorites.auto : null
   // Until we know who's signed in (or their hearts are loaded), the button waits
   const waiting = session.status === 'unknown' || (session.status === 'in' && favorites.status !== 'ready' && favorites.status !== 'error')
 
@@ -57,10 +59,16 @@ export default function HeartButton({ cardId, cardName }: { cardId: string; card
         <HeartIcon filled={on} />
         관심 카드
       </button>
-      {error && (
+      {(error ?? auto?.error) ? (
         <span className={styles.error} role="alert">
-          {error}
+          {error ?? auto?.error}
         </span>
+      ) : (
+        auto && (
+          <span className={styles.saved} role="status">
+            관심 카드에 담았어요
+          </span>
+        )
       )}
     </span>
   )

@@ -39,3 +39,8 @@
   font-size: 13px;
   color: var(--warn-text);
 }
+
+.saved {
+  font-size: 13px;
+  color: var(--ok);
+}
