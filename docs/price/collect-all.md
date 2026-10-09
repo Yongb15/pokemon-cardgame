@@ -66,3 +66,10 @@
 - Neon 계산 시간: 현재(10/08~09) 약 1.5시간 사용. 하루 1시간 추가는 월 30시간 안팎 → 무료 플랜 한도 안인지 첫 주 사용량으로 확인
 - 저장소 Actions 설정을 "GitHub 제작 + 지정한 액션만 허용"으로(선택, 사용자 설정)
 - 로그: 개수와 오류 이름만. 접속 주소에서 나온 값(호스트·사용자 이름)이나 pg 오류 메시지는 출력하지 않음
+- **남는 위험(Security C-1, 수용)**: `collector_rw`는 DELETE는 못 하지만 UPDATE가 테이블 단위라, 계정이 새면 과거 행의 값을 바꿀 수 있다(표시 가격 오염, 공개 데이터라 다른 피해 없음). 대응: 비밀번호 재설정(또는 `NOLOGIN`) → Neon 복구 지점에서 되돌리기. 필요해지면 RLS로 UPDATE를 최근 14일 행으로 제한
+
+### 운영 적용 순서
+1. 운영 `collector_rw` 생성(`db-create-role.mjs`, 출력 없이 임시 파일) → 마이그레이션 0012 → 운영에서 권한 검사 missing·excess 모두 없음
+2. GitHub Environment `prices-production`: Deployment branches = **Selected branches: main**(Protected branches 아님), 비밀 `PRICE_DATABASE_URL`은 이 Environment에만(저장소 Secrets에 같은 이름 없음)
+3. develop → main 병합(PR) 뒤 `workflow_dispatch`로 첫 실행 1회: 로그가 개수만인지, DB 크기, 실패·429 여부
+4. 첫 2주 동안 하루 증가량을 이 문서에 기록
