@@ -6,6 +6,7 @@ import { BattleStats, CardInfo, CardRules } from '../components/detail/CardFacts
 import CardImage from '../components/detail/CardImage'
 import CardNeighbors from '../components/detail/CardNeighbors'
 import CardPrices from '../components/detail/CardPrices'
+import HeartButton from '../components/HeartButton'
 import RelatedCards from '../components/detail/RelatedCards'
 import detail from '../components/detail/detail.module.css'
 import { ErrorState, NotFoundState, SlowNotice } from '../components/ListStates'
@@ -185,6 +186,7 @@ export default function CardDetailPage() {
                     ← {card.evolvesFromKo ?? card.evolvesFrom}에서 진화
                   </Link>
                 )}
+                <HeartButton cardId={card.id} cardName={card.nameKo ?? card.name} />
               </div>
               {card.nameKoUnofficial && (
                 <p className={styles.unofficial}>

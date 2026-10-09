@@ -21,7 +21,7 @@ export default function Header() {
       <div className={styles.inner}>
         <Link className={styles.logo} to="/">
           <Logo />
-          Card Dex
+          <span className={styles.logoText}>Card Dex</span>
         </Link>
         <nav className={styles.nav} aria-label="주요 메뉴">
           <Link className={onCards ? styles.active : undefined} to="/" aria-current={onCards ? 'page' : undefined}>

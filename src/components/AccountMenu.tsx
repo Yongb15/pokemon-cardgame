@@ -78,12 +78,21 @@ export default function AccountMenu() {
   }
 
   return (
-    <div className={styles.account} ref={root}>
+    <div
+      className={styles.account}
+      ref={root}
+      // Tabbing out of the menu closes it (qa 6A-6)
+      onBlur={(event) => {
+        if (open && !root.current?.contains(event.relatedTarget as Node | null)) setOpen(false)
+      }}
+    >
       <button
         type="button"
         className={styles.userButton}
         aria-expanded={open}
         aria-controls={menuId}
+        // Phones hide the nickname: the button still needs a name (qa 6A-1)
+        aria-label={`${user.nickname} 계정 메뉴`}
         onClick={() => setOpen((v) => !v)}
       >
         <span className={styles.avatar} aria-hidden="true">
@@ -98,6 +107,7 @@ export default function AccountMenu() {
             {user.providers.map((p) => PROVIDER_LABEL[p] ?? p).join('·')}로 로그인함
           </p>
           <Link to="/me">마이페이지</Link>
+          <Link to="/favorites">관심 카드</Link>
           <hr />
           <button type="button" onClick={() => void onSignOut()} disabled={busy}>
             {busy ? '로그아웃하는 중…' : '로그아웃'}

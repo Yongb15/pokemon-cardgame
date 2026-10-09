@@ -203,3 +203,15 @@
     display: none;
   }
 }
+
+/* The narrowest phones: the logo keeps its ball, so the nav and account fit on one line (qa 6A-7) */
+@media (max-width: 400px) {
+  .logoText {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

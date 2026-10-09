@@ -18,13 +18,16 @@ export default function MyPage() {
   const { pathname } = useLocation()
   const [summary, setSummary] = useState<{ decks: number; favorites: number } | null>(null)
   const [summaryError, setSummaryError] = useState<string | null>(null)
-  const [nickname, setNickname] = useState('')
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState<'rename' | 'all' | 'leave' | null>(null)
   const [leaving, setLeaving] = useState(false)
   const heading = useRef<HTMLHeadingElement>(null)
   const signedIn = session.status === 'in'
   const currentName = signedIn ? session.user.nickname : ''
+  // Starts from the current nickname even when the session was already known (qa 6A-2)
+  const [nickname, setNickname] = useState(currentName)
+  // Signing out from here sends the user home with a message, not to the sign-in page (qa 6A-3)
+  const [signingOff, setSigningOff] = useState(false)
 
   useEffect(() => {
     document.title = '마이페이지 · Pokémon Card Dex'
@@ -52,6 +55,7 @@ export default function MyPage() {
     }
   }, [signedIn, reload])
 
+  if (session.status === 'out' && signingOff) return null
   if (session.status === 'out') {
     // Expired while here, or never signed in: sign in and come back
     return <Navigate to={`/login?${new URLSearchParams({ next: pathname })}`} replace />
@@ -82,8 +86,9 @@ export default function MyPage() {
     setBusy('all')
     try {
       await logoutEverywhere()
-      clearSession()
+      setSigningOff(true)
       navigate('/', { state: { notice: '모든 기기에서 로그아웃했어요.' } })
+      clearSession()
     } catch (error) {
       say(false, errorText(error))
       setBusy(null)
@@ -202,8 +207,9 @@ export default function MyPage() {
               summary={summary}
               onClose={() => setLeaving(false)}
               onLeft={() => {
+                setSigningOff(true)
+                navigate('/', { state: { notice: '탈퇴했어요. 그동안 이용해 주셔서 고마워요.' } })
                 clearSession()
-                navigate('/', { state: { notice: '탈퇴했어요. 그동안 이용해 주셔서 고마워요.', focusHeading: true } })
               }}
             />
           )}
