@@ -16,6 +16,7 @@ export default function Header() {
   const { pathname } = useLocation()
   const onCards = pathname === '/' || pathname.startsWith('/cards/')
   const onDecks = pathname === '/decks' || pathname.startsWith('/decks/')
+  const onPrices = pathname === '/prices'
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
@@ -27,9 +28,9 @@ export default function Header() {
           <Link className={onCards ? styles.active : undefined} to="/" aria-current={onCards ? 'page' : undefined}>
             카드
           </Link>
-          <span className={styles.soon}>
-            세트 <span className={styles.tag}>준비 중</span>
-          </span>
+          <Link className={onPrices ? styles.active : undefined} to="/prices" aria-current={onPrices ? 'page' : undefined}>
+            시세
+          </Link>
           <Link className={onDecks ? styles.active : undefined} to="/decks" aria-current={onDecks ? 'page' : undefined}>
             덱 빌더
           </Link>

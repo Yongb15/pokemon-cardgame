@@ -287,3 +287,25 @@ export async function getRefresh(cardId: string) {
   )
   return row ?? null
 }
+
+/**
+ * Every card's latest unflagged level per source and print in one edition, confirmed on or after
+ * `sinceDay`: what the price ranking ranks (one row per card × source × variant)
+ */
+export async function getLatestLevels(edition: 'en' | 'ja', sinceDay: string) {
+  const result = await run((d) =>
+    d.execute(sql`
+      select distinct on (card_id, source, variant) card_id, source, variant, currency, market, last_seen_on
+      from ${priceSnapshot}
+      where edition = ${edition} and flagged = false and last_seen_on >= ${sinceDay}
+      order by card_id, source, variant, captured_on desc`),
+  )
+  return rowsOf(result).map((r) => ({
+    cardId: String(r.card_id),
+    source: String(r.source),
+    variant: String(r.variant),
+    currency: String(r.currency),
+    market: Number(r.market),
+    lastSeenOn: String(r.last_seen_on).slice(0, 10),
+  }))
+}

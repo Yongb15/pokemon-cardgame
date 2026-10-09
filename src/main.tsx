@@ -12,6 +12,7 @@ import DeckListPage from './pages/DeckListPage.tsx'
 import FavoritesPage from './pages/FavoritesPage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
 import MyPage from './pages/MyPage.tsx'
+import PricesPage from './pages/PricesPage.tsx'
 import { PrivacyPage, TermsPage } from './pages/PolicyPages.tsx'
 import SharedDeckPage from './pages/SharedDeckPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
@@ -31,6 +32,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <CardListPage /> },
       { path: 'cards/:id', element: <CardDetailPage /> },
+      { path: 'prices', element: <PricesPage /> },
       { path: 'decks', element: <DeckListPage /> },
       { path: 'decks/shared', element: <SharedDeckPage /> },
       { path: 'decks/:deckId', element: <DeckEditorPage /> },

@@ -15,9 +15,17 @@
     "api/prices.ts": {
       "includeFiles": "{data/index.json,data/tcgdex-map.json,server/prices/fixtures/**}",
       "maxDuration": 15
+    },
+    "api/price-top.ts": {
+      "includeFiles": "{data/index.json,data/tcgdex-map.json}",
+      "maxDuration": 15
     }
   },
   "rewrites": [
+    {
+      "source": "/api/prices/top",
+      "destination": "/api/price-top"
+    },
     {
       "source": "/api/cards/:id/prices",
       "destination": "/api/prices?id=:id"
