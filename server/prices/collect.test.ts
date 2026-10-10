@@ -95,3 +95,17 @@ describe('polite collection', () => {
     expect(late.stopped).toBe('deadline')
   })
 })
+
+describe('failure labels (safe constants only)', () => {
+  it('names database errors by code, or by the driver error and its cause code', async () => {
+    const { errorLabel } = await import('./collect.js')
+    const { DbError } = await import('./store.js')
+    const coded = Object.assign(new DbError('database error'), { code: '57014' })
+    expect(errorLabel(coded)).toBe('DbError 57014')
+    const network = Object.assign(new DbError('database error'), { inner: 'NeonDbError UND_ERR_SOCKET' })
+    expect(errorLabel(network)).toBe('DbError (NeonDbError UND_ERR_SOCKET)')
+    expect(errorLabel(new DbError('database error'))).toBe('DbError')
+    // A message never appears, even one with a host in it
+    expect(errorLabel(new Error('connect to db.example.neon.tech failed'))).toBe('Error')
+  })
+})

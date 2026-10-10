@@ -51,7 +51,7 @@ class RateLimited extends SourceError {
 export function networkLabel(error: unknown) {
   if (!(error instanceof Error)) return 'unknown'
   const code = (error.cause as { code?: unknown } | undefined)?.code
-  return typeof code === 'string' && /^[A-Z_]{3,40}$/.test(code) ? `${error.name} ${code}` : error.name
+  return typeof code === 'string' && /^[A-Z0-9_]{3,40}$/.test(code) ? `${error.name} ${code}` : error.name
 }
 
 /** Who is asking, and where to reach us (docs/price/collect-all.md D-3) */

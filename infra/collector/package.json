@@ -1,0 +1,11 @@
+{
+  "name": "@card-dex/price-collector",
+  "private": true,
+  "description": "Runtime for the Cloud Run Job that collects every linked card's price daily (docs/price/collect-all.md). Same versions as the repository's lock file.",
+  "type": "module",
+  "dependencies": {
+    "@neondatabase/serverless": "1.2.0",
+    "drizzle-orm": "0.45.3",
+    "tsx": "4.23.15"
+  }
+}
