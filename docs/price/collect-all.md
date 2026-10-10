@@ -73,3 +73,26 @@
 2. GitHub Environment `prices-production`: Deployment branches = **Selected branches: main**(Protected branches 아님), 비밀 `PRICE_DATABASE_URL`은 이 Environment에만(저장소 Secrets에 같은 이름 없음)
 3. develop → main 병합(PR) 뒤 `workflow_dispatch`로 첫 실행 1회: 로그가 개수만인지, DB 크기, 실패·429 여부
 4. 첫 2주 동안 하루 증가량을 이 문서에 기록
+
+## 실행 위치 변경: GitHub Actions → Cloud Run Job (2026-10-10)
+
+### 왜
+- GitHub에서 세 번 실행해 모두 중단: ① 끝에서 DB 오류(NeonDbError) ② 88장 처리 뒤 연속 실패 51건 + 429 2번 ③ 196장 중 131건 실패(SQLSTATE 없는 DB 오류) + TCGdex 429 3번 연속
+- 같은 코드·같은 속도로 한국 PC → dev DB 300장은 실패 0, TCGdex 300/300 정상
+- 판단: GitHub 러너(미국, 많은 사용자가 공유하는 IP)에서 ① 싱가포르 DB까지의 연결이 자주 실패하고 ② TCGdex가 공유 IP를 제한함. 제한은 우회하지 않음(Security)
+
+### 어떻게
+- **Cloud Run Job `price-collector`**(asia-southeast3 방콕, 계정 API와 같은 리전, DB와 가까움): 1 vCPU·512MiB, 작업 1개, 재시도 0, 제한 시간 110분
+- **이미지**: `infra/collector/Dockerfile` — `scripts/collect-prices.ts` + `server/prices`·`server/db` + `data/index.json`·`tcgdex-map.json`·`sets.json`, 실행은 tsx. Artifact Registry `api` 저장소에 커밋 SHA 태그
+- **비밀**: Secret Manager `collector-db-url`(운영 `collector_rw`) → Job 환경 변수 `PRICE_DATABASE_URL`. GitHub에는 더 이상 두지 않음(Environment 비밀 삭제)
+- **실행 계정**: `collector-run` 서비스 계정 — 이 비밀 하나의 `secretAccessor`만
+- **예약**: Cloud Scheduler(무료 3개) 매일 19:30 UTC → Job 실행. 호출 계정 `collector-scheduler`는 이 Job의 `run.invoker`만
+- **비용**: Cloud Run Jobs 무료 한도(월 180,000 vCPU-초) 안 — 하루 1시간 = 월 약 108,000 vCPU-초. 예산 차단 장치(₩1,000) 그대로 적용
+- **배포**: 처음은 `gcloud builds submit`(수동), 이후 GitHub Actions(WIF) 자동 배포는 별도 단계
+
+### 전환 순서
+1. GitHub 워크플로 끔(완료, 10/10). 기존 Vercel Cron은 계속
+2. `collector_rw` 비밀번호 재설정(→ GitHub에 남은 값 무효) → 새 주소를 Secret Manager로(출력 없이)
+3. GitHub Environment `prices-production`의 비밀 삭제
+4. 이미지 빌드·Job·Scheduler 생성, 수동 실행 1회로 확인
+5. DbError 라벨 보강: 이름 `DbError` + 원래 오류 이름·cause 코드(같은 안전 규칙)
