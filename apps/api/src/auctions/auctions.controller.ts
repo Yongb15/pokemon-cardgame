@@ -136,7 +136,15 @@ export class MyAuctionsController extends AuctionRoutes {
       res.setHeader('Retry-After', '60')
       throw new PublicError('입찰은 1분에 20번까지 할 수 있어요.', 429)
     }
-    const result = await this.auctions.bid(user.id, id, parsed.data.amount, parsed.data.idemKey)
+    let result: Awaited<ReturnType<typeof this.auctions.bid>>
+    try {
+      result = await this.auctions.bid(user.id, id, parsed.data.amount, parsed.data.idemKey)
+    } catch (error) {
+      // The account was deleted while this bid ran (23503: its rows are gone): the session is over (Security I-2)
+      const code = (error as { code?: unknown; cause?: { code?: unknown } }).cause?.code ?? (error as { code?: unknown }).code
+      if (code === '23503') throw new PublicError('로그인이 필요합니다.', 401)
+      throw error
+    }
     if (result.kind === 'not_found') throw notFound()
     // Everything else answers with the latest state, so the screen can explain and recover (qa §9)
     const [state, mine] = await Promise.all([this.auctions.get(id), this.auctions.mine(id, user.id)])
