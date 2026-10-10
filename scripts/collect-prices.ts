@@ -20,7 +20,7 @@ process.env.DATABASE_URL = url
 const { claimRefresh, refreshTimes, saveFx } = await import('../server/prices/store.js')
 const { isBasicEnergy, loadPriceData, refreshCard } = await import('../server/prices/refresh.js')
 const { fetchFx } = await import('../server/prices/sources.js')
-const { collect, DUE_HOURS, dueOrder, isDueToday, todayUtc } = await import('../server/prices/collect.js')
+const { collect, DUE_HOURS, dueOrder, errorLabel, isDueToday, todayUtc } = await import('../server/prices/collect.js')
 
 const sql = neon(url)
 const MB = 1024 * 1024
@@ -80,12 +80,18 @@ try {
     if (!(await claimRefresh(id, DUE_HOURS))) return 'skipped'
     return refreshCard(id, now)
   })
-  const after = await databaseBytes()
+  // The counts first: a failing size query mustn't hide what the run did (the first run lost them)
   console.log(
     `done: processed ${counts.processed}, changed ${counts.changed}, not found ${counts.notFound}, failed ${counts.failed}, ` +
-      `rate limited ${counts.rateLimited}, skipped ${counts.skipped}, left ${counts.left}, stopped ${counts.stopped ?? 'no'}; ` +
-      `database ${Math.round(after / MB)} MB (+${Math.round((after - before) / 1024)} KB)`,
+      `rate limited ${counts.rateLimited}, skipped ${counts.skipped}, left ${counts.left}, stopped ${counts.stopped ?? 'no'}`,
   )
+  const reasons = Object.entries(counts.reasons).sort((a, b) => b[1] - a[1])
+  if (reasons.length) console.log(`failures by reason: ${reasons.map(([r, n]) => `${r} ×${n}`).join(', ')}`)
+  const after = await databaseBytes().catch((error: unknown) => {
+    console.error(`database size unknown: ${errorLabel(error)}`)
+    return before
+  })
+  console.log(`database ${Math.round(after / MB)} MB (+${Math.round((after - before) / 1024)} KB)`)
   if (after > WARN_BYTES) {
     console.error(`database is over ${WARN_BYTES / MB} MB: compact old history (docs/price/collect-all.md D-2)`)
     process.exit(2)
@@ -93,6 +99,6 @@ try {
   if (counts.stopped === 'rate-limited' || counts.stopped === 'failures') process.exit(3)
 } catch (error) {
   // The name only: the message can hold a host or a query
-  console.error(`collect failed: ${error instanceof Error ? error.name : 'unknown'}`)
+  console.error(`collect failed: ${errorLabel(error)}`)
   process.exit(1)
 }
