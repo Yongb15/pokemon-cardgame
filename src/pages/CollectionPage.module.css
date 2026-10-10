@@ -244,3 +244,33 @@
     gap: 10px;
   }
 }
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* One row tall in every tile, button or note, so the grid lines up */
+.listButton,
+.listNote {
+  min-height: 30px;
+  font-size: 12px;
+}
+
+.listButton {
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.listNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}

@@ -150,7 +150,7 @@
   background: var(--accent);
 }
 
-@media (min-width: 641px) {
+@media (min-width: 901px) {
   .dot {
     display: none;
   }
@@ -285,4 +285,19 @@
 .menu .menuClaim[aria-disabled='true'] {
   opacity: 0.6;
   cursor: progress;
+}
+
+/* "덱 빌더" → "덱" on the narrowest phones, so four menu items fit (qa) */
+.short {
+  display: none;
+}
+
+@media (max-width: 400px) {
+  .long {
+    display: none;
+  }
+
+  .short {
+    display: inline;
+  }
 }

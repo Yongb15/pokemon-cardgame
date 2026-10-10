@@ -307,7 +307,7 @@ export class MemoryPacksStore implements PacksStore {
   private grouped(userId: string) {
     const map = new Map<string, CollectionRow & { real: number }>()
     for (const o of this.owned.filter((x) => x.userId === userId)) {
-      const r = map.get(o.cardId) ?? { cardId: o.cardId, count: 0, test: 0, real: 0, newest: o.at }
+      const r = map.get(o.cardId) ?? { cardId: o.cardId, count: 0, test: 0, listed: 0, real: 0, newest: o.at }
       r.count++
       if (o.source === 'test') r.test++
       else r.real++
@@ -321,7 +321,7 @@ export class MemoryPacksStore implements PacksStore {
     const all = this.grouped(userId)
       .filter((r) => !setId || r.cardId.startsWith(`${setId}-`))
       .sort((a, b) => b.newest.getTime() - a.newest.getTime() || a.cardId.localeCompare(b.cardId))
-    const rows = all.slice(page * COLLECTION_PAGE, page * COLLECTION_PAGE + COLLECTION_PAGE).map((r) => ({ cardId: r.cardId, count: r.count, test: r.test, newest: r.newest }))
+    const rows = all.slice(page * COLLECTION_PAGE, page * COLLECTION_PAGE + COLLECTION_PAGE).map((r) => ({ cardId: r.cardId, count: r.count, test: r.test, listed: r.listed, newest: r.newest }))
     return { rows, more: all.length > (page + 1) * COLLECTION_PAGE }
   }
 

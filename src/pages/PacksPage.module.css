@@ -363,3 +363,13 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* The status line under the slots is one line from the start (qa 7b: it gained text and wrapped at 390) */
+.resultFoot > .small {
+  min-height: 1.5em;
+  min-width: 0;
+  flex: 1 1 200px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

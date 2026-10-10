@@ -116,9 +116,10 @@
   }
 }
 
-@media (min-width: 641px) and (max-width: 900px) {
-  /* Mid widths: the nickname gives way first (qa 2) */
-  .claim {
-    padding: 0 10px;
+/* Up to 900px the header has four menu items: the points move into the account menu (qa C7-3) */
+@media (max-width: 900px) {
+  .bar,
+  .placeholder {
+    display: none;
   }
 }

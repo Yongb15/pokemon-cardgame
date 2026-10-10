@@ -37,6 +37,7 @@ export class PointsController extends PointRoutes {
   @Get()
   async summary(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const user = await this.user(req, res)
+    await this.services.auctions?.settleExpired(20, user.id)
     return this.points.summary(user.id)
   }
 

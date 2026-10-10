@@ -53,6 +53,8 @@ export interface CollectionRow {
   count: number
   /** Copies from the preview test hook (not counted towards set progress) */
   test: number
+  /** Copies in an open auction right now */
+  listed: number
   newest: Date
 }
 
@@ -154,15 +156,16 @@ export class PgPacksStore implements PacksStore {
   }
 
   async collection(userId: string, setId: string | null, page: number) {
-    const { rows } = await this.db.execute<{ card_id: string; n: number; test: number; newest: Date }>(sql`
-      select card_id, count(*)::int as n, (count(*) filter (where source = 'test'))::int as test, max(acquired_at) as newest
+    const { rows } = await this.db.execute<{ card_id: string; n: number; test: number; listed: number; newest: Date }>(sql`
+      select card_id, count(*)::int as n, (count(*) filter (where source = 'test'))::int as test,
+             (count(*) filter (where auction_id is not null))::int as listed, max(acquired_at) as newest
       from account.owned_cards
       where user_id = ${userId} ${setId ? sql`and starts_with(card_id, ${setPrefix(setId)})` : sql``}
       group by card_id
       order by max(acquired_at) desc, card_id
       limit ${COLLECTION_PAGE + 1} offset ${page * COLLECTION_PAGE}`)
     return {
-      rows: rows.slice(0, COLLECTION_PAGE).map((r) => ({ cardId: r.card_id, count: r.n, test: r.test, newest: new Date(r.newest) })),
+      rows: rows.slice(0, COLLECTION_PAGE).map((r) => ({ cardId: r.card_id, count: r.n, test: r.test, listed: r.listed, newest: new Date(r.newest) })),
       more: rows.length > COLLECTION_PAGE,
     }
   }
