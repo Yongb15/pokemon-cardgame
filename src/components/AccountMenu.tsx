@@ -162,6 +162,7 @@ export default function AccountMenu() {
           <hr />
           <Link to="/me">마이페이지 · 포인트 내역</Link>
           <Link to="/favorites">관심 카드</Link>
+          <Link to="/collection">내 컬렉션 · 카드팩</Link>
           <hr />
           <button type="button" onClick={() => void onSignOut()} disabled={busy}>
             {busy ? '로그아웃하는 중…' : '로그아웃'}

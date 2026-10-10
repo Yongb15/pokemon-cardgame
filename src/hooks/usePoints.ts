@@ -19,6 +19,11 @@ function set(next: Points) {
   for (const listener of listeners) listener()
 }
 
+/** A summary another call already returned (a pack opening): no extra request */
+export function setPointsSummary(summary: PointsSummary) {
+  set({ status: 'ready', summary })
+}
+
 export async function loadPoints() {
   if (state.status !== 'ready') set({ status: 'loading' })
   try {
