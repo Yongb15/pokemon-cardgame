@@ -81,14 +81,14 @@ export interface PointsStore {
   ledgerCheck(userId: string): Promise<LedgerCheck>
 }
 
-type Tx = Parameters<Parameters<NodePgDatabase['transaction']>[0]>[0]
+export type Tx = Parameters<Parameters<NodePgDatabase['transaction']>[0]>[0]
 const KST_TODAY = sql`(now() at time zone 'Asia/Seoul')::date`
 
 /**
  * Locks the user's balance row, creating it with the first bonus if the user has none yet (so
  * every account, new or existing, gets the bonus exactly once). Returns whether it granted it.
  */
-async function lockAccount(tx: Tx, userId: string): Promise<{ balance: number; held: number; granted: boolean }> {
+export async function lockAccount(tx: Tx, userId: string): Promise<{ balance: number; held: number; granted: boolean }> {
   const created = await tx.execute<{ user_id: string }>(
     sql`insert into account.point_accounts (user_id) values (${userId}) on conflict (user_id) do nothing returning user_id`,
   )
@@ -113,7 +113,7 @@ async function lockAccount(tx: Tx, userId: string): Promise<{ balance: number; h
 }
 
 /** One ledger row and the balance move, inside the caller's transaction (the row already locked) */
-async function credit(tx: Tx, userId: string, current: { balance: number; held: number }, amount: number, kind: PointKind, ref: string | null, idemKey: string): Promise<CreditResult> {
+export async function credit(tx: Tx, userId: string, current: { balance: number; held: number }, amount: number, kind: PointKind, ref: string | null, idemKey: string): Promise<CreditResult> {
   if (current.balance + amount < current.held) return 'insufficient'
   const inserted = await tx.execute(
     sql`insert into account.point_entries (user_id, amount, kind, ref, idem_key)

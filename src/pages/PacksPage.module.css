@@ -1,0 +1,365 @@
+/* /packs (docs/design/packs-7b.webp) */
+
+.main {
+  width: 100%;
+  max-width: calc(var(--page-width) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 28px var(--gutter) 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  color: var(--text-h);
+}
+
+.small {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* A fixed slot: the balance changing doesn't move the line (qa B) */
+.balance {
+  display: inline-block;
+  min-width: 15ch;
+  font-variant-numeric: tabular-nums;
+}
+
+.alert {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--warn-soft);
+  color: var(--warn-text);
+  font-size: 14px;
+}
+
+.reason {
+  margin: 0;
+  font-size: 12px;
+  color: var(--warn-text);
+}
+
+.button,
+.primary {
+  height: 38px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.primary {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: var(--on-accent);
+}
+
+.primary[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Set tiles */
+.sets {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.setsSkeleton {
+  height: 420px;
+  border-radius: 14px;
+  background: var(--skeleton);
+}
+
+.set {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.set b {
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.setLogo {
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1e293b, #7c3aed);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.set:nth-child(2) .setLogo {
+  background: linear-gradient(135deg, #7c2d12, #f97316);
+}
+
+.set:nth-child(3) .setLogo {
+  background: linear-gradient(135deg, #065f46, #22c55e);
+}
+
+.set:nth-child(4) .setLogo {
+  background: linear-gradient(135deg, #1e3a8a, #38bdf8);
+}
+
+.set:nth-child(5) .setLogo {
+  background: linear-gradient(135deg, #581c87, #ec4899);
+}
+
+.set:nth-child(6) .setLogo {
+  background: linear-gradient(135deg, #3f3f46, #e3350d);
+}
+
+.setActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.odds table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.odds caption {
+  margin-bottom: 4px;
+  text-align: left;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.odds th,
+.odds td {
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+  font-weight: 500;
+  text-align: left;
+}
+
+.odds td {
+  text-align: right;
+  font-weight: 700;
+  color: var(--text-h);
+  font-variant-numeric: tabular-nums;
+}
+
+.odds p {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* The reveal: five slots at their final size from the start (qa B) */
+.result {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.resultHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.resultHead h2 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--text-h);
+}
+
+.resultHead h2:focus {
+  outline: none;
+}
+
+.slots {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.slot {
+  min-width: 0;
+}
+
+.face {
+  position: relative;
+  aspect-ratio: 245 / 342;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--skeleton);
+}
+
+.face img,
+.faceLink {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.face img {
+  object-fit: cover;
+}
+
+.open {
+  animation: flip 0.25s ease-out;
+}
+
+@keyframes flip {
+  from {
+    transform: rotateY(90deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .open {
+    animation: none;
+  }
+}
+
+.back {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(45deg, #e3350d, #e3350d 10px, #c22b0a 10px, #c22b0a 20px);
+}
+
+.rareSlot .face {
+  box-shadow: 0 0 0 3px var(--gold);
+}
+
+.missing {
+  position: absolute;
+  inset: 0;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.newBadge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cap {
+  margin: 6px 0 0;
+  min-height: 38px;
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* Each caption line stays one line (long rarity names cut with …): the slot height never changes (qa 7b Low) */
+.cap b,
+.cap span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cap b {
+  overflow: hidden;
+  color: var(--text-h);
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.resultFoot {
+  min-height: 38px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .slots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 360px) {
+  .slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

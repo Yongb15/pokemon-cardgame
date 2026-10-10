@@ -136,3 +136,48 @@ export const getPoints = () => accountFetch<PointsSummary>('/me/points')
 export const getPointEntries = (before: string | null) =>
   accountFetch<{ entries: PointEntry[]; next: string | null }>(`/me/points/entries${before ? `?${new URLSearchParams({ before })}` : ''}`)
 export const claimDaily = () => accountFetch<PointsSummary & { claimed: boolean }>('/me/points/daily', { method: 'POST' })
+
+// --- Card packs and the collection (M7 7b, docs/auction/packs.md) --------------------------------
+
+export type PackTier = 'common' | 'uncommon' | 'rare' | 'double' | 'illustration' | 'ultra' | 'sir' | 'hyper'
+
+export interface PackCatalog {
+  price: number
+  size: number
+  sets: { id: string; nameKo: string; releaseDate: string; cards: number; odds: { tier: PackTier; percent: number; cards: number }[] }[]
+}
+
+export interface PackCard {
+  cardId: string
+  tier: PackTier
+  rareSlot: boolean
+  isNew: boolean
+}
+
+export interface OpenedPack {
+  id: string
+  setId: string
+  cards: PackCard[]
+  createdAt: string
+}
+
+export interface CollectionCard {
+  cardId: string
+  count: number
+  test: number
+  newest: string
+}
+
+export interface CollectionSummary {
+  cards: number
+  distinct: number
+  sets: { id: string; owned: number; total: number }[]
+}
+
+export const getPackCatalog = () => accountFetch<PackCatalog>('/packs')
+export const openPack = (setId: string, idemKey: string) =>
+  accountFetch<{ kind: 'opened' | 'repeat'; pack: OpenedPack; points: PointsSummary }>('/me/packs', { method: 'POST', body: { setId, idemKey } })
+export const getLatestPack = () => accountFetch<{ pack: OpenedPack | null }>('/me/packs/latest')
+export const getCollection = (set: string | null, page: number) =>
+  accountFetch<{ cards: CollectionCard[]; more: boolean }>(`/me/collection?${new URLSearchParams({ ...(set && { set }), ...(page > 0 && { page: String(page) }) })}`)
+export const getCollectionSummary = () => accountFetch<CollectionSummary>('/me/collection/summary')
