@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
+import { useNotifications } from '../hooks/useNotifications'
 import { claimToday, usePoints } from '../hooks/usePoints'
 import { refreshSession, signOut, useSession } from '../hooks/useSession'
 import { announcePoints, won } from '../lib/points'
@@ -18,6 +19,7 @@ export default function AccountMenu() {
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const points = usePoints()
+  const notes = useNotifications()
   const [claiming, setClaiming] = useState(false)
   const [claimError, setClaimError] = useState<string | null>(null)
   const doneNote = useRef<HTMLParagraphElement>(null)
@@ -72,6 +74,8 @@ export default function AccountMenu() {
   const { user } = session
   const summary = points.status === 'ready' ? points.summary : null
   const canClaim = !!summary && !summary.claimedToday
+  const unread = notes.status === 'ready' ? notes.unread : 0
+  const says = [canClaim && '출석 보상 받을 수 있어요', unread > 0 && `알림 ${unread}개 안 읽음`].filter(Boolean)
 
   const onClaim = async () => {
     setClaiming(true)
@@ -116,12 +120,12 @@ export default function AccountMenu() {
         aria-expanded={open}
         aria-controls={menuId}
         // Phones hide the nickname: the button still needs a name (qa 6A-1)
-        aria-label={`${user.nickname} 계정 메뉴${canClaim ? ' · 출석 보상 받을 수 있어요' : ''}`}
+        aria-label={`${user.nickname} 계정 메뉴${says.map((s) => ` · ${s}`).join('')}`}
         onClick={() => setOpen((v) => !v)}
       >
         <span className={styles.avatar} aria-hidden="true">
           {[...user.nickname][0]}
-          {canClaim && <i className={styles.dot} />}
+          {(canClaim || unread > 0) && <i className={styles.dot} />}
         </span>
         <span className={styles.nickname}>{user.nickname}</span>
         <span aria-hidden="true">▾</span>
@@ -160,6 +164,11 @@ export default function AccountMenu() {
             </div>
           )}
           <hr />
+          {/* Up to 900px the bell lives here (docs/design/notify-7d.webp ②) */}
+          <Link className={styles.menuNotes} to="/notifications">
+            <span>알림</span>
+            {unread > 0 && <b aria-label={`${unread}개 안 읽음`}>{unread > 99 ? '99+' : unread}</b>}
+          </Link>
           <Link to="/me">마이페이지 · 포인트 내역</Link>
           <Link to="/favorites">관심 카드</Link>
           <Link to="/collection">내 컬렉션 · 카드팩</Link>

@@ -151,9 +151,28 @@
 }
 
 @media (min-width: 901px) {
-  .dot {
+  .dot,
+  .menu a.menuNotes {
     display: none;
   }
+}
+
+.menu .menuNotes {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.menuNotes b {
+  min-width: 20px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .menuPoints {
