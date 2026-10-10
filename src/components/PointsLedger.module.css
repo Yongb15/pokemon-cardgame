@@ -77,10 +77,12 @@
   min-height: 196px;
 }
 
-.skeleton {
-  height: 196px;
-  border-radius: 10px;
+/* Placeholder text in the real row layout: same line height at any width, hidden glyphs */
+.bone {
+  justify-self: start;
+  border-radius: 6px;
   background: var(--skeleton);
+  color: transparent;
 }
 
 .empty,

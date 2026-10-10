@@ -112,7 +112,16 @@ export default function PointsLedger() {
           {error}
         </p>
       ) : entries === null ? (
-        <div className={styles.skeleton} aria-busy="true" aria-label="내역을 불러오는 중" />
+        // Five rows built like the real ones, so the swap keeps the height at any width (qa P7-2)
+        <ol className={styles.ledger} aria-busy="true" aria-label="내역을 불러오는 중">
+          {Array.from({ length: FIRST_ROWS }, (_, i) => (
+            <li key={i} aria-hidden="true">
+              <span className={styles.bone}>00.00</span>
+              <span className={styles.bone}>출석 보상</span>
+              <span className={styles.bone}>+500</span>
+            </li>
+          ))}
+        </ol>
       ) : entries.length === 0 ? (
         <p className={styles.empty}>아직 내역이 없어요.</p>
       ) : (
