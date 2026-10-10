@@ -39,7 +39,7 @@
 ### D-1 전용 DB 계정 `collector_rw`
 - `app_rw`(Vercel 함수)와 공유하지 않음 → GitHub 쪽이 새면 이 계정만 회수
 - 권한(마이그레이션): `price_snapshot` SELECT·INSERT·UPDATE, `price_refresh` SELECT·INSERT·UPDATE, `fx_rate` SELECT·INSERT·UPDATE, `card_edition_link` SELECT. **`card_view_daily`·`daily_counter`·account 스키마 없음**
-- `scripts/db-create-role.mjs` 목록에 추가: `connection limit 5`, 역할 기본값 `statement_timeout = 5s`
+- `scripts/db-create-role.mjs` 목록에 추가: `connection limit 8`(처음 5 → 풀러를 써도 최고 5개까지 차서 여유분으로 8, 2026-10-10 Security), 역할 기본값 `statement_timeout = 5s`
 - 스크립트 시작 때 필요한 권한·금지 권한을 검사(없거나 넘치면 시작 거부, `api_rw`와 같은 방식)
 
 ### D-2 저장 용량과 보존 정책

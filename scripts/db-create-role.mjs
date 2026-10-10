@@ -37,7 +37,7 @@ if (exists) {
 } else {
   await sql.query(
     `create role ${role} with login password '${password}' ` +
-      `nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls connection limit ${role === 'collector_rw' ? 5 : 20}`,
+      `nosuperuser nocreatedb nocreaterole noinherit noreplication nobypassrls connection limit ${role === 'collector_rw' ? 8 : 20}`,
   )
 }
 await sql.query(`alter role ${role} set statement_timeout = '5s'`)

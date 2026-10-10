@@ -34,4 +34,4 @@ password with `scripts/db-create-role.mjs` and add a new secret version, or `NOL
 → `gcloud run jobs update price-collector --update-secrets PRICE_DATABASE_URL=collector-db-url:<new>` → destroy the old version → delete the file.
 
 ## Why the pooler host
-The role has a 5-connection cap. Over the direct host, Neon's HTTP proxy keeps an idle connection per proxy node for about 5 minutes, so the first run hit `too many connections for role` (SQLSTATE 53300, HTTP 500) on 1,459 of 2,740 cards. Through PgBouncer the server connections are shared. Check: `select count(*) from pg_stat_activity where usename = 'collector_rw'` as the owner during a run.
+The role had a 5-connection cap (now 8: even through the pooler a run peaked at exactly 5). Over the direct host, Neon's HTTP proxy keeps an idle connection per proxy node for about 5 minutes, so the first run hit `too many connections for role` (SQLSTATE 53300, HTTP 500) on 1,459 of 2,740 cards. Through PgBouncer the server connections are shared. Check: `select count(*) from pg_stat_activity where usename = 'collector_rw'` as the owner during a run.
