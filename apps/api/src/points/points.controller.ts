@@ -1,6 +1,8 @@
 // Points routes (docs/auction/design.md §2, M7 step 7a). Every route needs a session; writes are
 // also limited per user and checked by origin (the app's guards).
-//   GET  /api/v1/me/points                    → summary (the first bonus is granted on first look)
+//   GET  /api/v1/me/points                    → summary (the first bonus is granted on first look:
+//        a GET with a write side effect, accepted only because it is idempotent and only ever
+//        benefits the signed-in user — Security I-2. Don't copy this for writes that matter)
 //   GET  /api/v1/me/points/entries?before=…   → { entries, next } (newest first, 20 a page)
 //   POST /api/v1/me/points/daily              → { claimed, ...summary } (today in Korea, once)
 // Preview only, test accounts only, own data only (Security T-1, T-2, T-4, T-5):
@@ -39,8 +41,11 @@ export class PointsController extends PointRoutes {
   }
 
   @Get('entries')
-  async entries(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Query('before') before?: unknown) {
+  async entries(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Query() query: Record<string, unknown>) {
     const user = await this.user(req, res)
+    // "before" is the only parameter, like the other strict routes (Security I-1)
+    if (Object.keys(query).some((key) => key !== 'before')) throw badRequest()
+    const before = query.before
     let cursor: { createdAt: Date; id: string } | null = null
     if (before !== undefined) {
       const m = typeof before === 'string' ? CURSOR.exec(before) : null
@@ -64,7 +69,7 @@ export class PointsController extends PointRoutes {
   }
 }
 
-const TopUp = z.object({
+const TopUp = z.strictObject({
   amount: z
     .number()
     .int()

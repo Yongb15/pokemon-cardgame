@@ -147,3 +147,22 @@ describe('points in production', () => {
     }
   })
 })
+
+describe('strict inputs (Security I-1)', () => {
+  it('refuses unknown body fields and query parameters', async () => {
+    const accounts = new MemoryStore()
+    const config = loadConfig({ ...env, APP_ENV: 'preview', AUTH_TEST_PROVIDER: '1' })
+    const app = await createApp(config, { store: accounts, data: new MemoryDataStore(accounts), points: new MemoryPointsStore(), testProvider: await createTestProvider() })
+    await app.listen(0, '127.0.0.1')
+    const base = `http://127.0.0.1:${(app.getHttpServer().address() as { port: number }).port}`
+    const { call, signIn } = client(() => base)
+    try {
+      const session = await signIn('strict')
+      expect((await call('/api/v1/test/points', { method: 'POST', session, body: { amount: 5, idemKey: 'strict-key-1', x: 1 } })).status).toBe(400)
+      expect((await call('/api/v1/me/points/entries?x=1', { session })).status).toBe(400)
+      expect((await call('/api/v1/me/points/entries', { session })).status).toBe(200)
+    } finally {
+      await app.close()
+    }
+  })
+})

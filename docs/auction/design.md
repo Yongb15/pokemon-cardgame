@@ -34,6 +34,7 @@
 - **보류(hold)** 는 장부가 아니라 `point_account.held`와 입찰 행으로 관리: 쓸 수 있는 포인트 = balance − held. 낙찰 때에만 장부에 `purchase`(−)·`sale_income`(+)·`sale_fee`(−, 판매자)를 쓴다
 - `idem_key` UNIQUE(user_id, idem_key): 같은 요청 재시도로 두 번 지급·차감되지 않게(출석은 `daily:2026-10-11`, 팩은 클라이언트가 만든 요청 id)
 - 매일 점검(테스트·관리 스크립트): `sum(point_entry) == point_account.balance`, held == 진행 중 경매의 내 최고 입찰 합
+- 첫 보너스는 `GET /me/points`가 처음 불릴 때 지급(읽기 요청에 쓰기가 붙은 예외: 같은 결과가 한 번뿐이고 본인에게만 이득이라 받아들임 — Security I-2). **중요한 쓰기는 이 방식을 따라 하지 않는다**(항상 POST + Origin 검사)
 
 ### 컬렉션과 카드팩
 | 테이블 | 열 | 메모 |
