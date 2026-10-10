@@ -1,0 +1,7 @@
+# Builds the collector image into its own Artifact Registry repository (immutable tags).
+# Usage: gcloud builds submit . --config=infra/collector/cloudbuild.yaml --substitutions=_TAG=<short sha>
+steps:
+  - name: gcr.io/cloud-builders/docker
+    env: ['DOCKER_BUILDKIT=1']
+    args: ['build', '-f', 'infra/collector/Dockerfile', '-t', 'asia-southeast3-docker.pkg.dev/$PROJECT_ID/collector/price-collector:${_TAG}', '.']
+images: ['asia-southeast3-docker.pkg.dev/$PROJECT_ID/collector/price-collector:${_TAG}']

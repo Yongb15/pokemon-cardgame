@@ -10,8 +10,42 @@ import { daysBetween, decideOutlier, isSameLevel, isUsableRate, type Currency, t
 import type { FxResult, PriceRow } from './sources.js'
 
 export class DbError extends Error {
+  override name = 'DbError'
   /** The SQLSTATE code only (e.g. "57014" statement timeout, "53300" too many connections): no detail */
   code: string | null = null
+  /** The driver's error as a safe label when there's no code: its class and a constant cause code */
+  inner: string | null = null
+}
+
+const SAFE_NAME = /^[A-Za-z]{1,40}$/
+const SAFE_CAUSE = /^[A-Z0-9_]{3,40}$/
+
+const causeCode = (error: unknown) => {
+  const code = (error as { cause?: { code?: unknown } } | null)?.cause?.code
+  return typeof code === 'string' && SAFE_CAUSE.test(code) ? code : null
+}
+
+/**
+ * A driver error without a SQL code as constants only: its class, plus why — the cause's code, the
+ * failed fetch underneath ("fetch TypeError UND_ERR_SOCKET") or the HTTP status Neon answered with
+ * ("HTTP 503"). Never a message: Neon's carry the response body, and a fetch error's a host name
+ */
+export function driverLabel(error: unknown): string | null {
+  // Drizzle may wrap the driver's error
+  const inner = (error as { cause?: unknown } | null)?.cause instanceof Error ? (error as { cause: Error }).cause : error
+  if (!(inner instanceof Error) || !SAFE_NAME.test(inner.name)) return null
+  const code = causeCode(inner)
+  if (code) return `${inner.name} ${code}`
+  const source = (inner as { sourceError?: unknown }).sourceError
+  if (source instanceof Error && SAFE_NAME.test(source.name)) {
+    const sourceCode = causeCode(source)
+    return `${inner.name} fetch ${source.name}${sourceCode ? ` ${sourceCode}` : ''}`
+  }
+  const status = /^Server error \(HTTP status (\d{3})\)/.exec(inner.message)?.[1]
+  if (!status) return inner.name
+  // A 500 can carry Postgres' SQLSTATE in its body (53300: too many connections): that code only
+  const sqlState = /"code":"([0-9A-Z]{5})"/.exec(inner.message)?.[1]
+  return `${inner.name} HTTP ${status}${sqlState ? ` ${sqlState}` : ''}`
 }
 
 let db: ReturnType<typeof drizzle> | null = null
@@ -35,6 +69,8 @@ async function run<T>(query: (d: ReturnType<typeof drizzle>) => Promise<T>): Pro
     const e = error as { code?: unknown; cause?: { code?: unknown } } | null
     const code = e?.code ?? e?.cause?.code
     if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) wrapped.code = code
+    // No SQL code (the connection itself failed): which error, and why, in constants only
+    wrapped.inner = driverLabel(error)
     throw wrapped
   }
 }

@@ -39,7 +39,7 @@
 ### D-1 전용 DB 계정 `collector_rw`
 - `app_rw`(Vercel 함수)와 공유하지 않음 → GitHub 쪽이 새면 이 계정만 회수
 - 권한(마이그레이션): `price_snapshot` SELECT·INSERT·UPDATE, `price_refresh` SELECT·INSERT·UPDATE, `fx_rate` SELECT·INSERT·UPDATE, `card_edition_link` SELECT. **`card_view_daily`·`daily_counter`·account 스키마 없음**
-- `scripts/db-create-role.mjs` 목록에 추가: `connection limit 5`, 역할 기본값 `statement_timeout = 5s`
+- `scripts/db-create-role.mjs` 목록에 추가: `connection limit 8`(처음 5 → 풀러를 써도 최고 5개까지 차서 여유분으로 8, 2026-10-10 Security), 역할 기본값 `statement_timeout = 5s`
 - 스크립트 시작 때 필요한 권한·금지 권한을 검사(없거나 넘치면 시작 거부, `api_rw`와 같은 방식)
 
 ### D-2 저장 용량과 보존 정책
@@ -73,3 +73,34 @@
 2. GitHub Environment `prices-production`: Deployment branches = **Selected branches: main**(Protected branches 아님), 비밀 `PRICE_DATABASE_URL`은 이 Environment에만(저장소 Secrets에 같은 이름 없음)
 3. develop → main 병합(PR) 뒤 `workflow_dispatch`로 첫 실행 1회: 로그가 개수만인지, DB 크기, 실패·429 여부
 4. 첫 2주 동안 하루 증가량을 이 문서에 기록
+
+> **이력**: 위의 GitHub Actions 실행(10/09~10/10)은 세 번 모두 중단돼 끄고 지웠다(워크플로 파일·Environment 삭제, `collector_rw` 비밀번호 재설정). 지금은 아래 Cloud Run Job으로 돈다. 구성 기록: `infra/collector/README.md`
+
+## 실행 위치 변경: GitHub Actions → Cloud Run Job (2026-10-10)
+
+### 왜
+- GitHub에서 세 번 실행해 모두 중단: ① 끝에서 DB 오류(NeonDbError) ② 88장 처리 뒤 연속 실패 51건 + 429 2번 ③ 196장 중 131건 실패(SQLSTATE 없는 DB 오류) + TCGdex 429 3번 연속
+- 같은 코드·같은 속도로 한국 PC → dev DB 300장은 실패 0, TCGdex 300/300 정상
+- 판단: GitHub 러너(미국, 많은 사용자가 공유하는 IP)에서 ① 싱가포르 DB까지의 연결이 자주 실패하고 ② TCGdex가 공유 IP를 제한함. 제한은 우회하지 않음(Security)
+
+### 어떻게
+- **Cloud Run Job `price-collector`**(asia-southeast3 방콕, 계정 API와 같은 리전, DB와 가까움): 1 vCPU·512MiB, 작업 1개, 재시도 0, 제한 시간 110분
+- **이미지**: `infra/collector/Dockerfile` — `scripts/collect-prices.ts` + `server/prices`·`server/db` + `data/index.json`·`tcgdex-map.json`·`sets.json`, 실행은 tsx. Artifact Registry `api` 저장소에 커밋 SHA 태그
+- **비밀**: Secret Manager `collector-db-url`(운영 `collector_rw`) → Job 환경 변수 `PRICE_DATABASE_URL`. GitHub에는 더 이상 두지 않음(Environment 비밀 삭제)
+- **실행 계정**: `collector-run` 서비스 계정 — 이 비밀 하나의 `secretAccessor`만
+- **예약**: Cloud Scheduler(무료 3개) 매일 19:30 UTC → Job 실행. 호출 계정 `collector-scheduler`는 이 Job의 `run.invoker`만
+- **비용**: Cloud Run Jobs 무료 한도(월 180,000 vCPU-초) 안 — 하루 1시간 = 월 약 108,000 vCPU-초. 예산 차단 장치(₩1,000) 그대로 적용
+- **배포**: 처음은 `gcloud builds submit`(수동), 이후 GitHub Actions(WIF) 자동 배포는 별도 단계
+
+### 전환 순서
+1. GitHub 워크플로 끔(완료, 10/10). 기존 Vercel Cron은 계속
+2. `collector_rw` 비밀번호 재설정(→ GitHub에 남은 값 무효) → 새 주소를 Secret Manager로(출력 없이)
+3. GitHub Environment `prices-production`의 비밀 삭제
+4. 이미지 빌드·Job·Scheduler 생성, 수동 실행 1회로 확인
+5. DbError 라벨 보강: 이름 `DbError` + 원래 오류 이름·cause 코드(같은 안전 규칙)
+
+### 적용 결과 (2026-10-10, Security J-1·J-2·R-1~R-5 반영)
+- J-1: 빌드는 `infra/collector/stage.sh`로 필요한 추적 파일 21개만 임시 폴더에 복사해 업로드(`.env` 0개 확인), 이미지 안 무시 규칙은 `Dockerfile.dockerignore`. 루트 `.dockerignore`·`.gcloudignore`는 그대로
+- J-2: 워크플로 파일 삭제, Environment `prices-production` 삭제, `collector_rw` 비밀번호 재설정(GitHub에 남았던 값 무효)
+- R-1: 별도 AR 저장소 `collector`(immutable tags, 정리 규칙), Job은 digest로 지정 · R-2: 비밀 `:1` 고정, 1 task·재시도 0·110분 · R-3: Scheduler asia-southeast1 → Job asia-southeast3, OAuth(`collector-scheduler`, `run.invoker`만) · R-5: `DbError` 이름 + 내부 오류 라벨
+- 첫 실행 `price-collector-94mvf`: 권한 검사 통과, 오늘 대상 5,525장 중 4,046장 수집 시작
