@@ -48,5 +48,17 @@ if (store) {
   setInterval(() => void sweep(), 60 * 60 * 1000).unref()
 }
 
+// Auctions nobody opened after they ended: settled at start-up and every 10 minutes while an instance
+// runs (participants' own reads settle theirs at once; this only tidies the rest). One auction per
+// transaction in id order, the same code as everywhere else (design §3, §4)
+if (auctions) {
+  const settle = () =>
+    auctions.settleExpired(50).catch((error: unknown) => {
+      console.warn('auction sweep failed:', error instanceof Error ? error.name : 'unknown')
+    })
+  void settle()
+  setInterval(() => void settle(), 10 * 60 * 1000).unref()
+}
+
 const app = await createApp(config, { store, data, points, packs, auctions, testProvider })
 await app.listen(config.PORT, '0.0.0.0')
