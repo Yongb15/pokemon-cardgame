@@ -42,7 +42,10 @@ export function driverLabel(error: unknown): string | null {
     return `${inner.name} fetch ${source.name}${sourceCode ? ` ${sourceCode}` : ''}`
   }
   const status = /^Server error \(HTTP status (\d{3})\)/.exec(inner.message)?.[1]
-  return status ? `${inner.name} HTTP ${status}` : inner.name
+  if (!status) return inner.name
+  // A 500 can carry Postgres' SQLSTATE in its body (53300: too many connections): that code only
+  const sqlState = /"code":"([0-9A-Z]{5})"/.exec(inner.message)?.[1]
+  return `${inner.name} HTTP ${status}${sqlState ? ` ${sqlState}` : ''}`
 }
 
 let db: ReturnType<typeof drizzle> | null = null

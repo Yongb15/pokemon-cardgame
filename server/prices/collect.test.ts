@@ -123,6 +123,9 @@ describe('failure labels (safe constants only)', () => {
     // Drizzle's wrapper is looked through
     expect(driverLabel(new Error('Failed query: select …', { cause: http }))).toBe('NeonDbError HTTP 503')
     expect(driverLabel(new NeonDbError('something with ep-x.neon.tech'))).toBe('NeonDbError')
+    // The SQLSTATE in a 500's body, and nothing else from it
+    const full = new NeonDbError('Server error (HTTP status 500): {"message":"too many connections for role \\"collector_rw\\"","code":"53300"}')
+    expect(driverLabel(full)).toBe('NeonDbError HTTP 500 53300')
     expect(driverLabel('nope')).toBeNull()
   })
 })
