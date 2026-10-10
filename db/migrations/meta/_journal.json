@@ -127,6 +127,13 @@
       "when": 1791634237832,
       "tag": "0017_auction_guards",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791637290461,
+      "tag": "0018_notifications",
+      "breakpoints": true
     }
   ]
 }

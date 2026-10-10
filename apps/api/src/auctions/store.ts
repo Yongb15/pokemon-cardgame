@@ -6,6 +6,7 @@
 
 import { sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { notify } from '../notifications/store.js'
 import { credit, lockAccount, type Tx } from '../points/store.js'
 
 export const MIN_STEP = 100
@@ -169,9 +170,13 @@ async function settleLocked(tx: Tx, a: AuctionRow) {
       await tx.execute(sql`update account.owned_cards set user_id = ${a.top_bidder_id}, auction_id = null where id = ${a.owned_card_id}`)
     }
     await tx.execute(sql`update account.auctions set status = 'sold', closed_at = now(), version = version + 1 where id = ${a.id}`)
+    // Level 4: the result for both sides, in the same transaction (7d)
+    await notify(tx, a.top_bidder_id, 'won', a.id, a.card_id, top)
+    if (a.seller_id) await notify(tx, a.seller_id, 'sold', a.id, a.card_id, top)
     return
   }
   if (a.owned_card_id) await tx.execute(sql`update account.owned_cards set auction_id = null where id = ${a.owned_card_id}`)
+  if (a.seller_id) await notify(tx, a.seller_id, 'unsold', a.id, a.card_id, null)
 }
 
 const iso = (d: Date | string) => new Date(d).toISOString()
@@ -253,6 +258,8 @@ export class PgAuctionsStore implements AuctionsStore {
           extensions = case when ends_at - now() < make_interval(secs => ${EXTEND_SECONDS}) and extensions < ${MAX_EXTENSIONS}
                             then extensions + 1 else extensions end
         where id = ${auctionId} returning version`)
+      // Level 4: the bidder this one passed hears about it (not someone raising their own bid)
+      if (!raising && a.top_bidder_id) await notify(tx, a.top_bidder_id, 'outbid', auctionId, a.card_id, amount)
       return { kind: 'ok', version: updated.rows[0]!.version }
     })
     return result

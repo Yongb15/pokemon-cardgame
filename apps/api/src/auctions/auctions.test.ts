@@ -7,6 +7,7 @@ import { randomToken } from '../auth/crypto.js'
 import { createTestProvider } from '../auth/test-provider.js'
 import { loadConfig } from '../config.js'
 import { MemoryDataStore, MemoryStore } from '../test/memory-store.js'
+import type { NotificationsStore } from '../notifications/store.js'
 import type { AuctionPublic, AuctionsStore } from './store.js'
 
 const SECRET = 's'.repeat(40)
@@ -47,6 +48,13 @@ function fakeStore(calls: string[]): AuctionsStore {
   }
 }
 
+function fakeNotifications(calls: string[]): NotificationsStore {
+  return {
+    list: async () => (calls.push('notes'), { unread: 1, items: [{ id: AID, kind: 'outbid', auctionId: AID, cardId: 'me5-1', amount: 300, at: new Date().toISOString(), read: false }] }),
+    markRead: async () => (calls.push('read'), 1),
+  }
+}
+
 async function start(appEnv: 'preview' | 'production', calls: string[]) {
   const accounts = new MemoryStore()
   const config = loadConfig({ ...env, APP_ENV: appEnv, ...(appEnv === 'preview' && { AUTH_TEST_PROVIDER: '1' }) })
@@ -54,6 +62,7 @@ async function start(appEnv: 'preview' | 'production', calls: string[]) {
     store: accounts,
     data: new MemoryDataStore(accounts),
     auctions: fakeStore(calls),
+    notifications: fakeNotifications(calls),
     ...(appEnv === 'preview' && { testProvider: await createTestProvider() }),
   })
   await app.listen(0, '127.0.0.1')
@@ -131,6 +140,21 @@ describe('auction routes (preview)', () => {
     const me = await t.call('/api/v1/me', { session })
     const res = await t.call('/api/v1/me', { method: 'DELETE', session, body: { confirm: me.body.user.nickname } })
     expect(res.status).toBe(409)
+  })
+
+  it('notifications: signed in only, settles the user’s ended auctions first', async () => {
+    expect((await t.call('/api/v1/me/notifications')).status).toBe(401)
+    const session = await t.signIn('notified')
+    calls.length = 0
+    const list = await t.call('/api/v1/me/notifications', { session })
+    expect(list.status).toBe(200)
+    expect(list.headers.get('cache-control')).toBe('no-store')
+    expect(calls).toEqual(['settle', 'notes'])
+    expect(list.body.unread).toBe(1)
+    expect((await t.call('/api/v1/me/notifications?x=1', { session })).status).toBe(400)
+    const read = await t.call('/api/v1/me/notifications/read', { method: 'POST', session })
+    expect(read.status).toBe(200)
+    expect(read.body).toEqual({ unread: 0 })
   })
 
   it('test hooks: test accounts only', async () => {
