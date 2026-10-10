@@ -7,6 +7,7 @@
 import { sql } from 'drizzle-orm'
 import {
   bigint,
+  boolean,
   check,
   customType,
   date,
@@ -197,4 +198,58 @@ export const dailyClaims = account.table(
     day: date('day').notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.day] })],
+)
+
+// --- M7 card packs and collection (docs/auction/packs.md) ----------------------------------------
+
+export const CARD_SOURCES = ['pack', 'auction', 'test'] as const
+
+/**
+ * One row per opened pack: the audit record (what it cost, the five cards it gave). Never updated:
+ * when cards change hands in 7c, this still says what the pack produced (Security 7b (b)).
+ */
+export const packOpenings = account.table(
+  'pack_openings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    setId: text('set_id').notNull(),
+    cost: bigint('cost', { mode: 'number' }).notNull(),
+    cards: text('cards').array().notNull(),
+    /** Drawn with a test seed (preview only): left out of any odds statistics */
+    seeded: boolean('seeded').notNull().default(false),
+    idemKey: text('idem_key').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    uniqueIndex('pack_openings_idem_idx').on(t.userId, t.idemKey),
+    index('pack_openings_user_idx').on(t.userId, t.createdAt),
+    check('pack_openings_set_check', sql`set_id ~ '^[a-z0-9]{1,20}$'`),
+    check('pack_openings_cost_check', sql`cost between 1 and 100000000`),
+    check('pack_openings_cards_check', sql`cardinality(cards) = 5`),
+    check('pack_openings_idem_check', sql`idem_key ~ '^[A-Za-z0-9_-]{8,64}$'`),
+  ],
+)
+
+/** The virtual cards a user owns, one row per copy (the unit an auction sells in 7c) */
+export const ownedCards = account.table(
+  'owned_cards',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    cardId: text('card_id').notNull(),
+    source: text('source').notNull(),
+    packId: uuid('pack_id').references(() => packOpenings.id, { onDelete: 'set null' }),
+    acquiredAt: timestamp('acquired_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    index('owned_cards_user_idx').on(t.userId, t.acquiredAt),
+    index('owned_cards_pack_idx').on(t.packId),
+    check('owned_cards_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
+    check('owned_cards_source_check', sql.raw(`source in (${CARD_SOURCES.map((s) => `'${s}'`).join(', ')})`)),
+  ],
 )

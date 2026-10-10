@@ -4,6 +4,7 @@ import { createTestProvider } from './auth/test-provider.js'
 import { loadConfig } from './config.js'
 import { DATA_PRIVILEGES, PgDataStore } from './data/store.js'
 import { connectDatabase } from './db/client.js'
+import { PgPacksStore, PACKS_EXCESS, PACKS_PRIVILEGES } from './packs/store.js'
 import { PgPointsStore, POINTS_EXCESS, POINTS_PRIVILEGES } from './points/store.js'
 
 const config = loadConfig()
@@ -13,14 +14,15 @@ const database = config.DATABASE_URL ? connectDatabase(config.DATABASE_URL) : nu
 const store = database ? new PgStore(database.db) : null
 const data = database ? new PgDataStore(database.db) : null
 const points = database ? new PgPointsStore(database.db) : null
+const packs = database ? new PgPacksStore(database.db) : null
 
 if (store) {
-  const missing = await store.missingPrivileges([...REQUIRED_PRIVILEGES, ...DATA_PRIVILEGES, ...POINTS_PRIVILEGES])
+  const missing = await store.missingPrivileges([...REQUIRED_PRIVILEGES, ...DATA_PRIVILEGES, ...POINTS_PRIVILEGES, ...PACKS_PRIVILEGES])
   if (missing.length) {
     console.error(`database grants don't match this code (missing: ${missing.join(', ')}); refusing to start`)
     process.exit(1)
   }
-  const excess = [...(await store.excessPrivileges()), ...(await store.grantedOf(POINTS_EXCESS))]
+  const excess = [...(await store.excessPrivileges()), ...(await store.grantedOf([...POINTS_EXCESS, ...PACKS_EXCESS]))]
   if (excess.length) console.warn(`database grants wider than needed: ${excess.join(', ')}`)
 }
 
@@ -44,5 +46,5 @@ if (store) {
   setInterval(() => void sweep(), 60 * 60 * 1000).unref()
 }
 
-const app = await createApp(config, { store, data, points, testProvider })
+const app = await createApp(config, { store, data, points, packs, testProvider })
 await app.listen(config.PORT, '0.0.0.0')

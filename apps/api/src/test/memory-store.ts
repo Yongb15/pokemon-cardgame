@@ -9,6 +9,8 @@ import { MAX_SESSIONS, type AccountStore, type SessionRecord } from '../auth/sto
 import { planImport, type DeckInput, type DeckRecord, type ImportItem } from '../data/decks.js'
 import { MAX_FAVORITES, type ImportResult, type SaveResult, type UserDataStore } from '../data/store.js'
 import type { PointKind } from '../db/schema.js'
+import { drawPack, PACK_PRICE, packSet, type Rng } from '../packs/odds.js'
+import { asPackCards, COLLECTION_PAGE, summarize, type CollectionRow, type OpenResult, type PackCheck, type PacksStore } from '../packs/store.js'
 import { DAILY_BONUS, ENTRIES_PAGE, FIRST_BONUS, type CreditResult, type LedgerCheck, type PointEntry, type PointsStore, type PointsSummary } from '../points/store.js'
 
 interface Session {
@@ -198,7 +200,7 @@ export class MemoryPointsStore implements PointsStore {
   /** Korea's date; tests can move it */
   today = '2026-10-11'
 
-  private ensure(userId: string) {
+  ensure(userId: string) {
     let granted = false
     if (!this.accounts.has(userId)) {
       this.accounts.set(userId, { balance: 0, held: 0 })
@@ -207,7 +209,7 @@ export class MemoryPointsStore implements PointsStore {
     return granted
   }
 
-  private add(userId: string, amount: number, kind: PointKind, idemKey: string): CreditResult {
+  add(userId: string, amount: number, kind: PointKind, idemKey: string): CreditResult {
     const account = this.accounts.get(userId)!
     if (account.balance + amount < account.held) return 'insufficient'
     if (this.idem.has(`${userId}:${idemKey}`)) return 'duplicate'
@@ -259,5 +261,77 @@ export class MemoryPointsStore implements PointsStore {
       mine: { balance: a.balance, held: a.held, ledgerSum: sum(userId), ok: a.balance === sum(userId) },
       all: { accounts: all.length, mismatched: all.filter(([id, x]) => x.balance !== sum(id)).length, overHeld: all.filter(([, x]) => x.held > x.balance).length },
     }
+  }
+}
+
+/** In-memory packs: shares the points store's balances, same rules as PgPacksStore */
+export class MemoryPacksStore implements PacksStore {
+  openings: { id: string; userId: string; setId: string; cards: string[]; idemKey: string; seeded: boolean; createdAt: Date }[] = []
+  owned: { userId: string; cardId: string; source: 'pack' | 'test'; packId: string | null; at: Date }[] = []
+
+  constructor(private readonly points: MemoryPointsStore) {}
+
+  async open(userId: string, setId: string, idemKey: string, rng?: Rng, seeded = false): Promise<OpenResult> {
+    const set = packSet(setId)!
+    this.points.ensure(userId)
+    const prior = this.openings.find((o) => o.userId === userId && o.idemKey === idemKey)
+    if (prior) return { kind: 'repeat', pack: { id: prior.id, setId: prior.setId, cards: asPackCards(prior.setId, prior.cards, null), createdAt: prior.createdAt } }
+    const account = this.points.accounts.get(userId)!
+    if (account.balance - account.held < PACK_PRICE) return { kind: 'insufficient', available: account.balance - account.held }
+    const drawn = drawPack(set, rng)
+    const before = new Set(this.owned.filter((o) => o.userId === userId).map((o) => o.cardId))
+    const id = randomUUID()
+    const createdAt = new Date()
+    this.openings.push({ id, userId, setId, cards: drawn.map((c) => c.cardId), idemKey, seeded, createdAt })
+    this.points.add(userId, -PACK_PRICE, 'pack_purchase', `pack:${idemKey}`)
+    const seen = new Set<string>()
+    const cards = drawn.map((c) => {
+      const isNew = !before.has(c.cardId) && !seen.has(c.cardId)
+      seen.add(c.cardId)
+      this.owned.push({ userId, cardId: c.cardId, source: 'pack', packId: id, at: new Date(createdAt.getTime() + this.owned.length) })
+      return { ...c, isNew }
+    })
+    return { kind: 'opened', pack: { id, setId, cards, createdAt } }
+  }
+
+  async latest(userId: string) {
+    const p = this.openings.filter((o) => o.userId === userId).at(-1)
+    return p ? { id: p.id, setId: p.setId, cards: asPackCards(p.setId, p.cards, null), createdAt: p.createdAt } : null
+  }
+
+  private grouped(userId: string) {
+    const map = new Map<string, CollectionRow & { real: number }>()
+    for (const o of this.owned.filter((x) => x.userId === userId)) {
+      const r = map.get(o.cardId) ?? { cardId: o.cardId, count: 0, test: 0, real: 0, newest: o.at }
+      r.count++
+      if (o.source === 'test') r.test++
+      else r.real++
+      if (o.at > r.newest) r.newest = o.at
+      map.set(o.cardId, r)
+    }
+    return [...map.values()]
+  }
+
+  async collection(userId: string, setId: string | null, page: number) {
+    const all = this.grouped(userId)
+      .filter((r) => !setId || r.cardId.startsWith(`${setId}-`))
+      .sort((a, b) => b.newest.getTime() - a.newest.getTime() || a.cardId.localeCompare(b.cardId))
+    const rows = all.slice(page * COLLECTION_PAGE, page * COLLECTION_PAGE + COLLECTION_PAGE).map((r) => ({ cardId: r.cardId, count: r.count, test: r.test, newest: r.newest }))
+    return { rows, more: all.length > (page + 1) * COLLECTION_PAGE }
+  }
+
+  async summary(userId: string) {
+    return summarize(this.grouped(userId))
+  }
+
+  async addTestCards(userId: string, cardId: string, count: number) {
+    for (let i = 0; i < count; i++) this.owned.push({ userId, cardId, source: 'test', packId: null, at: new Date() })
+  }
+
+  async packCheck(userId: string): Promise<PackCheck> {
+    const bad = (o: (typeof this.openings)[number]) =>
+      [...o.cards].sort().join() !== this.owned.filter((x) => x.packId === o.id).map((x) => x.cardId).sort().join()
+    const mine = this.openings.filter((o) => o.userId === userId)
+    return { mine: { packs: mine.length, mismatched: mine.filter(bad).length }, all: { packs: this.openings.length, mismatched: this.openings.filter(bad).length } }
   }
 }
