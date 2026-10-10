@@ -8,7 +8,7 @@ import { formatCardNumber, rarityLabel } from '../lib/cardText'
 import type { CardSet } from '../types/card'
 import styles from './PricesPage.module.css'
 
-type Edition = 'en' | 'ja'
+type Edition = 'en' | 'ja' | 'psa10'
 
 interface Ranked {
   id: string
@@ -18,6 +18,7 @@ interface Ranked {
   source: string
   variant: string
   date: string
+  sales?: number
 }
 
 interface TopResponse {
@@ -28,6 +29,7 @@ interface TopResponse {
 const EDITIONS: [Edition, string][] = [
   ['en', '영문판'],
   ['ja', '일본판'],
+  ['psa10', 'PSA 10'],
 ]
 const SOURCE_LABEL: Record<string, string> = { tcgplayer: 'TCGplayer', cardmarket: 'Cardmarket' }
 const VARIANT_LABEL: Record<string, string> = { normal: '일반', holo: '홀로', reverse: '리버스 홀로', firstEdition: '1판', unlimited: '무제한판' }
@@ -46,10 +48,14 @@ function groupBySeries(sets: CardSet[]) {
   return [...groups]
 }
 
-/** /prices?edition=en|ja&set=… (docs/design/price-ranking.webp): the priciest cards right now */
+/**
+ * /prices?edition=en|ja|psa10&set=… (docs/design/price-ranking.webp, psa-prices.webp ③): the priciest
+ * cards right now
+ */
 export default function PricesPage() {
   const [params, setParams] = useSearchParams()
-  const edition: Edition = params.get('edition') === 'ja' ? 'ja' : 'en'
+  const rawEdition = params.get('edition')
+  const edition: Edition = rawEdition === 'ja' || rawEdition === 'psa10' ? rawEdition : 'en'
   const setParam = params.get('set') ?? ''
   const set = SETS.some((s) => s.id === setParam) ? setParam : ''
   const key = `${edition}|${set}`
@@ -57,8 +63,7 @@ export default function PricesPage() {
 
   // A value the page can't use (?edition=ko, a set that doesn't exist) is taken out of the address,
   // so a shared link shows what this page showed (qa P-4)
-  const rawEdition = params.get('edition')
-  const tidy = (rawEdition !== null && rawEdition !== 'ja') || unknownSet
+  const tidy = (rawEdition !== null && rawEdition !== edition) || unknownSet
   const [missingSet, setMissingSet] = useState(false)
   useEffect(() => {
     if (!tidy) return
@@ -138,7 +143,21 @@ export default function PricesPage() {
           ))}
         </Select>
         <p className={styles.note}>
-          {edition === 'en' ? 'TCGplayer 시장가(없으면 Cardmarket)' : 'Cardmarket 추세가 · 일본판과 연결된 카드만'} · 원화 환산
+          {edition === 'en'
+            ? 'TCGplayer 시장가(없으면 Cardmarket)'
+            : edition === 'ja'
+              ? 'Cardmarket 추세가 · 일본판과 연결된 카드만'
+              : 'PSA 10 판매가 중앙값 · TCGplayer $50 이상 카드 약 300장, 주 1회'}{' '}
+          · 원화 환산
+          {edition === 'psa10' && (
+            <>
+              {' '}
+              · 출처{' '}
+              <a href="https://www.pokemonpricetracker.com" target="_blank" rel="noopener noreferrer">
+                Pokemon Price Tracker
+              </a>
+            </>
+          )}
         </p>
       </div>
 
@@ -160,7 +179,7 @@ export default function PricesPage() {
       ) : ranked.length === 0 ? (
         <div className={styles.empty}>
           <h2>{set ? '이 세트는 아직 모은 시세가 없어요' : '아직 모은 시세가 없어요'}</h2>
-          <p>카드 상세를 열면 그 카드의 시세를 가져와요.</p>
+          <p>{edition === 'psa10' ? 'PSA 시세는 비싼 카드부터 주 1회 모아요.' : '카드 상세를 열면 그 카드의 시세를 가져와요.'}</p>
         </div>
       ) : (
         <ol className={styles.list}>
@@ -198,7 +217,9 @@ export default function PricesPage() {
                     <b>{won(r.krw)}</b>
                     <span>
                       {(Object.hasOwn(CURRENCY, r.currency) ? CURRENCY[r.currency](r.amount) : `${r.amount} ${r.currency}`) +
-                        ` · ${label(SOURCE_LABEL, r.source)} ${label(VARIANT_LABEL, r.variant)}`}
+                        (r.source === 'psa10'
+                          ? ` · PSA 10 · 판매 ${(r.sales ?? 0).toLocaleString('ko-KR')}건`
+                          : ` · ${label(SOURCE_LABEL, r.source)} ${label(VARIANT_LABEL, r.variant)}`)}
                     </span>
                   </span>
                 </Link>

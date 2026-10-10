@@ -211,3 +211,7 @@
     display: none;
   }
 }
+
+.note a {
+  color: var(--accent-text);
+}

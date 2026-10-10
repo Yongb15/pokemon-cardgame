@@ -1,4 +1,6 @@
-// GET /api/prices/top?edition=en|ja&set=<set id> — the priciest cards right now (docs/design/price-ranking.webp).
+// GET /api/prices/top?edition=en|ja|psa10&set=<set id> — the priciest cards right now (docs/design/price-ranking.webp,
+// docs/design/psa-prices.webp ③). `psa10` ranks the collected PSA 10 medians: the only list of PSA
+// values we serve, capped at 50 (Security P-1).
 //
 // Ranks what has been collected: every card's latest unflagged level confirmed within the last
 // week, its headline price chosen as on the detail page (TCGplayer first, then normal → holo → …),
@@ -7,7 +9,8 @@
 
 import { addDays, headlineVariant, rateOn, toKrw, utcDay, type FxRow, type Variant } from './logic.js'
 import { isBasicEnergy, loadPriceData } from './refresh.js'
-import { getFxRates, getLatestLevels } from './store.js'
+import { PSA_MAX_AGE_DAYS } from './psaView.js'
+import { getFxRates, getLatestLevels, getLatestPsa10 } from './store.js'
 
 export const TOP_LIMIT = 50
 /** A price not confirmed for a week is too old to rank */
@@ -32,6 +35,28 @@ export interface Ranked {
   source: string
   variant: string
   date: string
+  /** PSA 10 only: the sales behind the median */
+  sales?: number
+}
+
+/** The PSA 10 medians in won, priciest first (cards without a rate are left out) */
+export function rankPsa10(
+  rows: { cardId: string; median: number; sales: number; capturedOn: string }[],
+  usd: FxRow[],
+  today: string,
+  keep: (cardId: string) => boolean,
+  limit = TOP_LIMIT,
+) {
+  const fx = rateOn(usd, today)
+  if (!fx) return []
+  const ranked: Ranked[] = []
+  for (const r of rows) {
+    if (!keep(r.cardId)) continue
+    const krw = toKrw(r.median, fx.krwPerUnit).krw
+    if (krw === null) continue
+    ranked.push({ id: r.cardId, krw, amount: r.median, currency: 'USD', source: 'psa10', variant: 'psa10', date: r.capturedOn, sales: r.sales })
+  }
+  return ranked.sort((a, b) => b.krw - a.krw || a.id.localeCompare(b.id)).slice(0, limit)
 }
 
 /**
@@ -82,7 +107,7 @@ export async function handleTop(params: URLSearchParams, now = new Date()) {
   if ([...params.values()].some((value) => value === '')) return fail(400, 'Bad request')
   const edition = params.get('edition') ?? 'en'
   const set = params.get('set') ?? ''
-  if (edition !== 'en' && edition !== 'ja') return fail(400, 'Bad request')
+  if (edition !== 'en' && edition !== 'ja' && edition !== 'psa10') return fail(400, 'Bad request')
   if (set && !SET_ID.test(set)) return fail(400, 'Bad request')
 
   // Also in this instance's memory for 10 minutes, so edge misses don't each read the database
@@ -94,14 +119,18 @@ export async function handleTop(params: URLSearchParams, now = new Date()) {
     const { cards } = await loadPriceData()
     if (set && ![...cards.values()].some((c) => c.set === set)) return fail(404, 'Not found')
     const today = utcDay(now)
-    const [levels, fx] = await Promise.all([getLatestLevels(edition, addDays(today, -FRESH_DAYS)), getFxRates(addDays(today, -14))])
+    const fx = await getFxRates(addDays(today, -14))
     const rates = new Map<string, FxRow[]>()
     for (const r of fx) rates.set(r.currency, [...(rates.get(r.currency) ?? []), r as FxRow])
     const keep = (id: string) => {
       const card = cards.get(id)
       return !!card && !isBasicEnergy(card) && (!set || card.set === set)
     }
-    const body = { edition, set: set || null, today, cards: rank(levels, rates, today, keep) }
+    const ranked =
+      edition === 'psa10'
+        ? rankPsa10(await getLatestPsa10(addDays(today, -PSA_MAX_AGE_DAYS)), rates.get('USD') ?? [], today, keep)
+        : rank(await getLatestLevels(edition, addDays(today, -FRESH_DAYS)), rates, today, keep)
+    const body = { edition, set: set || null, today, cards: ranked }
     if (memory.size > 400) memory.clear() // at most every set × 2 editions; this just bounds it
     memory.set(memoKey, { body, expires: now.getTime() + MEMO_MS })
     return json(body, 200, OK_CACHE)

@@ -62,3 +62,18 @@ describe('the /api/prices/top request', () => {
     }
   })
 })
+
+describe('PSA 10 ranking (made-up values)', () => {
+  it('ranks medians in won and keeps only the wanted cards, at most the limit', async () => {
+    const { rankPsa10 } = await import('./top.js')
+    const usd = [{ currency: 'USD', rateDate: '2026-02-01', krwPerUnit: 1000, usable: true }]
+    const rows = [
+      { cardId: 'a-1', median: 10, sales: 5, capturedOn: '2026-02-05' },
+      { cardId: 'b-1', median: 30, sales: 4, capturedOn: '2026-02-06' },
+      { cardId: 'c-1', median: 20, sales: 9, capturedOn: '2026-02-07' },
+    ]
+    const ranked = rankPsa10(rows, usd, '2026-02-10', (id) => id !== 'c-1', 1)
+    expect(ranked).toEqual([{ id: 'b-1', krw: 30000, amount: 30, currency: 'USD', source: 'psa10', variant: 'psa10', date: '2026-02-06', sales: 4 }])
+    expect(rankPsa10(rows, [], '2026-02-10', () => true)).toEqual([])
+  })
+})

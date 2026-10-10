@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCardPrices } from '../../api/cards'
 import { useApiResource } from '../../hooks/useApiResource'
-import type { CardPrices as Prices, EditionView, Price } from '../../types/prices'
+import CardPsa from './CardPsa'
+import type { CardPrices as Prices, EditionView, Price, PsaView } from '../../types/prices'
 import styles from './detail.module.css'
 import p from './prices.module.css'
 
@@ -313,64 +314,73 @@ export default function CardPrices({ cardId }: { cardId: string }) {
     }
   }, [resource.status])
 
+  // PSA values don't depend on the period: keep showing them while another period loads (no jump)
+  const [psa, setPsa] = useState<{ card: string; view: PsaView } | null>(null)
+  const fresh = data && !('hidden' in data) ? data.psa : undefined
+  if (fresh && (psa?.card !== cardId || psa.view !== fresh)) setPsa({ card: cardId, view: fresh })
+  const psaView = psa?.card === cardId ? psa.view : null
+
   if (data && 'hidden' in data) return null
   const rangeDays = range === '90d' ? 90 : 30
   const edition = chosen?.card === cardId ? chosen.edition : data ? firstEdition(data) : 'en'
 
   return (
-    <section className={styles.section} aria-labelledby="price-heading">
-      <h2 id="price-heading" className={styles.sectionTitle} ref={heading} tabIndex={-1}>
-        시세 <span className={styles.sectionNote}>참고용 · 원화 환산</span>
-      </h2>
-      <div className={p.box} aria-busy={resource.status === 'loading' || undefined}>
-        <div className={p.controls}>
-          <div className={p.segments} role="group" aria-label="판본">
-            {(['en', 'ja', 'ko'] as const).map((e) => (
-              <button
-                key={e}
-                type="button"
-                aria-pressed={edition === e}
-                onClick={() => setChosen({ card: cardId, edition: e })}
-              >
-                {EDITION_LABEL[e]}
-              </button>
-            ))}
-          </div>
-          {data && hasPrices(data, edition) && (
-            <div className={p.segments} role="group" aria-label="기간">
-              {(['30d', '90d'] as const).map((r) => (
-                <button key={r} type="button" aria-pressed={range === r} onClick={() => setRange(r)}>
-                  {r === '30d' ? '30일' : '90일'}
+    <>
+      <section className={styles.section} aria-labelledby="price-heading">
+        <h2 id="price-heading" className={styles.sectionTitle} ref={heading} tabIndex={-1}>
+          시세 <span className={styles.sectionNote}>참고용 · 원화 환산</span>
+        </h2>
+        <div className={p.box} aria-busy={resource.status === 'loading' || undefined}>
+          <div className={p.controls}>
+            <div className={p.segments} role="group" aria-label="판본">
+              {(['en', 'ja', 'ko'] as const).map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  aria-pressed={edition === e}
+                  onClick={() => setChosen({ card: cardId, edition: e })}
+                >
+                  {EDITION_LABEL[e]}
                 </button>
               ))}
             </div>
+            {data && hasPrices(data, edition) && (
+              <div className={p.segments} role="group" aria-label="기간">
+                {(['30d', '90d'] as const).map((r) => (
+                  <button key={r} type="button" aria-pressed={range === r} onClick={() => setRange(r)}>
+                    {r === '30d' ? '30일' : '90일'}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {resource.status === 'error' ? (
+            <div className={p.empty} role="alert">
+              <p>시세를 불러오지 못했어요.</p>
+              <button
+                type="button"
+                className={p.retry}
+                onClick={() => {
+                  retried.current = true
+                  resource.retry()
+                }}
+              >
+                다시 시도
+              </button>
+            </div>
+          ) : !data ? (
+            <div className={p.skeleton} aria-label="시세를 불러오는 중">
+              <span style={{ width: '40%', height: 34 }} />
+              <span style={{ width: '70%', height: 14 }} />
+              <span style={{ width: '100%', height: 120, marginTop: 12 }} />
+            </div>
+          ) : (
+            <Body data={data} edition={edition} rangeDays={rangeDays} />
           )}
         </div>
-
-        {resource.status === 'error' ? (
-          <div className={p.empty} role="alert">
-            <p>시세를 불러오지 못했어요.</p>
-            <button
-              type="button"
-              className={p.retry}
-              onClick={() => {
-                retried.current = true
-                resource.retry()
-              }}
-            >
-              다시 시도
-            </button>
-          </div>
-        ) : !data ? (
-          <div className={p.skeleton} aria-label="시세를 불러오는 중">
-            <span style={{ width: '40%', height: 34 }} />
-            <span style={{ width: '70%', height: 14 }} />
-            <span style={{ width: '100%', height: 120, marginTop: 12 }} />
-          </div>
-        ) : (
-          <Body data={data} edition={edition} rangeDays={rangeDays} />
-        )}
-      </div>
-    </section>
+      </section>
+      {psaView && <CardPsa psa={psaView} />}
+    </>
   )
 }
