@@ -51,7 +51,7 @@
 | `bid` | id, auction_id, bidder_id, amount, created_at, idem_key | 추가만. UNIQUE(auction_id, bidder_id, idem_key) |
 | `daily_claim` | user_id, day(KST) | PK — 출석 중복 방지 |
 
-- 공개 화면에 보이는 것: 판매자 닉네임, **입찰자는 가린 닉네임**(예: 트***9, 본인에게만 전체), 입찰액, 시각. 사용자 id·OAuth 정보는 보이지 않음(A-3)
+- 공개 화면에 보이는 것: 판매자 닉네임, **입찰자는 경매별 별칭**(입찰자 A·B…, 본인에게만 "(나)"), 입찰액, 시각. 사용자 id·OAuth 정보는 보이지 않음(A-3)
 - 금액·잔액은 **bigint**, CHECK: amount ≠ 0, 시작가·최소 단위 1~1억, balance ≥ held ≥ 0, extensions ≤ 10 (A-1)
 - 권한(A-1): point_entry·bid는 INSERT·SELECT만, point_account는 UPDATE(balance, held, version)만, owned_card는 UPDATE(user_id, auction_id)만, auction은 상태·top_*·ends_at·extensions·version·closed_at만 UPDATE. **DELETE 권한은 어디에도 없음**(탈퇴의 연쇄 삭제는 테이블 소유자 권한으로 FK가 처리). 서버 시작 권한 검사(필요·과다)에 새 테이블 추가
 - 탈퇴(A-2): 남의 기록은 지우지 않음 — auction.seller_id·top_bidder_id, bid.bidder_id는 ON DELETE SET NULL로 "탈퇴한 사용자" 표시·금액 유지. 본인의 point_entry·owned_card는 함께 삭제
@@ -173,7 +173,7 @@ ERD·ADR: `docs/adr/0005-points-ledger-and-auctions.md`
    - (a) 모든 화면은 `now ≥ ends_at`이면 끝난 것으로 표시("마감 처리 중…" 또는 계산된 결과)
    - (b) 내 컬렉션·포인트 내역·마이페이지를 읽을 때, 내가 판매자이거나 최고 입찰자인 마감 경매를 같은 요청에서 정산
    - (c) ledger-check: 마감됐지만 아직 정산 안 된 경매의 최고 입찰은 **보류에 포함**(정산 전까지 실제로 묶여 있음), 결과 목록에 "정산 대기 N건"으로 따로 표시해 불일치로 세지 않음
-4. **닉네임 규칙 하나**: 공개되는 모든 곳(입찰 기록·결과 문구·목록)은 판매자 이름만 그대로, 입찰자·낙찰자는 가림(트***9). 본인은 "피카츄 (나)". 예) "트***9님이 8,400P에 낙찰받았어요", 낙찰자 본인에게는 "낙찰! 내 컬렉션에 추가됐어요"
+4. **닉네임 규칙 하나**: 공개되는 모든 곳(입찰 기록·결과 문구·목록)은 판매자 이름만 그대로, 입찰자·낙찰자는 **경매별 별칭**(첫 입찰 순서로 "입찰자 A", "입찰자 B"…, 그 경매 안에서 고정). 기본 닉네임이 모두 "트레이너NNNN"이라 가리면 서로 같아 보이기 때문(qa). 본인은 "피카츄 (나)". 예) "입찰자 B님이 8,400P에 낙찰받았어요", 낙찰자 본인에게는 "낙찰! 내 컬렉션에 추가됐어요". 별칭은 서버가 경매별로 계산(사용자 id를 드러내지 않음)
 
 ### qa용 장치 조건 (Security T-1~T-6)
 - **T-1** 테스트 로그인과 같은 이중 잠금(APP_ENV=preview + dev_marker, 아니면 시작 거부), 테스트 전용 설정(짧은 기간·연장 창·시드)도 preview가 아니면 시작 거부. 운영 설정 테스트: 모든 `/api/v1/test/*` → 404
