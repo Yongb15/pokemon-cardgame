@@ -44,15 +44,16 @@
 |---|---|
 | 프론트엔드 | React 19, TypeScript, Vite 8, React Router 7, CSS Modules |
 | 서버 | Vercel Functions (`api/cards.ts` 카드, `api/prices.ts` 시세, `api/price-top.ts` 시세 순위, `api/cron/prices.ts` 매일 시세 수집) |
+| 시세 수집 | Cloud Run Job(`infra/collector`, 전용 이미지) + Cloud Scheduler 매일 04:30 KST — TCGdex에 연결된 카드 전체를 정해진 주기로(스탠다드·최근 1년 세트는 매일, 나머지는 주 1회), 429면 물러나고 실패 이유는 상수 라벨로만 기록 |
 | 계정 API | NestJS 11 (`apps/api`) on Google Cloud Run(방콕), Vercel middleware가 비밀 헤더로 프록시, zod 검증, Workload Identity 배포(키 파일 없음), Secret Manager |
 | 모노레포 | npm workspaces — 웹(루트), `apps/api`, `packages/shared`(덱·닉네임 규칙을 웹과 서버가 함께 사용) |
-| DB | PostgreSQL ([Neon](https://neon.tech), `production`·`dev` 브랜치), Drizzle ORM·마이그레이션, 용도별 최소 권한 계정(시세 `app_rw` · 계정 `api_rw`, 서로의 스키마 접근 불가) |
+| DB | PostgreSQL ([Neon](https://neon.tech), `production`·`dev` 브랜치), Drizzle ORM·마이그레이션, 용도별 최소 권한 계정(시세 `app_rw` · 계정 `api_rw` · 수집 `collector_rw`(삭제 권한 없음, 연결 8개), 서로의 스키마 접근 불가) |
 | 시세·환율 | [TCGdex](https://tcgdex.dev) (TCGplayer·Cardmarket 시세, 일본판 카드), [Frankfurter](https://frankfurter.dev) (ECB 환율) |
-| 테스트 | Vitest 145개 (시세 규칙·순위, 로그인 흐름·세션·id_token 검증, 덱·관심 카드 API, 하트 연타 순서) + GitHub Actions CI |
+| 테스트 | Vitest 153개 (시세 규칙·순위·수집 순서·실패 라벨, 로그인 흐름·세션·id_token 검증, 덱·관심 카드 API, 하트 연타 순서) + GitHub Actions CI |
 | 데이터 | 자체 보유 카드 데이터([pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)) + 공식 한국어 포켓몬·아이템·장소 이름([PokéAPI](https://github.com/PokeAPI/pokeapi)) + 공식 카드 검색과 대조한 이름 사전 + 자체 번역(비공식 표시) |
 | 덱 저장 | 로그아웃: 브라우저 localStorage, 로그인: 계정(PostgreSQL, 버전 번호로 동시 수정 감지), 공유는 URL 쿼리 |
 | 이미지 | 자체 변환 WebP, GitHub Pages 호스팅 |
-| 배포 | Vercel (`main` → 정식, `develop` → 개발 버전), Cloud Run (GitHub Actions가 커밋 SHA 이미지로 배포), 요금 한도를 넘으면 결제를 끊는 차단 장치 |
+| 배포 | Vercel (`main` → 정식, `develop` → 개발 버전), Cloud Run (GitHub Actions가 커밋 SHA 이미지로 배포, 수집기는 digest 고정 이미지), 요금 한도를 넘으면 결제를 끊는 차단 장치 |
 | 도구 | Figma, oxlint, Chrome DevTools, Lighthouse, Notion |
 
 ## 구조
@@ -72,6 +73,8 @@
 
   Vercel Cron (매일 03:00 KST) ──> /api/cron/prices ──> TCGdex · Frankfurter ──> Neon PostgreSQL
                                    (비밀 값 인증)        (하루 2,000장)            (바뀐 값만 저장)
+  Cloud Scheduler (매일 04:30 KST) ──> Cloud Run Job price-collector ──> TCGdex ──> Neon (풀러, collector_rw)
+                                       (오늘 대상 카드 전체, 동시 2개)     (1% 미만 변동은 같은 가격대로 연장)
 ```
 
 - 외부 API를 실시간으로 호출하지 않습니다. 카드 데이터는 고정된 커밋에서 생성하고(`data/meta.json`), 서버 함수가 메모리에 올려 응답합니다(검색 수 ms, 응답은 엣지에 하루 캐시).
@@ -119,6 +122,11 @@ TCGplayer·Cardmarket 공식 API는 신규 발급이 막혔고, 쓰던 API는 20
 ### 10. 두 기기에서 같은 덱을 고칠 때
 자동 저장을 넣자, 휴대폰과 PC에서 같은 덱을 열면 나중 저장이 앞의 변경을 덮어쓸 수 있었습니다.
 → 덱마다 `version`을 두고 "내가 고친 버전"이 맞을 때만 저장(낙관적 잠금, 아니면 409). 409가 나면 자동 저장을 멈추고 화면의 변경은 그대로 둔 채 "최신 버전 불러오기 / 내 변경을 사본으로 저장"을 고르게 했습니다. qa 점검에서 **덱을 열기만 해도** 표지 정보를 저장해 다른 기기에 괜한 충돌을 일으키는 것을 찾아, 열 때는 저장하지 않고 다음 실제 저장에 실어 보내도록 바꿨습니다.
+
+### 11. 전체 카드 수집이 GitHub Actions에서 계속 실패
+처음에는 매일 수집을 GitHub Actions로 돌렸는데, 세 번 연속 중간에 멈췄습니다(196장 중 131장 실패 등). 같은 코드를 로컬에서 돌리면 실패가 0건이었습니다. 실패 이유가 `Error`로만 찍혀 원인을 알 수 없었습니다.
+→ 로그에는 주소·메시지를 남기지 않는다는 원칙(Security)을 지키면서, **오류 이름 + 상수 코드만** 남기는 라벨(`DbError 57014`, `NeonDbError HTTP 500 53300`, `source HTTP 429`)을 만들었습니다. 공용 러너 IP는 시세 API의 요청 제한도 함께 받아서, 수집기를 **Cloud Run Job**(DB와 같은 동남아 지역, 전용 이미지·전용 계정)으로 옮겼습니다.
+→ 옮긴 뒤 첫 실행도 2,740장 중 1,459장이 실패했는데, 새 라벨로 `HTTP 500`까지 좁힌 뒤 응답 본문을 **로컬에서만 가려서** 확인해 `too many connections for role`(53300)을 찾았습니다. Neon의 HTTP 프록시가 노드마다 연결을 5분씩 잡고 있어 전용 계정의 연결 한도 5개를 채운 것이었습니다. 접속 주소를 **풀러(PgBouncer)**로 바꾸고 한도를 8로 올려 이후 887장 연속 실패 0건(최대 연결 4개)입니다.
 
 ## 개발 방식
 
@@ -181,7 +189,7 @@ api/                 Vercel Function 진입점 (cards.ts, prices.ts, price-top.t
 apps/api/            계정 API 서버 (NestJS): auth(OIDC·세션·가드) · data(덱·관심 카드·계정) · db(스키마)
 packages/shared/     웹과 서버가 함께 쓰는 덱·닉네임 규칙
 middleware.ts        /api/v1 → Cloud Run 프록시 (비밀 헤더)
-infra/               요금 차단 장치(billing-guard), 로그 제외 설정 기록
+infra/               요금 차단 장치(billing-guard), 로그 제외 설정 기록, 시세 수집기 이미지·구성 기록(collector)
 server/cardsApi.ts   카드 API (개발 서버와 공유)
 server/db/           DB 스키마 (Drizzle)
 server/prices/       시세: 규칙(logic) · 외부 출처(sources) · 저장(store) · 수집(cron) · 화면용 변환(view) · API
@@ -219,7 +227,8 @@ src/
 - [x] v1.1.0 덱 빌더 (M4), 모든 카드·세트·희귀도 한국어
 - [x] 카드 시세 (M5) — 영문판·일본판 시세 원화 환산, 매일 이력 수집, 30·90일 그래프, 한글판 검색 링크 (v1.2.0)
 - [x] v1.3.0 로그인·계정 (M6) — 구글·카카오 로그인, 계정 덱 동기화, 관심 카드, NestJS API(Cloud Run), 시세 탭(M5.1), 30일 평균선
-- [ ] 전체 카드 시세 매일 수집 (GitHub Actions) → 시세 탭을 전체 카드 기준으로, 7일 상승·하락 순위
+- [x] 전체 카드 시세 매일 수집 (M5.2) — Cloud Run Job + Cloud Scheduler, 매일 약 4천 장
+- [ ] 시세가 2주 쌓이면: 시세 탭을 전체 카드 기준으로, 7일 상승·하락 순위, 180일 지난 이력 압축
 - [ ] 시세 확장 — 트레이너스 카드 일본판 연결, 등급(PSA) 시세, 한글판 낙찰가·사용자 제보
 - [ ] 가상 포인트 경매 — 실시간 입찰, 포인트 장부, 동시 입찰 처리
 - [ ] 덱 통계(타입·종류별 장수), 카드 상세에서 바로 덱에 담기
