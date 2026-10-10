@@ -56,7 +56,11 @@ function App() {
     <>
       <Header />
       <Notices />
-      <Outlet />
+      {/* At least a screen tall: on any page whose content loads after the frame, the footer starts
+          below the fold instead of jumping away when the content arrives (qa P7-2, like fix/detail-cls) */}
+      <div className={styles.page}>
+        <Outlet />
+      </div>
       <Footer />
       <ScrollRestoration />
     </>
