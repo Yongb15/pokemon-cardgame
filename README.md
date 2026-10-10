@@ -27,10 +27,13 @@
   - 규칙 검사: 60장, 같은 이름 4장(기본 에너지 제외), 기본 포켓몬, ACE SPEC·찬란한 포켓몬 1장, 스탠다드(레귤레이션 H 이후)·익스팬디드 사용 가능 여부(언리미티드는 사용 가능 여부 검사 없음)
   - Pokémon TCG Live 덱 목록 붙여넣기로 가져오기, 같은 형식으로 내보내기
   - 로그인 없이 브라우저에 저장, 덱 내용을 담은 링크로 공유(받은 덱은 항상 새 덱으로 저장)
+  - **카드 상세에서 바로 덱에 담기**: 내 덱마다 이 카드 장수를 −/+(모바일은 아래에서 올라오는 시트), 4장·60장 제한 안내, 새 덱 만들기
+  - **덱 구성**: 종류·진화 단계·타입·트레이너스 종류·에너지별 장수(편집·공유 화면)
 - **필터와 정렬** — 타입·세트·희귀도 필터, 최신/오래된 세트순·이름순·번호순, 상태는 URL에 저장(새로고침·공유·뒤로 가기 유지)
 - **카드 상세** — 큰 이미지 뷰어, 기술·특성(에너지 비용), 약점·저항력·후퇴, 세트 정보, 대회 사용 가능 여부, 같은 세트의 이전/다음 카드, 같은 포켓몬의 다른 카드
 - **카드 시세** — 카드 상세에서 영문판·일본판 시세를 원화로(TCGplayer·Cardmarket, 그날 환율로 환산), 30·90일 그래프와 최저·최고·변동률, 버전(일반·홀로·리버스)별 시세. 이력은 매일 직접 쌓고(바뀐 값만 저장), 이상치는 그래프에서 빼며, 확인하지 못한 기간은 점선과 글로 표시. 일본판은 영문판 카드와 자동 대조한 연결표로 SV·메가 시대 포켓몬 1,971장(qa가 표본 143장을 그림으로 대조해 규칙을 다듬고, 신뢰도 높은 연결만 표시), 한글판은 크림·번개장터 검색 링크로 안내
-- **시세 탭** — 지금 가장 비싼 카드 TOP 50(영문판·일본판, 세트별), 상세와 같은 규칙으로 고른 대표 시세를 원화로. 카드 상세 그래프에는 Cardmarket 30일 평균선(같은 시장일 때만)
+- **PSA 등급 시세** — 비싼 카드(TCGplayer $50 이상, 약 300장)의 PSA 10·9·8 판매가 중앙값을 주 1회 모아 원화로. 거래가 적거나 오래된 값은 안내를 붙이고, 30일 지난 값은 숨김. 출처 [Pokemon Price Tracker](https://www.pokemonpricetracker.com)(eBay·Fanatics 판매 기록, [약관 검토](docs/price/psa.md))
+- **시세 탭** — 지금 가장 비싼 카드 TOP 50(영문판·일본판·PSA 10, 세트별), 상세와 같은 규칙으로 고른 대표 시세를 원화로. 카드 상세 그래프에는 Cardmarket 30일 평균선(같은 시장일 때만)
 - **로그인·계정** — 구글·카카오 로그인(OIDC, 사용자 고유번호만 저장, 이메일·프로필 없음), 마이페이지(닉네임, 모든 기기에서 로그아웃, 닉네임 입력으로 확인하는 탈퇴), 개인정보처리방침·이용약관
 - **관심 카드** — 카드 상세의 하트(누르는 즉시 반영, 실패하면 되돌림, 연타해도 마지막 상태로 저장), 관심 카드 페이지, 로그인 전에 누른 하트는 로그인 뒤 자동 저장
 - **덱 동기화** — 로그인하면 계정에 저장(최대 100개), 브라우저 덱을 계정으로 가져오기(같은 덱은 한 번만), 0.8초 뒤 자동 저장과 저장 상태 표시, 다른 기기에서 먼저 바꾸면 덮어쓰지 않고 "최신 불러오기 / 내 변경을 사본으로" 선택
@@ -44,12 +47,12 @@
 |---|---|
 | 프론트엔드 | React 19, TypeScript, Vite 8, React Router 7, CSS Modules |
 | 서버 | Vercel Functions (`api/cards.ts` 카드, `api/prices.ts` 시세, `api/price-top.ts` 시세 순위, `api/cron/prices.ts` 매일 시세 수집) |
-| 시세 수집 | Cloud Run Job(`infra/collector`, 전용 이미지) + Cloud Scheduler 매일 04:30 KST — TCGdex에 연결된 카드 전체를 정해진 주기로(스탠다드·최근 1년 세트는 매일, 나머지는 주 1회), 429면 물러나고 실패 이유는 상수 라벨로만 기록 |
+| 시세 수집 | Cloud Run Job(`infra/collector`, 전용 이미지) + Cloud Scheduler 매일 04:30 KST — TCGdex에 연결된 카드 전체를 정해진 주기로(스탠다드·최근 1년 세트는 매일, 나머지는 주 1회), 429면 물러나고 실패 이유는 상수 라벨로만 기록. 이어서 비싼 카드 45장의 PSA 시세(크레딧 10개 남으면 멈춤) |
 | 계정 API | NestJS 11 (`apps/api`) on Google Cloud Run(방콕), Vercel middleware가 비밀 헤더로 프록시, zod 검증, Workload Identity 배포(키 파일 없음), Secret Manager |
 | 모노레포 | npm workspaces — 웹(루트), `apps/api`, `packages/shared`(덱·닉네임 규칙을 웹과 서버가 함께 사용) |
 | DB | PostgreSQL ([Neon](https://neon.tech), `production`·`dev` 브랜치), Drizzle ORM·마이그레이션, 용도별 최소 권한 계정(시세 `app_rw` · 계정 `api_rw` · 수집 `collector_rw`(삭제 권한 없음, 연결 8개), 서로의 스키마 접근 불가) |
-| 시세·환율 | [TCGdex](https://tcgdex.dev) (TCGplayer·Cardmarket 시세, 일본판 카드), [Frankfurter](https://frankfurter.dev) (ECB 환율) |
-| 테스트 | Vitest 153개 (시세 규칙·순위·수집 순서·실패 라벨, 로그인 흐름·세션·id_token 검증, 덱·관심 카드 API, 하트 연타 순서) + GitHub Actions CI |
+| 시세·환율 | [TCGdex](https://tcgdex.dev) (TCGplayer·Cardmarket 시세, 일본판 카드), [Frankfurter](https://frankfurter.dev) (ECB 환율), [Pokemon Price Tracker](https://www.pokemonpricetracker.com) (PSA 등급 판매가, 무료 플랜 하루 45장) |
+| 테스트 | Vitest 165개 (시세 규칙·순위·수집 순서·실패 라벨·PSA 응답 검증, 덱 구성 통계, 로그인 흐름·세션·id_token 검증, 덱·관심 카드 API, 하트 연타 순서) + GitHub Actions CI |
 | 데이터 | 자체 보유 카드 데이터([pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)) + 공식 한국어 포켓몬·아이템·장소 이름([PokéAPI](https://github.com/PokeAPI/pokeapi)) + 공식 카드 검색과 대조한 이름 사전 + 자체 번역(비공식 표시) |
 | 덱 저장 | 로그아웃: 브라우저 localStorage, 로그인: 계정(PostgreSQL, 버전 번호로 동시 수정 감지), 공유는 URL 쿼리 |
 | 이미지 | 자체 변환 WebP, GitHub Pages 호스팅 |
@@ -229,9 +232,9 @@ src/
 - [x] v1.3.0 로그인·계정 (M6) — 구글·카카오 로그인, 계정 덱 동기화, 관심 카드, NestJS API(Cloud Run), 시세 탭(M5.1), 30일 평균선
 - [x] 전체 카드 시세 매일 수집 (M5.2) — Cloud Run Job + Cloud Scheduler, 매일 약 4천 장
 - [ ] 시세가 2주 쌓이면: 시세 탭을 전체 카드 기준으로, 7일 상승·하락 순위, 180일 지난 이력 압축
-- [ ] 시세 확장 — 트레이너스 카드 일본판 연결, 등급(PSA) 시세, 한글판 낙찰가·사용자 제보
+- [x] v1.4.0 덱에 담기·덱 구성, PSA 등급 시세(M5.3)
+- [ ] 시세 확장 — 트레이너스 카드 일본판 연결, 한글판 낙찰가·사용자 제보
 - [ ] 가상 포인트 경매 — 실시간 입찰, 포인트 장부, 동시 입찰 처리
-- [ ] 덱 통계(타입·종류별 장수), 카드 상세에서 바로 덱에 담기
 - [ ] 새 세트 데이터 추가 (원본 데이터 저장소가 2026-09 이후 갱신되지 않음)
 
 ## 출처
