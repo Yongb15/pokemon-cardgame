@@ -317,6 +317,14 @@
   text-align: center;
 }
 
+/* Each caption line stays one line (long rarity names cut with …): the slot height never changes (qa 7b Low) */
+.cap b,
+.cap span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
 .cap b {
   overflow: hidden;
   color: var(--text-h);

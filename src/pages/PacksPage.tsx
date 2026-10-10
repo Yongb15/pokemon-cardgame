@@ -93,7 +93,7 @@ function Reveal({ pack, recovered, onAgain, canAgain, reasonId, busy }: { pack: 
               </div>
               <p className={styles.cap}>
                 <b>{open ? label(c.cardId) : ' '}</b>
-                <span>
+                <span title={open ? TIER_LABEL[c.tier] : undefined}>
                   {open ? TIER_LABEL[c.tier] : ' '}
                   {open && c.rareSlot && (
                     <>
