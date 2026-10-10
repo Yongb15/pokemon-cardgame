@@ -59,6 +59,8 @@ export interface PointEntry {
   kind: PointKind
   ref: string | null
   createdAt: Date
+  /** The row's exact time (microseconds, UTC) for the next page's cursor (qa: ms would skip ties) */
+  at: string
 }
 
 export type CreditResult = 'ok' | 'duplicate' | 'insufficient'
@@ -73,7 +75,7 @@ export interface PointsStore {
   summary(userId: string): Promise<PointsSummary>
   /** Today's check-in: false when it was already taken (today, Korea time) */
   claimDaily(userId: string): Promise<{ claimed: boolean; summary: PointsSummary }>
-  entries(userId: string, before: { createdAt: Date; id: string } | null): Promise<PointEntry[]>
+  entries(userId: string, before: { at: string; id: string } | null): Promise<PointEntry[]>
   /** A preview top-up for a test account (admin_adjust, ref 'test') */
   adjust(userId: string, amount: number, idemKey: string): Promise<CreditResult>
   ledgerCheck(userId: string): Promise<LedgerCheck>
@@ -158,14 +160,16 @@ export class PgPointsStore implements PointsStore {
     })
   }
 
-  async entries(userId: string, before: { createdAt: Date; id: string } | null) {
-    const { rows } = await this.db.execute<{ id: string; amount: string; kind: PointKind; ref: string | null; created_at: Date }>(sql`
-      select id, amount, kind, ref, created_at from account.point_entries
+  async entries(userId: string, before: { at: string; id: string } | null) {
+    const { rows } = await this.db.execute<{ id: string; amount: string; kind: PointKind; ref: string | null; created_at: Date; at: string }>(sql`
+      select id, amount, kind, ref, created_at,
+             to_char(created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as at
+      from account.point_entries
       where user_id = ${userId}
-        ${before ? sql`and (created_at, id) < (${before.createdAt.toISOString()}::timestamptz, ${before.id}::uuid)` : sql``}
+        ${before ? sql`and (created_at, id) < (${before.at}::timestamptz, ${before.id}::uuid)` : sql``}
       order by created_at desc, id desc
       limit ${ENTRIES_PAGE}`)
-    return rows.map((r) => ({ id: r.id, amount: Number(r.amount), kind: r.kind, ref: r.ref, createdAt: new Date(r.created_at) }))
+    return rows.map((r) => ({ id: r.id, amount: Number(r.amount), kind: r.kind, ref: r.ref, createdAt: new Date(r.created_at), at: r.at }))
   }
 
   async adjust(userId: string, amount: number, idemKey: string) {

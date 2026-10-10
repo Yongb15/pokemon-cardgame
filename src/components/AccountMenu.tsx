@@ -104,7 +104,10 @@ export default function AccountMenu() {
       ref={root}
       // Tabbing out of the menu closes it (qa 6A-6)
       onBlur={(event) => {
-        if (open && !root.current?.contains(event.relatedTarget as Node | null)) setOpen(false)
+        // Only when focus moved somewhere else on the page: a button inside that disables itself
+        // while it works drops focus to the body (relatedTarget null) and must not close it (qa P7-1)
+        const to = event.relatedTarget as Node | null
+        if (open && to && !root.current?.contains(to)) setOpen(false)
       }}
     >
       <button
@@ -135,7 +138,13 @@ export default function AccountMenu() {
                 <b>{won(summary.available)}</b>
               </p>
               {canClaim ? (
-                <button type="button" className={styles.menuClaim} onClick={() => void onClaim()} disabled={claiming}>
+                <button
+                  type="button"
+                  className={styles.menuClaim}
+                  // aria-disabled, not disabled: focus stays on it while it works (qa P7-1)
+                  aria-disabled={claiming}
+                  onClick={() => !claiming && void onClaim()}
+                >
                   {claiming ? '받는 중…' : '출석 체크 +500P'}
                 </button>
               ) : (

@@ -4,6 +4,8 @@ import { loadPoints, usePoints } from '../hooks/usePoints'
 import { won } from '../lib/points'
 import styles from './PointsLedger.module.css'
 
+const FIRST_ROWS = 5
+
 const KIND_LABEL: Record<PointKind, string> = {
   // Existing accounts get it at the 7a release too, so not "가입" (qa 7)
   signup_bonus: '첫 포인트 보너스',
@@ -30,6 +32,8 @@ export default function PointsLedger() {
   const [next, setNext] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
+  // Five rows at first, so the section has one known height while it loads (qa P7-2)
+  const [shown, setShown] = useState(FIRST_ROWS)
   const balance = points.status === 'ready' ? points.summary.balance : null
   const root = useRef<HTMLElement>(null)
 
@@ -56,12 +60,18 @@ export default function PointsLedger() {
   }, [balance])
 
   const more = async () => {
+    // Rows already loaded come first; the server is asked only past them
+    if (entries && shown < entries.length) {
+      setShown((n) => n + 20)
+      return
+    }
     if (!next) return
     setLoadingMore(true)
     try {
       const page = await getPointEntries(next)
       setEntries((list) => [...(list ?? []), ...page.entries])
       setNext(page.next)
+      setShown((n) => n + 20)
     } catch (e) {
       setError(e instanceof AccountApiError ? e.message : '내역을 불러오지 못했어요.')
     } finally {
@@ -96,6 +106,7 @@ export default function PointsLedger() {
         </dl>
       )}
 
+      <div className={styles.rows}>
       {error ? (
         <p className={styles.alert} role="alert">
           {error}
@@ -106,7 +117,7 @@ export default function PointsLedger() {
         <p className={styles.empty}>아직 내역이 없어요.</p>
       ) : (
         <ol className={styles.ledger} aria-label="포인트 내역 (최근 순)">
-          {entries.map((e) => (
+          {entries.slice(0, shown).map((e) => (
             <li key={e.id}>
               <span className={styles.day}>{kstDay(e.createdAt)}</span>
               <span>{KIND_LABEL[e.kind] ?? e.kind}</span>
@@ -115,7 +126,8 @@ export default function PointsLedger() {
           ))}
         </ol>
       )}
-      {next && (
+      </div>
+      {entries && (shown < entries.length || next) && (
         <button type="button" className={styles.more} onClick={() => void more()} disabled={loadingMore}>
           {loadingMore ? '불러오는 중…' : '더 보기'}
         </button>

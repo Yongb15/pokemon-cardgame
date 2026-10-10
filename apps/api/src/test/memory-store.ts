@@ -213,7 +213,8 @@ export class MemoryPointsStore implements PointsStore {
     if (this.idem.has(`${userId}:${idemKey}`)) return 'duplicate'
     this.idem.add(`${userId}:${idemKey}`)
     const list = this.entriesOf.get(userId) ?? []
-    list.push({ id: randomUUID(), amount, kind, ref: kind === 'admin_adjust' ? 'test' : null, createdAt: new Date(Date.now() + list.length) })
+    const createdAt = new Date(Date.now() + list.length)
+    list.push({ id: randomUUID(), amount, kind, ref: kind === 'admin_adjust' ? 'test' : null, createdAt, at: createdAt.toISOString().replace('Z', '000Z') })
     this.entriesOf.set(userId, list)
     account.balance += amount
     return 'ok'
@@ -239,7 +240,7 @@ export class MemoryPointsStore implements PointsStore {
     return { claimed, summary: this.view(userId, granted) }
   }
 
-  async entries(userId: string, before: { createdAt: Date; id: string } | null) {
+  async entries(userId: string, before: { at: string; id: string } | null) {
     const all = [...(this.entriesOf.get(userId) ?? [])].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id))
     const from = before ? all.findIndex((e) => e.id === before.id) + 1 : 0
     return all.slice(from, from + ENTRIES_PAGE)

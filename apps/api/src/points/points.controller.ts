@@ -46,17 +46,17 @@ export class PointsController extends PointRoutes {
     // "before" is the only parameter, like the other strict routes (Security I-1)
     if (Object.keys(query).some((key) => key !== 'before')) throw badRequest()
     const before = query.before
-    let cursor: { createdAt: Date; id: string } | null = null
+    let cursor: { at: string; id: string } | null = null
     if (before !== undefined) {
       const m = typeof before === 'string' ? CURSOR.exec(before) : null
       if (!m || Number.isNaN(Date.parse(m[1]!))) throw badRequest()
-      cursor = { createdAt: new Date(m[1]!), id: m[2]! }
+      cursor = { at: m[1]!, id: m[2]! }
     }
     const entries = await this.points.entries(user.id, cursor)
     const last = entries.length === 20 ? entries.at(-1) : undefined
     return {
       entries: entries.map((e) => ({ id: e.id, amount: e.amount, kind: e.kind, createdAt: e.createdAt.toISOString() })),
-      next: last ? `${last.createdAt.toISOString()}_${last.id}` : null,
+      next: last ? `${last.at}_${last.id}` : null,
     }
   }
 

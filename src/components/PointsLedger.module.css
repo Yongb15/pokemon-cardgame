@@ -72,9 +72,13 @@
   color: var(--text-h);
 }
 
-/* About one page of rows, so the list arriving doesn't push the sections below (qa 8) */
+/* Five rows tall whether loading, empty or filled: what's below doesn't move (qa P7-2) */
+.rows {
+  min-height: 196px;
+}
+
 .skeleton {
-  height: 160px;
+  height: 196px;
   border-radius: 10px;
   background: var(--skeleton);
 }

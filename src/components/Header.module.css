@@ -281,3 +281,8 @@
     white-space: nowrap;
   }
 }
+
+.menu .menuClaim[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: progress;
+}
