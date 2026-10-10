@@ -76,6 +76,12 @@
   text-decoration: underline;
 }
 
+/* The list area keeps the skeleton's height, so a short list (PSA 10 in its first weeks, a small set)
+   doesn't pull the footer up when it arrives (qa PSA-2) */
+.results {
+  min-height: max(480px, 80vh);
+}
+
 .skeleton {
   /* About as tall as the list, so the footer doesn't jump when it arrives (qa P-3) */
   height: max(480px, 80vh);
@@ -210,4 +216,8 @@
   .price span {
     display: none;
   }
+}
+
+.note a {
+  color: var(--accent-text);
 }

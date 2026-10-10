@@ -7,6 +7,7 @@
 
 import { addDays, isRefreshDue, utcDay, type FxRow } from './logic.js'
 import { isBasicEnergy, JA_MIN_CONFIDENCE, loadPriceData, refreshCard, type CardInfo } from './refresh.js'
+import { psaView } from './psaView.js'
 import { fetchFx } from './sources.js'
 import {
   budgetLeft,
@@ -14,6 +15,7 @@ import {
   getEditionLink,
   getFxRates,
   getPriceRows,
+  getPsaRows,
   getRefresh,
   recordView,
   saveFx,
@@ -27,6 +29,8 @@ const VIEW_REFRESH_TIMEOUT_MS = 10_000
 const FX_ON_VIEW_TRIES = 3
 const RANGES: Record<string, number> = { '30d': 30, '90d': 90 }
 const ID_PATTERN = /^[\w.!?-]{1,40}$/
+/** PSA history on the chart: about half a year of weekly points */
+const PSA_HISTORY_DAYS = 183
 
 // Search pages for the Korean edition (links only: we collect nothing from them)
 const KREAM_SEARCH = 'https://kream.co.kr/search'
@@ -57,6 +61,21 @@ function koreanLinks(card: CardInfo) {
   const bunjang = new URL(BUNJANG_SEARCH)
   bunjang.searchParams.set('q', term)
   return { term, kream: kream.toString(), bunjang: bunjang.toString() }
+}
+
+/** The card's highest TCGplayer price (any print) confirmed in the last two weeks: whether it gets PSA prices */
+function rawTcgplayerUsd(
+  rows: { edition: string; source: string; currency: string; variant: string; capturedOn: string; lastSeenOn: string; market: number; flagged: boolean }[],
+  today: string,
+) {
+  const latest = new Map<string, { capturedOn: string; lastSeenOn: string; market: number }>()
+  for (const r of rows) {
+    if (r.edition !== 'en' || r.source !== 'tcgplayer' || r.currency !== 'USD' || r.flagged) continue
+    const seen = latest.get(r.variant)
+    if (!seen || r.capturedOn > seen.capturedOn) latest.set(r.variant, r)
+  }
+  const fresh = [...latest.values()].filter((r) => r.lastSeenOn >= addDays(today, -14)).map((r) => r.market)
+  return fresh.length ? Math.max(...fresh) : null
 }
 
 export interface PricesContext {
@@ -91,11 +110,12 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
     if (isBasicEnergy(card)) return json({ card: id, hidden: true }, 200, OK_CACHE)
 
     // 3. What's stored
-    const [rows, fx, refresh, link] = await Promise.all([
+    const [rows, fx, refresh, link, psaRows] = await Promise.all([
       getPriceRows(id),
       getFxRates(addDays(today, -(rangeDays + 14))),
       getRefresh(id),
       getEditionLink(id),
+      getPsaRows(id, addDays(today, -PSA_HISTORY_DAYS)),
     ])
     const rates: Rates = new Map()
     for (const r of fx) rates.set(r.currency, [...(rates.get(r.currency) ?? []), r as FxRow])
@@ -178,6 +198,7 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
           ko: { state: 'links', links: koreanLinks(card) },
         },
         mixedEditions: MIXED_EDITION_SETS.has(card.set),
+        psa: psaView(psaRows, rawTcgplayerUsd(rows, today), rates.get('USD') ?? [], today),
         // For checking from outside (qa): when we last tried, how it went, whether a fetch just started
         refresh: { refreshedAt: refresh?.refreshedAt ?? null, status: refreshStatus, refreshing },
         note: '참고용 시세입니다',

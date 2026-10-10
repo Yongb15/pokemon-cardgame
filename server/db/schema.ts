@@ -144,3 +144,41 @@ export const dailyCounter = pgTable(
   },
   (t) => [primaryKey({ columns: [t.name, t.day] }), check('daily_counter_value_check', sql`value >= 0`)],
 )
+
+export const PSA_GRADES = ['psa10', 'psa9', 'psa8'] as const
+export const PSA_STATUSES = ['ok', 'no_sales', 'not_found', 'error'] as const
+
+/**
+ * PSA graded sale prices per card, grade and collection day (docs/price/psa.md): aggregates only —
+ * no listing titles, sellers or links (Security P-4). Grades with under 3 sales aren't stored.
+ */
+export const psaPrice = pgTable(
+  'psa_price',
+  {
+    cardId: text('card_id').notNull(),
+    grade: text('grade').notNull(),
+    capturedOn: date('captured_on').notNull(),
+    /** Median sale price in USD */
+    median: numeric('median', { precision: 12, scale: 2, mode: 'number' }).notNull(),
+    sales: integer('sales').notNull(),
+    lastSaleOn: date('last_sale_on'),
+  },
+  (t) => [
+    primaryKey({ columns: [t.cardId, t.grade, t.capturedOn] }),
+    check('psa_price_grade_check', oneOf('grade', PSA_GRADES)),
+    check('psa_price_values_check', sql`median between 0 and 1000000 and sales between 3 and 1000000`),
+    check('psa_price_sale_check', sql`last_sale_on is null or last_sale_on <= captured_on`),
+    cardIdCheck('psa_price'),
+  ],
+)
+
+/** When a card's PSA prices were last collected (oldest first is the next to collect) */
+export const psaRefresh = pgTable(
+  'psa_refresh',
+  {
+    cardId: text('card_id').primaryKey(),
+    refreshedAt: timestamp('refreshed_at', { withTimezone: true }).notNull(),
+    status: text('status').notNull(),
+  },
+  () => [check('psa_refresh_status_check', oneOf('status', PSA_STATUSES)), cardIdCheck('psa_refresh')],
+)

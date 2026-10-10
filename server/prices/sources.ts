@@ -9,6 +9,7 @@ import { cleanPrice, type Currency, type Source, type Variant } from './logic.js
 
 const TCGDEX = 'https://api.tcgdex.net'
 const FRANKFURTER = 'https://api.frankfurter.dev'
+const PRICETRACKER = 'https://www.pokemonpricetracker.com'
 const MAX_BYTES = 1_000_000
 const TIMEOUT_MS = 8_000
 
@@ -64,12 +65,15 @@ export function networkLabel(error: unknown) {
 /** Who is asking, and where to reach us (docs/price/collect-all.md D-3) */
 export const USER_AGENT = 'card-dex-collector (+https://github.com/Yongb15/pokemon-cardgame)'
 
-/** GET JSON from a fixed host: no redirects, JSON only, at most 1 MB, with a timeout */
-async function getJson(url: string, signal?: AbortSignal): Promise<unknown | null> {
+/**
+ * GET JSON from a fixed host: no redirects (a header with a key is never sent on), JSON only, at
+ * most 1 MB, with a timeout
+ */
+async function getJson(url: string, signal?: AbortSignal, extraHeaders: Record<string, string> = {}): Promise<unknown | null> {
   const timeout = AbortSignal.timeout(TIMEOUT_MS)
   const res = await fetch(url, {
     redirect: 'error',
-    headers: { accept: 'application/json', 'user-agent': USER_AGENT },
+    headers: { accept: 'application/json', 'user-agent': USER_AGENT, ...extraHeaders },
     signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
   })
   if (res.status === 404) return null
@@ -242,6 +246,106 @@ export function parseFx(body: unknown, now: Date): FxResult | null {
     if (!(krw >= 1 && krw <= 10_000)) delete rates[currency]
   }
   return Object.keys(rates).length ? { rateDate: body.date, rates } : null
+}
+
+// --- PSA graded prices (docs/price/psa.md) ------------------------------------------------------
+
+export const PSA_GRADES = ['psa10', 'psa9', 'psa8'] as const
+export type PsaGrade = (typeof PSA_GRADES)[number]
+/** Fewer sales than this and one or two deals decide the value: not stored */
+export const PSA_MIN_SALES = 3
+
+export interface PsaGradePrice {
+  grade: PsaGrade
+  /** Median sale price, USD */
+  median: number
+  sales: number
+  lastSaleOn: string | null
+}
+
+export type PsaResult =
+  | { status: 'ok'; grades: PsaGradePrice[]; dailyRemaining: number | null }
+  | { status: 'not_found' | 'mismatch'; dailyRemaining: number | null }
+  /** 401/403: the key is wrong or revoked; 429: the day's credits or the minute's calls are used up */
+  | { status: 'unauthorized' | 'rate_limited' | 'error'; reason?: string; dailyRemaining: number | null }
+
+/** The TCGplayer product of a TCGdex card (any printing: they share one product), or null */
+export async function fetchTcgplayerId(tcgdexId: string, signal?: AbortSignal): Promise<number | null> {
+  if (!TCGDEX_ID.test(tcgdexId)) return null
+  try {
+    const card = await getJson(`${TCGDEX}/v2/en/cards/${encodeURIComponent(tcgdexId)}`, signal)
+    if (!isObject(card) || !isObject(card.pricing) || !isObject(card.pricing.tcgplayer)) return null
+    for (const [key] of TCGPLAYER_VARIANTS) {
+      const variant = card.pricing.tcgplayer[key]
+      const id = isObject(variant) ? variant.productId : undefined
+      if (typeof id === 'number' && Number.isInteger(id) && id > 0 && id < 1e9) return id
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+const ISO_DAY = /^(\d{4}-\d{2}-\d{2})(T[\d:.]+Z)?$/
+
+/**
+ * The aggregates we keep from a Pokemon Price Tracker card (Security P-3, P-4): only PSA 10/9/8,
+ * only finite in-range numbers, only past ISO dates, only grades with enough sales. Nothing else
+ * from the response (listing titles, sellers, links) is read. A card that isn't the one we asked
+ * for (its TCGdex id differs) is refused.
+ */
+export function parsePsa(body: unknown, tcgdexId: string, today: string): PsaGradePrice[] | 'mismatch' {
+  const card = isObject(body) && isObject(body.data) ? body.data : null
+  if (!card || card.externalCatalogId !== tcgdexId) return 'mismatch'
+  const byGrade = isObject(card.ebay) && isObject(card.ebay.salesByGrade) ? card.ebay.salesByGrade : {}
+  const grades: PsaGradePrice[] = []
+  for (const grade of PSA_GRADES) {
+    const g = byGrade[grade]
+    if (!isObject(g)) continue
+    const median = g.medianPrice
+    const sales = g.count
+    if (typeof median !== 'number' || !Number.isFinite(median) || median <= 0 || median > 1_000_000) continue
+    if (typeof sales !== 'number' || !Number.isInteger(sales) || sales < PSA_MIN_SALES || sales > 1_000_000) continue
+    const day = typeof g.lastSaleDate === 'string' ? ISO_DAY.exec(g.lastSaleDate)?.[1] : undefined
+    const lastSaleOn = day && day <= today && !Number.isNaN(Date.parse(`${day}T00:00:00Z`)) ? day : null
+    grades.push({ grade, median: Math.round(median * 100) / 100, sales, lastSaleOn })
+  }
+  return grades
+}
+
+/** One card's PSA prices (2 credits). The key goes only in the Authorization header. */
+export async function fetchPsa(tcgplayerId: number, tcgdexId: string, apiKey: string, today: string, signal?: AbortSignal): Promise<PsaResult> {
+  const timeout = AbortSignal.timeout(TIMEOUT_MS)
+  let dailyRemaining: number | null = null
+  try {
+    const url = new URL('/api/v2/cards', PRICETRACKER)
+    url.searchParams.set('tcgPlayerId', String(tcgplayerId))
+    url.searchParams.set('includeEbay', 'true')
+    const res = await fetch(url, {
+      redirect: 'error',
+      headers: { accept: 'application/json', 'user-agent': USER_AGENT, authorization: `Bearer ${apiKey}` },
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+    })
+    const remaining = Number(res.headers.get('x-ratelimit-daily-remaining'))
+    dailyRemaining = res.headers.has('x-ratelimit-daily-remaining') && Number.isFinite(remaining) ? remaining : null
+    if (res.status === 401 || res.status === 403) return { status: 'unauthorized', reason: `HTTP ${res.status}`, dailyRemaining }
+    if (res.status === 429) return { status: 'rate_limited', reason: 'HTTP 429', dailyRemaining }
+    if (res.status === 404) return { status: 'not_found', dailyRemaining }
+    if (!res.ok) return { status: 'error', reason: `HTTP ${res.status}`, dailyRemaining }
+    if (!(res.headers.get('content-type') ?? '').includes('application/json')) return { status: 'error', reason: 'not JSON', dailyRemaining }
+    const declared = Number(res.headers.get('content-length'))
+    if (Number.isFinite(declared) && declared > MAX_BYTES) return { status: 'error', reason: 'too large', dailyRemaining }
+    let body: unknown
+    try {
+      body = JSON.parse(await readCapped(res, MAX_BYTES))
+    } catch (error) {
+      return { status: 'error', reason: error instanceof SourceError ? error.message : 'bad JSON', dailyRemaining }
+    }
+    const grades = parsePsa(body, tcgdexId, today)
+    return grades === 'mismatch' ? { status: 'mismatch', dailyRemaining } : { status: 'ok', grades, dailyRemaining }
+  } catch (error) {
+    return { status: 'error', reason: networkLabel(error), dailyRemaining }
+  }
 }
 
 // --- Fixtures (dev/preview only) -----------------------------------------------------------------
