@@ -9,7 +9,10 @@ import { cardEditionLink, dailyCounter, fxRate, priceRefresh, priceSnapshot } fr
 import { daysBetween, decideOutlier, isSameLevel, isUsableRate, type Currency, type LevelRow } from './logic.js'
 import type { FxResult, PriceRow } from './sources.js'
 
-export class DbError extends Error {}
+export class DbError extends Error {
+  /** The SQLSTATE code only (e.g. "57014" statement timeout, "53300" too many connections): no detail */
+  code: string | null = null
+}
 
 let db: ReturnType<typeof drizzle> | null = null
 function getDb() {
@@ -27,7 +30,12 @@ async function run<T>(query: (d: ReturnType<typeof drizzle>) => Promise<T>): Pro
     return await query(getDb())
   } catch (error) {
     if (error instanceof DbError) throw error
-    throw new DbError('database error')
+    const wrapped = new DbError('database error')
+    // Drizzle may wrap the driver's error: the code can be one level down
+    const e = error as { code?: unknown; cause?: { code?: unknown } } | null
+    const code = e?.code ?? e?.cause?.code
+    if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) wrapped.code = code
+    throw wrapped
   }
 }
 

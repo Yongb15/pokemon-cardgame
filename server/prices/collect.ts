@@ -48,9 +48,20 @@ export interface CollectCounts {
   skipped: number
   left: number
   stopped: null | 'rate-limited' | 'failures' | 'deadline'
+  /** Failures by reason ("source HTTP 403", "DbError 57014"…), for the log */
+  reasons: Record<string, number>
 }
 
-export type Handle = (id: string) => Promise<{ status: string; changed: number; retryAfter?: number | null } | 'skipped'>
+export type Handle = (
+  id: string,
+) => Promise<{ status: string; changed: number; retryAfter?: number | null; reason?: string } | 'skipped'>
+
+/** A thrown error as a short, safe label: the class name and a database code if any */
+export function errorLabel(error: unknown) {
+  if (!(error instanceof Error)) return 'unknown'
+  const code = (error as { code?: unknown }).code
+  return typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code) ? `${error.name} ${code}` : error.name
+}
 
 /**
  * Works through `queue` politely. `sleep` and `now` are injectable for tests. A rate limit waits
@@ -67,7 +78,10 @@ export async function collect(
     now = Date.now,
   } = {},
 ): Promise<CollectCounts> {
-  const counts: CollectCounts = { processed: 0, changed: 0, notFound: 0, failed: 0, rateLimited: 0, skipped: 0, left: 0, stopped: null }
+  const counts: CollectCounts = { processed: 0, changed: 0, notFound: 0, failed: 0, rateLimited: 0, skipped: 0, left: 0, stopped: null, reasons: {} }
+  const note = (reason: string) => {
+    counts.reasons[reason] = (counts.reasons[reason] ?? 0) + 1
+  }
   let limitedInARow = 0
   let failedInARow = 0
   const stop = (why: CollectCounts['stopped']) => {
@@ -81,8 +95,8 @@ export async function collect(
       let result: Awaited<ReturnType<Handle>>
       try {
         result = await handle(id)
-      } catch {
-        result = { status: 'error', changed: 0 }
+      } catch (error) {
+        result = { status: 'error', changed: 0, reason: errorLabel(error) }
       }
       if (result === 'skipped') {
         counts.skipped++
@@ -102,6 +116,7 @@ export async function collect(
       if (result.status === 'not_found') counts.notFound++
       if (result.status === 'error') {
         counts.failed++
+        note(result.reason ?? 'error')
         failedInARow++
         if (failedInARow >= MAX_FAILED_IN_A_ROW) return stop('failures')
       } else failedInARow = 0

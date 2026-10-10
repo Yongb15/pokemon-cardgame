@@ -24,7 +24,8 @@ export interface PriceRow {
 export type FetchResult =
   | { status: 'ok'; rows: PriceRow[] }
   | { status: 'not_found' }
-  | { status: 'error' }
+  /** Why, for the collector's tally: "HTTP 403", "not JSON", "TimeoutError"… (never a URL or body) */
+  | { status: 'error'; reason?: string }
   /** 429 or 503: the source asks us to slow down (seconds to wait, when it says) */
   | { status: 'rate_limited'; retryAfter: number | null }
 
@@ -40,6 +41,17 @@ class RateLimited extends SourceError {
     super('rate limited')
     this.retryAfter = retryAfter
   }
+}
+
+/**
+ * A thrown network error as a safe label: its class and the cause's constant code, e.g.
+ * "TypeError UND_ERR_CONNECT_TIMEOUT" (fetch failures are all "TypeError: fetch failed"). Never the
+ * message or the cause's message, which can hold a host name (Security)
+ */
+export function networkLabel(error: unknown) {
+  if (!(error instanceof Error)) return 'unknown'
+  const code = (error.cause as { code?: unknown } | undefined)?.code
+  return typeof code === 'string' && /^[A-Z_]{3,40}$/.test(code) ? `${error.name} ${code}` : error.name
 }
 
 /** Who is asking, and where to reach us (docs/price/collect-all.md D-3) */
@@ -170,7 +182,8 @@ export async function fetchCardPrices(lang: 'en' | 'ja', tcgdexId: string, signa
     if (card === null) return { status: 'not_found' }
     return { status: 'ok', rows: parseTcgdexCard(card) }
   } catch (error) {
-    return error instanceof RateLimited ? { status: 'rate_limited', retryAfter: error.retryAfter } : { status: 'error' }
+    if (error instanceof RateLimited) return { status: 'rate_limited', retryAfter: error.retryAfter }
+    return { status: 'error', reason: error instanceof SourceError ? error.message : networkLabel(error) }
   }
 }
 
