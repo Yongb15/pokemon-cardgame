@@ -6,6 +6,8 @@ import { json } from 'express'
 import { AuthController, SERVICES, TestAuthController, type Services } from './auth/auth.controller.js'
 import { originCheck, RateLimiter, requireSessionCookie } from './auth/guards.js'
 import { DecksController, FavoritesController, MeController } from './data/data.controller.js'
+import { PointsController, TestDataController } from './points/points.controller.js'
+import type { PointsStore } from './points/store.js'
 import type { UserDataStore } from './data/store.js'
 import { googleProvider, kakaoProvider, type Provider } from './auth/providers.js'
 import { Sessions } from './auth/sessions.js'
@@ -28,7 +30,9 @@ class AppModule {
         DecksController,
         FavoritesController,
         MeController,
-        ...(services.testProvider ? [TestAuthController] : []),
+        PointsController,
+        // Test-only routes exist only with the test sign-in (Security T-1)
+        ...(services.testProvider ? [TestAuthController, TestDataController] : []),
       ],
       providers: [{ provide: SERVICES, useValue: services }],
     }
@@ -38,6 +42,7 @@ class AppModule {
 export interface Dependencies {
   store?: AccountStore | null
   data?: UserDataStore | null
+  points?: PointsStore | null
   testProvider?: TestProvider | null
   /** Tests swap the real providers' endpoints for local fakes */
   google?: Provider | null
@@ -62,6 +67,7 @@ export function buildServices(config: Config, deps: Dependencies = {}): Services
     testProvider,
     cookieKey: config.OAUTH_COOKIE_KEY ? Buffer.from(config.OAUTH_COOKIE_KEY, 'base64url') : null,
     data: store ? (deps.data ?? null) : null,
+    points: store ? (deps.points ?? null) : null,
     writeLimit: new RateLimiter(60, 60_000),
   }
 }

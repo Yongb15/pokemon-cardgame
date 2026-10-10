@@ -31,7 +31,7 @@ const notFound = () => new PublicError('찾을 수 없습니다.', 404)
 const badRequest = () => new PublicError('요청을 처리할 수 없습니다.', 400)
 
 /** Shared by the controllers below: the session's user, and the per-user write limit */
-abstract class UserRoutes {
+export abstract class UserRoutes {
   constructor(protected readonly services: Services) {}
 
   protected get data() {

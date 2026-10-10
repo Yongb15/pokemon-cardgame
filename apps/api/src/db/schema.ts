@@ -6,8 +6,10 @@
 
 import { sql } from 'drizzle-orm'
 import {
+  bigint,
   check,
   customType,
+  date,
   index,
   integer,
   jsonb,
@@ -132,4 +134,67 @@ export const favorites = account.table(
     index('favorites_user_idx').on(t.userId, t.createdAt),
     check('favorites_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
   ],
+)
+
+// --- M7 points (docs/auction/design.md §2, ADR 0005) ----------------------------------------------
+
+export const POINT_KINDS = ['signup_bonus', 'daily_bonus', 'pack_purchase', 'sale_income', 'sale_fee', 'purchase', 'admin_adjust'] as const
+export type PointKind = (typeof POINT_KINDS)[number]
+
+/**
+ * The points ledger: one row per change, never updated or deleted (api_rw has INSERT and SELECT
+ * only). A user's balance is the sum of their rows; `idem_key` makes a retried request a no-op.
+ */
+export const pointEntries = account.table(
+  'point_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    kind: text('kind').notNull(),
+    /** What it was for: an auction or pack id, or 'test' for a preview top-up */
+    ref: text('ref'),
+    idemKey: text('idem_key').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    uniqueIndex('point_entries_idem_idx').on(t.userId, t.idemKey),
+    index('point_entries_user_idx').on(t.userId, t.createdAt),
+    check('point_entries_amount_check', sql`amount <> 0 and amount between -100000000 and 100000000`),
+    check('point_entries_kind_check', sql.raw(`kind in (${POINT_KINDS.map((k) => `'${k}'`).join(', ')})`)),
+    check('point_entries_ref_check', sql`ref is null or ref ~ '^[A-Za-z0-9_:-]{1,64}$'`),
+    check('point_entries_idem_check', sql`idem_key ~ '^[A-Za-z0-9_:-]{1,80}$'`),
+  ],
+)
+
+/**
+ * Each user's balance (the ledger's sum, kept in the same transaction) and what open bids hold.
+ * Writers lock this row (FOR UPDATE); the CHECK makes a negative or over-held balance impossible
+ * whatever the code does.
+ */
+export const pointAccounts = account.table(
+  'point_accounts',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    balance: bigint('balance', { mode: 'number' }).notNull().default(0),
+    held: bigint('held', { mode: 'number' }).notNull().default(0),
+    version: integer('version').notNull().default(0),
+  },
+  () => [check('point_accounts_balance_check', sql`held >= 0 and balance >= held and balance <= 10000000000`)],
+)
+
+/** One check-in a day per user (the KST date) */
+export const dailyClaims = account.table(
+  'daily_claims',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    day: date('day').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
 )

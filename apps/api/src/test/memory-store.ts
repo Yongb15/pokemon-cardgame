@@ -8,6 +8,8 @@ import { MAX_DECKS } from '@card-dex/shared'
 import { MAX_SESSIONS, type AccountStore, type SessionRecord } from '../auth/store.js'
 import { planImport, type DeckInput, type DeckRecord, type ImportItem } from '../data/decks.js'
 import { MAX_FAVORITES, type ImportResult, type SaveResult, type UserDataStore } from '../data/store.js'
+import type { PointKind } from '../db/schema.js'
+import { DAILY_BONUS, ENTRIES_PAGE, FIRST_BONUS, type CreditResult, type LedgerCheck, type PointEntry, type PointsStore, type PointsSummary } from '../points/store.js'
 
 interface Session {
   hash: string
@@ -184,5 +186,77 @@ export class MemoryDataStore implements UserDataStore {
     await this.deleteSessions(userId)
     this.decks = this.decks.filter((d) => d.userId !== userId)
     this.favorites = this.favorites.filter((f) => f.userId !== userId)
+  }
+}
+
+/** In-memory points ledger: the same rules as PgPointsStore (first bonus once, KST day, idem keys) */
+export class MemoryPointsStore implements PointsStore {
+  entriesOf = new Map<string, PointEntry[]>()
+  idem = new Set<string>()
+  accounts = new Map<string, { balance: number; held: number }>()
+  claims = new Set<string>()
+  /** Korea's date; tests can move it */
+  today = '2026-10-11'
+
+  private ensure(userId: string) {
+    let granted = false
+    if (!this.accounts.has(userId)) {
+      this.accounts.set(userId, { balance: 0, held: 0 })
+      granted = this.add(userId, FIRST_BONUS, 'signup_bonus', 'signup') === 'ok'
+    }
+    return granted
+  }
+
+  private add(userId: string, amount: number, kind: PointKind, idemKey: string): CreditResult {
+    const account = this.accounts.get(userId)!
+    if (account.balance + amount < account.held) return 'insufficient'
+    if (this.idem.has(`${userId}:${idemKey}`)) return 'duplicate'
+    this.idem.add(`${userId}:${idemKey}`)
+    const list = this.entriesOf.get(userId) ?? []
+    list.push({ id: randomUUID(), amount, kind, ref: kind === 'admin_adjust' ? 'test' : null, createdAt: new Date(Date.now() + list.length) })
+    this.entriesOf.set(userId, list)
+    account.balance += amount
+    return 'ok'
+  }
+
+  private view(userId: string, granted: boolean): PointsSummary {
+    const a = this.accounts.get(userId)!
+    return { balance: a.balance, held: a.held, available: a.balance - a.held, today: this.today, claimedToday: this.claims.has(`${userId}:${this.today}`), bonusGranted: granted }
+  }
+
+  async summary(userId: string) {
+    return this.view(userId, this.ensure(userId))
+  }
+
+  async claimDaily(userId: string) {
+    const granted = this.ensure(userId)
+    const key = `${userId}:${this.today}`
+    const claimed = !this.claims.has(key)
+    if (claimed) {
+      this.claims.add(key)
+      this.add(userId, DAILY_BONUS, 'daily_bonus', `daily:${this.today}`)
+    }
+    return { claimed, summary: this.view(userId, granted) }
+  }
+
+  async entries(userId: string, before: { createdAt: Date; id: string } | null) {
+    const all = [...(this.entriesOf.get(userId) ?? [])].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id))
+    const from = before ? all.findIndex((e) => e.id === before.id) + 1 : 0
+    return all.slice(from, from + ENTRIES_PAGE)
+  }
+
+  async adjust(userId: string, amount: number, idemKey: string) {
+    this.ensure(userId)
+    return this.add(userId, amount, 'admin_adjust', idemKey)
+  }
+
+  async ledgerCheck(userId: string): Promise<LedgerCheck> {
+    const sum = (id: string) => (this.entriesOf.get(id) ?? []).reduce((n, e) => n + e.amount, 0)
+    const a = this.accounts.get(userId) ?? { balance: 0, held: 0 }
+    const all = [...this.accounts.entries()]
+    return {
+      mine: { balance: a.balance, held: a.held, ledgerSum: sum(userId), ok: a.balance === sum(userId) },
+      all: { accounts: all.length, mismatched: all.filter(([id, x]) => x.balance !== sum(id)).length, overHeld: all.filter(([, x]) => x.held > x.balance).length },
+    }
   }
 }

@@ -1,0 +1,124 @@
+/* Points in the header (docs/design/points-7a.webp). Phones (≤640) use the account menu instead. */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.claim {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px dashed var(--accent-strong);
+  border-radius: 999px;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.claim:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.claim:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* A fixed slot: the balance growing from 9,500P to 10,000P doesn't move the header (qa 3) */
+.pill,
+.placeholder {
+  min-width: 108px;
+  height: 32px;
+}
+
+.pill {
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pill:hover {
+  background: var(--border);
+}
+
+.coin {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-right: auto;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #facc15, #d97706);
+}
+
+.placeholder {
+  display: block;
+  border-radius: 999px;
+  background: var(--skeleton);
+}
+
+.error {
+  max-width: 220px;
+  font-size: 12px;
+  color: var(--warn-text);
+}
+
+/* Under the header, centred: clear of a future bottom bar (qa 5) */
+.noticeSlot {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  z-index: 40;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.notice {
+  margin: 0;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #09090b;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px -6px rgb(0 0 0 / 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  .notice {
+    background: #fafafa;
+    color: #09090b;
+  }
+}
+
+@media (max-width: 640px) {
+  .bar,
+  .placeholder {
+    display: none;
+  }
+
+  .noticeSlot {
+    top: 66px;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  /* Mid widths: the nickname gives way first (qa 2) */
+  .claim {
+    padding: 0 10px;
+  }
+}
