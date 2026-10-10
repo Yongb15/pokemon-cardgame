@@ -1,0 +1,273 @@
+/* /auctions/:id (docs/design/auction-m7.webp ②) */
+
+.main {
+  width: 100%;
+  max-width: calc(var(--page-width) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 24px var(--gutter) 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.back {
+  font-size: 14px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 32px;
+}
+
+.cardCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.img {
+  display: block;
+  aspect-ratio: 245 / 342;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--skeleton);
+}
+
+.img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.infoCol {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  color: var(--text-h);
+}
+
+.small {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.section {
+  margin: 0 0 6px;
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.box {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.boxSkeleton {
+  height: 210px;
+  border-radius: 10px;
+  background: var(--skeleton);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.big {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--text-h);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fixed width digits: the countdown doesn't reflow the line every second (qa B3) */
+.timer,
+.timerSoon {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer {
+  color: var(--text-h);
+}
+
+.timerSoon {
+  color: var(--bad);
+}
+
+.result {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.seller {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.bidForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.top {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ok);
+}
+
+.inputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  padding: 0 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.quick {
+  display: flex;
+  gap: 6px;
+}
+
+.quick button {
+  padding: 4px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.warn {
+  margin: 0;
+  font-size: 13px;
+  color: var(--warn-text);
+}
+
+.ok,
+.alert {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.ok {
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.alert {
+  background: var(--warn-soft);
+  color: var(--warn-text);
+}
+
+.history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.history li {
+  padding: 8px 0;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.history li:first-child {
+  border-top: 0;
+}
+
+.history li.me {
+  font-weight: 700;
+  color: var(--accent-text);
+}
+
+.button,
+.primary {
+  height: 42px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.primary {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: var(--on-accent);
+}
+
+.primary[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cardCol {
+    max-width: 240px;
+    margin: 0 auto;
+  }
+
+  /* The bid box stays at hand at the bottom of the screen (qa B2) */
+  .box {
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+    box-shadow: 0 -6px 16px -8px rgb(0 0 0 / 0.25);
+  }
+}

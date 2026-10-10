@@ -108,7 +108,7 @@ export class PacksController extends PackRoutes {
     const user = await this.user(req, res)
     await this.services.auctions?.settleExpired(20, user.id)
     const { rows, more } = await this.packs.collection(user.id, (set as string | undefined) ?? null, page)
-    return { cards: rows.map((r) => ({ cardId: r.cardId, count: r.count, test: r.test, newest: r.newest.toISOString() })), more }
+    return { cards: rows.map((r) => ({ cardId: r.cardId, count: r.count, test: r.test, listed: r.listed, newest: r.newest.toISOString() })), more }
   }
 
   @Get('collection/summary')

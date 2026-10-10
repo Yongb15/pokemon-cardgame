@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router'
 import { AccountApiError, getCollection, getCollectionSummary, getPackCatalog, type CollectionCard, type CollectionSummary, type PackCatalog } from '../api/account'
 import CardImg from '../components/CardImg'
+import ListAuctionDialog from '../components/ListAuctionDialog'
 import { useCardInfo } from '../hooks/useDecks'
 import { useSession } from '../hooks/useSession'
 import { rarityLabel } from '../lib/cardText'
@@ -16,6 +17,7 @@ export default function CollectionPage() {
   const [list, setList] = useState<{ key: string; cards: CollectionCard[]; more: boolean; page: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
+  const [listing, setListing] = useState<{ cardId: string; name: string } | null>(null)
   const signedIn = session.status === 'in'
   const key = set ?? ''
 
@@ -133,8 +135,10 @@ export default function CollectionPage() {
             {current.cards.map((c) => {
               const card = info.get(c.cardId)
               const name = card ? (card.nameKo ?? card.name) : c.cardId
+              // Copies that can go up for auction: not a test copy, not already listed (K-3)
+              const free = c.count - c.test - c.listed
               return (
-                <li key={c.cardId}>
+                <li key={c.cardId} className={styles.cell}>
                   <Link className={styles.tile} to={`/cards/${encodeURIComponent(c.cardId)}`}>
                     <span className={styles.img}>
                       {card && <CardImg src={card.images.small} fallback={card.images.fallbackSmall} alt="" width={245} height={342} loading="lazy" />}
@@ -148,6 +152,13 @@ export default function CollectionPage() {
                     <b>{name}</b>
                     <small>{card?.rarity ? rarityLabel(card.rarity) : ' '}</small>
                   </Link>
+                  {free > 0 ? (
+                    <button type="button" className={styles.listButton} aria-label={`${name} 경매 등록`} onClick={() => setListing({ cardId: c.cardId, name })}>
+                      경매 등록
+                    </button>
+                  ) : (
+                    <span className={styles.listNote}>{c.listed > 0 ? '경매 중' : c.test > 0 ? '테스트 카드' : ' '}</span>
+                  )}
                 </li>
               )
             })}
@@ -159,7 +170,8 @@ export default function CollectionPage() {
           )}
         </>
       )}
-      <p className={styles.small}>덱과 컬렉션은 별개예요 — 컬렉션 카드를 팔아도 덱에서 빠지지 않아요. 경매 등록은 곧 열려요.</p>
+      <p className={styles.small}>덱과 컬렉션은 별개예요 — 컬렉션 카드를 팔아도 덱에서 빠지지 않아요.</p>
+      {listing && <ListAuctionDialog cardId={listing.cardId} name={listing.name} onClose={() => setListing(null)} />}
     </main>
   )
 }
