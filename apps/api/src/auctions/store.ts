@@ -272,9 +272,12 @@ export class PgAuctionsStore implements AuctionsStore {
   }
 
   /** One auction's settlement in its own transaction (level 1 first); false if nothing to do */
-  private async settleOne(auctionId: string) {
+  /** : the sweep never waits behind a live bid (that bid settles it itself: Security) */
+  private async settleOne(auctionId: string, skipLocked = false) {
     return this.db.transaction(async (tx) => {
-      const { rows } = await tx.execute<AuctionRow>(sql`select ${SELECT_AUCTION} from account.auctions where id = ${auctionId} for update`)
+      const { rows } = await tx.execute<AuctionRow>(
+        sql`select ${SELECT_AUCTION} from account.auctions where id = ${auctionId} for update ${skipLocked ? sql`skip locked` : sql``}`,
+      )
       const a = rows[0]
       if (!a || !a.expired) return false
       await settleLocked(tx, a)
@@ -288,7 +291,7 @@ export class PgAuctionsStore implements AuctionsStore {
       where status = 'open' and ends_at <= now() ${userId ? sql`and (seller_id = ${userId} or top_bidder_id = ${userId})` : sql``}
       order by id limit ${limit}`)
     let n = 0
-    for (const { id } of rows) if (await this.settleOne(id)) n++
+    for (const { id } of rows) if (await this.settleOne(id, !userId)) n++
     return n
   }
 
