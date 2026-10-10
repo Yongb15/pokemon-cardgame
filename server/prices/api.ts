@@ -22,6 +22,7 @@ import {
 import { editionView, type Rates } from './view.js'
 
 export const VIEW_REFRESH_BUDGET = 3000
+const STALE_PENDING_MS = 10 * 60 * 1000
 const VIEW_REFRESH_TIMEOUT_MS = 10_000
 const FX_ON_VIEW_TRIES = 3
 const RANGES: Record<string, number> = { '30d': 30, '90d': 90 }
@@ -98,6 +99,10 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
     ])
     const rates: Rates = new Map()
     for (const r of fx) rates.set(r.currency, [...(rates.get(r.currency) ?? []), r as FxRow])
+    // A refresh "pending" for over 10 minutes was cut off (a timeout, a stopped run): it failed. Left
+    // as pending it would keep the answer on a 15-second cache (Security, 10/10)
+    const stalePending = refresh?.status === 'pending' && now.getTime() - refresh.refreshedAt.getTime() > STALE_PENDING_MS
+    const refreshStatus = stalePending ? 'error' : (refresh?.status ?? null)
 
     const en = editionView(
       rows.filter((r) => r.edition === 'en'),
@@ -174,7 +179,7 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
         },
         mixedEditions: MIXED_EDITION_SETS.has(card.set),
         // For checking from outside (qa): when we last tried, how it went, whether a fetch just started
-        refresh: { refreshedAt: refresh?.refreshedAt ?? null, status: refresh?.status ?? null, refreshing },
+        refresh: { refreshedAt: refresh?.refreshedAt ?? null, status: refreshStatus, refreshing },
         note: '참고용 시세입니다',
       },
       200,
@@ -183,7 +188,7 @@ export async function handlePrices(id: string, params: URLSearchParams, ctx: Pri
       // start the refresh, not get this answer from the cache for 10 minutes (qa V-2)
       // Rates missing: the answer is in original currencies until they arrive in seconds (qa)
       refreshing ||
-        refresh?.status === 'pending' ||
+        refreshStatus === 'pending' ||
         !haveFx ||
         (!human && isRefreshDue(refresh?.refreshedAt ?? null, now))
         ? 'public, max-age=0, s-maxage=15'

@@ -68,6 +68,16 @@ export const JA_MIN_CONFIDENCE = 0.9
  * claimed the refresh. Returns the refresh status and how many price levels changed.
  */
 export async function refreshCard(cardId: string, now: Date, signal?: AbortSignal) {
+  try {
+    return await refreshCardOnce(cardId, now, signal)
+  } catch (error) {
+    // A database error part way: say so, so the claim doesn't stay "pending" (Security, 10/10)
+    await setRefreshStatus(cardId, 'error').catch(() => {})
+    throw error
+  }
+}
+
+async function refreshCardOnce(cardId: string, now: Date, signal?: AbortSignal) {
   const { tcgdex } = await loadPriceData()
   const today = utcDay(now)
   const theirId = tcgdex.get(cardId)
