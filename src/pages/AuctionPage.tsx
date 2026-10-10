@@ -209,11 +209,14 @@ export default function AuctionPage() {
       <div className={styles.cols}>
         <div className={styles.cardCol}>
           <span className={styles.img}>{card && <CardImg src={card.images.small} fallback={card.images.fallbackSmall} alt="" width={245} height={342} />}</span>
-          {card && (
-            <Link className={styles.small} to={`/cards/${encodeURIComponent(card.id)}`}>
-              카드 정보·참고 시세 보기 (포인트와는 무관)
-            </Link>
-          )}
+          {/* A line that is there before the card loads, so the stacked info column doesn't drop (qa C7-1) */}
+          <p className={styles.cardLink}>
+            {card && (
+              <Link className={styles.small} to={`/cards/${encodeURIComponent(card.id)}`}>
+                카드 정보·참고 시세 보기 (포인트와는 무관)
+              </Link>
+            )}
+          </p>
         </div>
         <div className={styles.infoCol}>
           <div>
@@ -269,7 +272,8 @@ export default function AuctionPage() {
                       if (!timeUp && !short && !tooLow) void submit()
                     }}
                   >
-                    {mine?.isTop && <p className={styles.top}>현재 최고 입찰자예요</p>}
+                    {/* Always one line, so becoming or losing the top bid doesn't move the input (qa C7-4) */}
+                    <p className={styles.top}>{mine?.isTop ? '현재 최고 입찰자예요' : ''}</p>
                     <div className={styles.inputRow}>
                       <label className="visually-hidden" htmlFor="bid">
                         입찰 금액 (포인트)
