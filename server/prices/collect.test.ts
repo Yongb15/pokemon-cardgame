@@ -108,4 +108,21 @@ describe('failure labels (safe constants only)', () => {
     // A message never appears, even one with a host in it
     expect(errorLabel(new Error('connect to db.example.neon.tech failed'))).toBe('Error')
   })
+
+  it("labels the driver's errors by fetch cause or HTTP status, never by message", async () => {
+    const { driverLabel } = await import('./store.js')
+    class NeonDbError extends Error {
+      override name = 'NeonDbError'
+      sourceError?: unknown
+    }
+    const fetchFailed = new TypeError('fetch failed', { cause: Object.assign(new Error('ep-x.neon.tech'), { code: 'UND_ERR_SOCKET' }) })
+    const connect = Object.assign(new NeonDbError(`Error connecting to database: ${fetchFailed}`), { sourceError: fetchFailed })
+    expect(driverLabel(connect)).toBe('NeonDbError fetch TypeError UND_ERR_SOCKET')
+    const http = new NeonDbError('Server error (HTTP status 503): secret body ep-x.neon.tech')
+    expect(driverLabel(http)).toBe('NeonDbError HTTP 503')
+    // Drizzle's wrapper is looked through
+    expect(driverLabel(new Error('Failed query: select …', { cause: http }))).toBe('NeonDbError HTTP 503')
+    expect(driverLabel(new NeonDbError('something with ep-x.neon.tech'))).toBe('NeonDbError')
+    expect(driverLabel('nope')).toBeNull()
+  })
 })

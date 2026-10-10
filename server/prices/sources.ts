@@ -29,7 +29,14 @@ export type FetchResult =
   /** 429 or 503: the source asks us to slow down (seconds to wait, when it says) */
   | { status: 'rate_limited'; retryAfter: number | null }
 
-export const fixturesOn = () => process.env.PRICE_FIXTURES === '1' && process.env.VERCEL_ENV !== 'production'
+/** Only where it's meant to be: a Vercel preview or dev, or a local run (not on Cloud Run: Security) */
+const fixturesAllowed = () => {
+  const vercel = process.env.VERCEL_ENV
+  if (vercel) return vercel === 'preview' || vercel === 'development'
+  return !process.env.CLOUD_RUN_JOB && !process.env.K_SERVICE
+}
+
+export const fixturesOn = () => process.env.PRICE_FIXTURES === '1' && fixturesAllowed()
 
 class SourceError extends Error {}
 

@@ -20,6 +20,31 @@ export class DbError extends Error {
 const SAFE_NAME = /^[A-Za-z]{1,40}$/
 const SAFE_CAUSE = /^[A-Z0-9_]{3,40}$/
 
+const causeCode = (error: unknown) => {
+  const code = (error as { cause?: { code?: unknown } } | null)?.cause?.code
+  return typeof code === 'string' && SAFE_CAUSE.test(code) ? code : null
+}
+
+/**
+ * A driver error without a SQL code as constants only: its class, plus why — the cause's code, the
+ * failed fetch underneath ("fetch TypeError UND_ERR_SOCKET") or the HTTP status Neon answered with
+ * ("HTTP 503"). Never a message: Neon's carry the response body, and a fetch error's a host name
+ */
+export function driverLabel(error: unknown): string | null {
+  // Drizzle may wrap the driver's error
+  const inner = (error as { cause?: unknown } | null)?.cause instanceof Error ? (error as { cause: Error }).cause : error
+  if (!(inner instanceof Error) || !SAFE_NAME.test(inner.name)) return null
+  const code = causeCode(inner)
+  if (code) return `${inner.name} ${code}`
+  const source = (inner as { sourceError?: unknown }).sourceError
+  if (source instanceof Error && SAFE_NAME.test(source.name)) {
+    const sourceCode = causeCode(source)
+    return `${inner.name} fetch ${source.name}${sourceCode ? ` ${sourceCode}` : ''}`
+  }
+  const status = /^Server error \(HTTP status (\d{3})\)/.exec(inner.message)?.[1]
+  return status ? `${inner.name} HTTP ${status}` : inner.name
+}
+
 let db: ReturnType<typeof drizzle> | null = null
 function getDb() {
   if (!db) {
@@ -42,12 +67,7 @@ async function run<T>(query: (d: ReturnType<typeof drizzle>) => Promise<T>): Pro
     const code = e?.code ?? e?.cause?.code
     if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) wrapped.code = code
     // No SQL code (the connection itself failed): which error, and why, in constants only
-    const inner = (error as { cause?: unknown } | null)?.cause instanceof Error ? (error as { cause: Error }).cause : error
-    const name = inner instanceof Error ? inner.name : ''
-    const causeCode = (inner as { cause?: { code?: unknown } } | null)?.cause?.code
-    if (SAFE_NAME.test(name)) {
-      wrapped.inner = typeof causeCode === 'string' && SAFE_CAUSE.test(causeCode) ? `${name} ${causeCode}` : name
-    }
+    wrapped.inner = driverLabel(error)
     throw wrapped
   }
 }
