@@ -43,6 +43,17 @@ class RateLimited extends SourceError {
   }
 }
 
+/**
+ * A thrown network error as a safe label: its class and the cause's constant code, e.g.
+ * "TypeError UND_ERR_CONNECT_TIMEOUT" (fetch failures are all "TypeError: fetch failed"). Never the
+ * message or the cause's message, which can hold a host name (Security)
+ */
+export function networkLabel(error: unknown) {
+  if (!(error instanceof Error)) return 'unknown'
+  const code = (error.cause as { code?: unknown } | undefined)?.code
+  return typeof code === 'string' && /^[A-Z_]{3,40}$/.test(code) ? `${error.name} ${code}` : error.name
+}
+
 /** Who is asking, and where to reach us (docs/price/collect-all.md D-3) */
 export const USER_AGENT = 'card-dex-collector (+https://github.com/Yongb15/pokemon-cardgame)'
 
@@ -172,7 +183,7 @@ export async function fetchCardPrices(lang: 'en' | 'ja', tcgdexId: string, signa
     return { status: 'ok', rows: parseTcgdexCard(card) }
   } catch (error) {
     if (error instanceof RateLimited) return { status: 'rate_limited', retryAfter: error.retryAfter }
-    return { status: 'error', reason: error instanceof SourceError ? error.message : error instanceof Error ? error.name : 'unknown' }
+    return { status: 'error', reason: error instanceof SourceError ? error.message : networkLabel(error) }
   }
 }
 
