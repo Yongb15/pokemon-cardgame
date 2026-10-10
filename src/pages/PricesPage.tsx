@@ -33,9 +33,10 @@ const EDITIONS: [Edition, string][] = [
 ]
 const SOURCE_LABEL: Record<string, string> = { tcgplayer: 'TCGplayer', cardmarket: 'Cardmarket' }
 const VARIANT_LABEL: Record<string, string> = { normal: '일반', holo: '홀로', reverse: '리버스 홀로', firstEdition: '1판', unlimited: '무제한판' }
+const money = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const CURRENCY: Record<string, (n: number) => string> = {
-  USD: (n) => `US$${n.toFixed(2)}`,
-  EUR: (n) => `€${n.toFixed(2)}`,
+  USD: (n) => `US$${money(n)}`,
+  EUR: (n) => `€${money(n)}`,
 }
 const label = (map: Record<string, string>, key: string) => (Object.hasOwn(map, key) ? map[key] : key)
 const won = (krw: number) => `₩${krw.toLocaleString('ko-KR')}`
@@ -147,7 +148,7 @@ export default function PricesPage() {
             ? 'TCGplayer 시장가(없으면 Cardmarket)'
             : edition === 'ja'
               ? 'Cardmarket 추세가 · 일본판과 연결된 카드만'
-              : 'PSA 10 판매가 중앙값 · TCGplayer $50 이상 카드 약 300장, 주 1회'}{' '}
+              : 'PSA 10 판매가 중앙값 · 판매 5건 이상 · TCGplayer $50 이상 카드 약 300장, 주 1회'}{' '}
           · 원화 환산
           {edition === 'psa10' && (
             <>
@@ -167,67 +168,69 @@ export default function PricesPage() {
         </p>
       )}
 
-      {current?.error ? (
-        <p className={styles.alert} role="alert">
-          시세를 불러오지 못했어요.{' '}
-          <button type="button" className={styles.linkButton} onClick={() => setReload((n) => n + 1)}>
-            다시 시도
-          </button>
-        </p>
-      ) : !current ? (
-        <div className={styles.skeleton} aria-busy="true" aria-label="시세를 불러오는 중" />
-      ) : ranked.length === 0 ? (
-        <div className={styles.empty}>
-          <h2>{set ? '이 세트는 아직 모은 시세가 없어요' : '아직 모은 시세가 없어요'}</h2>
-          <p>{edition === 'psa10' ? 'PSA 시세는 비싼 카드부터 주 1회 모아요.' : '카드 상세를 열면 그 카드의 시세를 가져와요.'}</p>
-        </div>
-      ) : (
-        <ol className={styles.list}>
-          {ranked.map((r, i) => {
-            const card = info.get(r.id)
-            const name = card ? (card.nameKo ?? card.name) : r.id
-            return (
-              <li key={r.id}>
-                <Link className={styles.row} to={`/cards/${encodeURIComponent(r.id)}`}>
-                  <span className={i < 3 ? `${styles.rank} ${styles.top}` : styles.rank} aria-label={`${i + 1}위`}>
-                    {i + 1}
-                  </span>
-                  {card ? (
-                    <CardImg
-                      className={styles.thumb}
-                      src={card.images.small}
-                      fallback={card.images.fallbackSmall}
-                      alt=""
-                      width={245}
-                      height={342}
-                      loading={i < 8 ? 'eager' : 'lazy'}
-                    />
-                  ) : (
-                    <span className={styles.thumb} aria-hidden="true" />
-                  )}
-                  <span className={styles.meta}>
-                    <span className={styles.name}>{name}</span>
-                    <span className={styles.sub}>
-                      {card
-                        ? [formatCardNumber(card.number), card.set.nameKo, card.rarity && rarityLabel(card.rarity)].filter(Boolean).join(' · ')
-                        : ' '}
+      <div className={styles.results}>
+        {current?.error ? (
+          <p className={styles.alert} role="alert">
+            시세를 불러오지 못했어요.{' '}
+            <button type="button" className={styles.linkButton} onClick={() => setReload((n) => n + 1)}>
+              다시 시도
+            </button>
+          </p>
+        ) : !current ? (
+          <div className={styles.skeleton} aria-busy="true" aria-label="시세를 불러오는 중" />
+        ) : ranked.length === 0 ? (
+          <div className={styles.empty}>
+            <h2>{set ? '이 세트는 아직 모은 시세가 없어요' : '아직 모은 시세가 없어요'}</h2>
+            <p>{edition === 'psa10' ? 'PSA 시세는 비싼 카드부터 주 1회 모아요.' : '카드 상세를 열면 그 카드의 시세를 가져와요.'}</p>
+          </div>
+        ) : (
+          <ol className={styles.list}>
+            {ranked.map((r, i) => {
+              const card = info.get(r.id)
+              const name = card ? (card.nameKo ?? card.name) : r.id
+              return (
+                <li key={r.id}>
+                  <Link className={styles.row} to={`/cards/${encodeURIComponent(r.id)}`}>
+                    <span className={i < 3 ? `${styles.rank} ${styles.top}` : styles.rank} aria-label={`${i + 1}위`}>
+                      {i + 1}
                     </span>
-                  </span>
-                  <span className={styles.price}>
-                    <b>{won(r.krw)}</b>
-                    <span>
-                      {(Object.hasOwn(CURRENCY, r.currency) ? CURRENCY[r.currency](r.amount) : `${r.amount} ${r.currency}`) +
-                        (r.source === 'psa10'
-                          ? ` · PSA 10 · 판매 ${(r.sales ?? 0).toLocaleString('ko-KR')}건`
-                          : ` · ${label(SOURCE_LABEL, r.source)} ${label(VARIANT_LABEL, r.variant)}`)}
+                    {card ? (
+                      <CardImg
+                        className={styles.thumb}
+                        src={card.images.small}
+                        fallback={card.images.fallbackSmall}
+                        alt=""
+                        width={245}
+                        height={342}
+                        loading={i < 8 ? 'eager' : 'lazy'}
+                      />
+                    ) : (
+                      <span className={styles.thumb} aria-hidden="true" />
+                    )}
+                    <span className={styles.meta}>
+                      <span className={styles.name}>{name}</span>
+                      <span className={styles.sub}>
+                        {card
+                          ? [formatCardNumber(card.number), card.set.nameKo, card.rarity && rarityLabel(card.rarity)].filter(Boolean).join(' · ')
+                          : ' '}
+                      </span>
                     </span>
-                  </span>
-                </Link>
-              </li>
-            )
-          })}
-        </ol>
-      )}
+                    <span className={styles.price}>
+                      <b>{won(r.krw)}</b>
+                      <span>
+                        {(Object.hasOwn(CURRENCY, r.currency) ? CURRENCY[r.currency](r.amount) : `${r.amount} ${r.currency}`) +
+                          (r.source === 'psa10'
+                            ? ` · PSA 10 · 판매 ${(r.sales ?? 0).toLocaleString('ko-KR')}건`
+                            : ` · ${label(SOURCE_LABEL, r.source)} ${label(VARIANT_LABEL, r.variant)}`)}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              )
+            })}
+          </ol>
+        )}
+      </div>
     </main>
   )
 }

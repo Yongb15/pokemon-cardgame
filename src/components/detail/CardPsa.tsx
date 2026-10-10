@@ -12,6 +12,11 @@ const won = (krw: number) => `₩${krw.toLocaleString('ko-KR')}`
 const usd = (n: number) => `US$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 /** "2026-10-08" → "10월 8일" */
 const day = (d: string) => `${Number(d.slice(5, 7))}월 ${Number(d.slice(8, 10))}일`
+/** Under this many sales one or two deals can swing the median (qa PSA-3) */
+const FEW_SALES = 5
+/** A last sale older than this (before the collection day) makes the median old news (qa PSA-4) */
+const OLD_SALE_DAYS = 90
+const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000)
 
 type History = Extract<PsaView, { state: 'ok' }>['history']
 
@@ -74,16 +79,29 @@ export default function CardPsa({ psa }: { psa: PsaView }) {
           <>
             {psa.grades.length ? (
               <ul className={s.grades}>
-                {psa.grades.map((g) => (
-                  <li key={g.grade} className={g.grade === 'psa10' ? s.top : undefined}>
-                    <span className={s.grade}>{label(g.grade)}</span>
-                    <b>{g.krw !== null ? won(g.krw) : usd(g.usd)}</b>
-                    <small>
-                      {g.krw !== null && `${usd(g.usd)} · `}판매 {g.sales.toLocaleString('ko-KR')}건
-                    </small>
-                    {g.lastSaleOn && <small>마지막 판매 {day(g.lastSaleOn)}</small>}
-                  </li>
-                ))}
+                {psa.grades.map((g) => {
+                  const old = !g.lastSaleOn || daysBetween(g.lastSaleOn, psa.capturedOn) > OLD_SALE_DAYS
+                  return (
+                    <li key={g.grade} className={[g.grade === 'psa10' && s.top, old && s.old].filter(Boolean).join(' ') || undefined}>
+                      <span className={s.grade}>{label(g.grade)}</span>
+                      <b>{g.krw !== null ? won(g.krw) : usd(g.usd)}</b>
+                      <small>
+                        {g.krw !== null && `${usd(g.usd)} · `}판매 {g.sales.toLocaleString('ko-KR')}건
+                      </small>
+                      {g.lastSaleOn && (
+                        <small>
+                          마지막 판매 {day(g.lastSaleOn)}
+                          {g.lastSaleOn.slice(0, 4) !== psa.capturedOn.slice(0, 4) && ` (${g.lastSaleOn.slice(0, 4)}년)`}
+                        </small>
+                      )}
+                      {old ? (
+                        <span className={s.caution}>최근 3개월 판매 없음 · 오래된 값</span>
+                      ) : (
+                        g.sales < FEW_SALES && <span className={s.caution}>거래가 적어 값이 크게 튈 수 있어요</span>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
             ) : (
               <p className={s.note}>최근 판매가 3건 이상인 등급이 없어요.</p>

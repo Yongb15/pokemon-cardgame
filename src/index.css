@@ -22,6 +22,9 @@
   --bad: #b91c1c;
   --warn-text: #92400e;
   --warn-soft: #fef3c7;
+  /* PSA 10 tile (qa PSA-1: a light fill under dark-mode text was unreadable) */
+  --gold: #d4a017;
+  --gold-soft: #fffbeb;
 
   --sans: 'Noto Sans KR', system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif;
   --page-width: 1200px;
@@ -57,6 +60,8 @@
     --bad: #f87171;
     --warn-text: #fbbf24;
     --warn-soft: rgb(251 191 36 / 0.14);
+    --gold: #ca8a04;
+    --gold-soft: rgb(234 179 8 / 0.12);
   }
 }
 

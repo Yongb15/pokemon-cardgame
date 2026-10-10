@@ -39,7 +39,10 @@ export interface Ranked {
   sales?: number
 }
 
-/** The PSA 10 medians in won, priciest first (cards without a rate are left out) */
+/** A ranking median needs at least this many sales: three deals can top the list with a fluke (qa PSA-3) */
+export const PSA_RANK_MIN_SALES = 5
+
+/** The PSA 10 medians in won, priciest first (cards without a rate, or with few sales, are left out) */
 export function rankPsa10(
   rows: { cardId: string; median: number; sales: number; capturedOn: string }[],
   usd: FxRow[],
@@ -51,7 +54,7 @@ export function rankPsa10(
   if (!fx) return []
   const ranked: Ranked[] = []
   for (const r of rows) {
-    if (!keep(r.cardId)) continue
+    if (!keep(r.cardId) || r.sales < PSA_RANK_MIN_SALES) continue
     const krw = toKrw(r.median, fx.krwPerUnit).krw
     if (krw === null) continue
     ranked.push({ id: r.cardId, krw, amount: r.median, currency: 'USD', source: 'psa10', variant: 'psa10', date: r.capturedOn, sales: r.sales })

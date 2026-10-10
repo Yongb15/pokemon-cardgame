@@ -29,8 +29,19 @@
 }
 
 .grades li.top {
-  border-color: #d4a017;
-  background: #fffbeb;
+  border-color: var(--gold);
+  background: var(--gold-soft);
+}
+
+/* Thin or old data: still shown, but quieter and said so (qa PSA-3, PSA-4) */
+.caution {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warn-text);
+}
+
+.grades li.old b {
+  color: var(--text-muted);
 }
 
 .grade {
