@@ -415,6 +415,10 @@
   background: var(--surface);
 }
 
+.sharedStats {
+  max-width: 420px;
+}
+
 /* Account decks: the list while it loads (same spot, no shift) */
 .listSkeleton {
   /* About a screen of deck cards: the real list doesn't push the footer down when it arrives (qa C-6) */

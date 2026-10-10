@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import DeckCardList from '../components/deck/DeckCardList'
 import DeckChecks from '../components/deck/DeckChecks'
+import DeckStats from '../components/deck/DeckStats'
 import ExportDialog from '../components/deck/ExportDialog'
 import { NotFoundState } from '../components/ListStates'
 import { errorMessage } from '../hooks/useAccountDecks'
@@ -124,6 +125,9 @@ export default function SharedDeckPage() {
         <div className={styles.sharedBody}>
           <DeckCardList cards={shared.cards} info={info} columns />
           {problems > 0 && <DeckChecks checks={checks} />}
+          <div className={styles.sharedStats}>
+            <DeckStats cards={shared.cards} info={info} />
+          </div>
         </div>
       )}
 

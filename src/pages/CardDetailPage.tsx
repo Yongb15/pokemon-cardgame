@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { ApiError, getCard, getRelatedCards, getSetNeighbors } from '../api/cards'
+import AddToDeck from '../components/detail/AddToDeck'
 import CardAttacks from '../components/detail/CardAttacks'
 import { BattleStats, CardInfo, CardRules } from '../components/detail/CardFacts'
 import CardImage from '../components/detail/CardImage'
@@ -187,6 +188,7 @@ export default function CardDetailPage() {
                   </Link>
                 )}
                 <HeartButton cardId={card.id} cardName={card.nameKo ?? card.name} />
+                <AddToDeck key={card.id} card={card} />
               </div>
               {card.nameKoUnofficial && (
                 <p className={styles.unofficial}>
