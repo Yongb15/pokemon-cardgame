@@ -68,7 +68,9 @@
   color: var(--text-h);
 }
 
+/* About the open state's height, so the result replacing it doesn't pull the page up (qa C7-4) */
 .box {
+  min-height: 250px;
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -182,6 +184,15 @@
   color: var(--warn-text);
 }
 
+/* The hint under the input is two lines tall whatever it says (qa C7-4) */
+#bid-help {
+  min-height: 3.2em;
+}
+
+.feedback {
+  min-height: 42px;
+}
+
 .ok,
 .alert {
   margin: 0;
@@ -258,9 +269,12 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* A full-width column capped at 240px: as a grid item with auto margins it shrank to its
+     (still empty) content, so the image area appeared late and pushed everything down (qa C7-1) */
   .cardCol {
+    width: 100%;
     max-width: 240px;
-    margin: 0 auto;
+    justify-self: center;
   }
 
   /* The bid box stays at hand at the bottom of the screen (qa B2) */

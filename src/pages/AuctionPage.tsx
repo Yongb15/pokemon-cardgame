@@ -311,11 +311,14 @@ export default function AuctionPage() {
                 )}
               </>
             )}
-            {message && (
-              <p className={message.ok ? styles.ok : styles.alert} role={message.ok ? 'status' : 'alert'}>
-                {message.text}
-              </p>
-            )}
+            {/* A slot that stays, so a message coming or going doesn't move the history (qa C7-4) */}
+            <div className={styles.feedback}>
+              {message && (
+                <p className={message.ok ? styles.ok : styles.alert} role={message.ok ? 'status' : 'alert'}>
+                  {message.text}
+                </p>
+              )}
+            </div>
             <p className="visually-hidden" role="status">
               {live}
             </p>

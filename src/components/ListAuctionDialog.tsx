@@ -75,7 +75,7 @@ export default function ListAuctionDialog({ cardId, name, onClose }: { cardId: s
         <p id="list-help" className={invalid ? styles.warn : styles.small}>
           {invalid
             ? '시작가는 100P 이상, 100P 단위로 정해 주세요.'
-            : `낙찰되면 수수료 5%(${won(Math.floor(value * 0.05))} 이상)를 빼고 받아요. 입찰이 없을 때만 취소할 수 있고, 경매 중인 카드는 같은 카드를 또 올릴 수 없어요.`}
+            : `낙찰되면 낙찰가의 5%를 수수료로 빼고 받아요(1P 미만은 버려요, 시작가에 낙찰되면 ${won(Math.floor(value * 0.05))}). 입찰이 없을 때만 취소할 수 있어요.`}
         </p>
         {error && (
           <p className={styles.alert} role="alert">
