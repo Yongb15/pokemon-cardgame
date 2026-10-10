@@ -74,6 +74,8 @@
 3. develop → main 병합(PR) 뒤 `workflow_dispatch`로 첫 실행 1회: 로그가 개수만인지, DB 크기, 실패·429 여부
 4. 첫 2주 동안 하루 증가량을 이 문서에 기록
 
+> **이력**: 위의 GitHub Actions 실행(10/09~10/10)은 세 번 모두 중단돼 끄고 지웠다(워크플로 파일·Environment 삭제, `collector_rw` 비밀번호 재설정). 지금은 아래 Cloud Run Job으로 돈다. 구성 기록: `infra/collector/README.md`
+
 ## 실행 위치 변경: GitHub Actions → Cloud Run Job (2026-10-10)
 
 ### 왜
@@ -96,3 +98,9 @@
 3. GitHub Environment `prices-production`의 비밀 삭제
 4. 이미지 빌드·Job·Scheduler 생성, 수동 실행 1회로 확인
 5. DbError 라벨 보강: 이름 `DbError` + 원래 오류 이름·cause 코드(같은 안전 규칙)
+
+### 적용 결과 (2026-10-10, Security J-1·J-2·R-1~R-5 반영)
+- J-1: 빌드는 `infra/collector/stage.sh`로 필요한 추적 파일 21개만 임시 폴더에 복사해 업로드(`.env` 0개 확인), 이미지 안 무시 규칙은 `Dockerfile.dockerignore`. 루트 `.dockerignore`·`.gcloudignore`는 그대로
+- J-2: 워크플로 파일 삭제, Environment `prices-production` 삭제, `collector_rw` 비밀번호 재설정(GitHub에 남았던 값 무효)
+- R-1: 별도 AR 저장소 `collector`(immutable tags, 정리 규칙), Job은 digest로 지정 · R-2: 비밀 `:1` 고정, 1 task·재시도 0·110분 · R-3: Scheduler asia-southeast1 → Job asia-southeast3, OAuth(`collector-scheduler`, `run.invoker`만) · R-5: `DbError` 이름 + 내부 오류 라벨
+- 첫 실행 `price-collector-94mvf`: 권한 검사 통과, 오늘 대상 5,525장 중 4,046장 수집 시작
