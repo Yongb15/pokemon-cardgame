@@ -65,53 +65,52 @@ export default function DeckStats({ cards, info, defaultOpen = true }: { cards: 
         덱 구성
         <span aria-hidden="true">{open ? '▴' : '▾'}</span>
       </button>
-      {open && (
-        <div id={bodyId} className={styles.body}>
+      {/* Kept in the DOM while folded, so aria-controls always points somewhere (qa) */}
+      <div id={bodyId} className={styles.body} hidden={!open}>
+        <div className={styles.section}>
+          <h3>종류</h3>
+          <div className={styles.stack} aria-hidden="true">
+            {KINDS.map(({ key, color }) => s[key] > 0 && <i key={key} style={{ flexGrow: s[key], background: color }} />)}
+          </div>
+          <ul className={styles.legend}>
+            {KINDS.filter(({ key }) => s[key] > 0).map(({ key, label, color }) => (
+              <li key={key}>
+                <i style={{ background: color }} aria-hidden="true" />
+                {label} <b>{s[key]}</b>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {s.pokemon > 0 && (
           <div className={styles.section}>
-            <h3>종류</h3>
-            <div className={styles.stack} aria-hidden="true">
-              {KINDS.map(({ key, color }) => s[key] > 0 && <i key={key} style={{ flexGrow: s[key], background: color }} />)}
-            </div>
-            <ul className={styles.legend}>
-              {KINDS.filter(({ key }) => s[key] > 0).map(({ key, label, color }) => (
-                <li key={key}>
-                  <i style={{ background: color }} aria-hidden="true" />
-                  {label} <b>{s[key]}</b>
+            <h3>포켓몬 {s.pokemon}</h3>
+            <Counts rows={[...STAGES.map((st): [string, number] => [STAGE_LABEL[st], s.stages[st]]), ['규칙 카드 (ex·V·찬란한 등)', s.ruleBox]]} />
+            <ul className={styles.types} aria-label="타입별">
+              {s.types.map(({ type, count }) => (
+                <li key={type} style={{ background: TYPE_COLOR[type], color: TYPE_TEXT[type] }}>
+                  {TYPE_LABEL[type]} {count}
                 </li>
               ))}
             </ul>
           </div>
+        )}
 
-          {s.pokemon > 0 && (
-            <div className={styles.section}>
-              <h3>포켓몬 {s.pokemon}</h3>
-              <Counts rows={[...STAGES.map((st): [string, number] => [STAGE_LABEL[st], s.stages[st]]), ['규칙 카드 (ex·V·찬란한 등)', s.ruleBox]]} />
-              <ul className={styles.types} aria-label="타입별">
-                {s.types.map(({ type, count }) => (
-                  <li key={type} style={{ background: TYPE_COLOR[type], color: TYPE_TEXT[type] }}>
-                    {TYPE_LABEL[type]} {count}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+        {s.trainer > 0 && (
+          <div className={styles.section}>
+            <h3>트레이너스 {s.trainer}</h3>
+            <Counts rows={TRAINER_KINDS.map((k): [string, number] => [TRAINER_LABEL[k], s.trainers[k]])} />
+          </div>
+        )}
 
-          {s.trainer > 0 && (
-            <div className={styles.section}>
-              <h3>트레이너스 {s.trainer}</h3>
-              <Counts rows={TRAINER_KINDS.map((k): [string, number] => [TRAINER_LABEL[k], s.trainers[k]])} />
-            </div>
-          )}
-
-          {s.energy > 0 && (
-            <div className={styles.section}>
-              <h3>에너지 {s.energy}</h3>
-              <Counts rows={[...s.basicEnergy.map(({ name, count }): [string, number] => [name, count]), ['특수 에너지', s.specialEnergy]]} />
-            </div>
-          )}
-          {total < cards.reduce((n, c) => n + c.count, 0) && <p className={styles.note}>정보를 불러오지 못한 카드는 빼고 셌어요.</p>}
-        </div>
-      )}
+        {s.energy > 0 && (
+          <div className={styles.section}>
+            <h3>에너지 {s.energy}</h3>
+            <Counts rows={[...s.basicEnergy.map(({ name, count }): [string, number] => [name, count]), ['특수 에너지', s.specialEnergy]]} />
+          </div>
+        )}
+        {total < cards.reduce((n, c) => n + c.count, 0) && <p className={styles.note}>정보를 불러오지 못한 카드는 빼고 셌어요.</p>}
+      </div>
     </section>
   )
 }
