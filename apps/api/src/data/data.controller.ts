@@ -187,7 +187,13 @@ export class MeController extends UserRoutes {
     if (!parsed.success || cleanText(parsed.data.confirm, 200) !== user.nickname) {
       throw new PublicError('확인을 위해 지금 닉네임을 정확히 입력해 주세요.', 400)
     }
-    await this.data.deleteUser(user.id)
+    // With auctions: under the account lock, and refused while seller or top bidder of an open one (Security)
+    if (this.services.auctions) {
+      const result = await this.services.auctions.leave(user.id)
+      if (result.kind === 'blocked') {
+        throw new PublicError('진행 중인 경매의 판매자이거나 최고 입찰자라 지금은 탈퇴할 수 없어요. 경매가 끝난 뒤 다시 시도해 주세요.', 409)
+      }
+    } else await this.data.deleteUser(user.id)
     clearCookie(res, SESSION_COOKIE)
   }
 }

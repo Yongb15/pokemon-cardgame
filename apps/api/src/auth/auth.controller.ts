@@ -10,6 +10,7 @@ import { randomInt } from 'node:crypto'
 import type { Request, Response } from 'express'
 import type { Config } from '../config.js'
 import type { UserDataStore } from '../data/store.js'
+import type { AuctionsStore } from '../auctions/store.js'
 import type { PacksStore } from '../packs/store.js'
 import type { PointsStore } from '../points/store.js'
 import type { RateLimiter } from './guards.js'
@@ -37,6 +38,8 @@ export interface Services {
   points: PointsStore | null
   /** Card packs and the collection (M7 7b) */
   packs: PacksStore | null
+  /** Auctions (M7 7c) */
+  auctions: AuctionsStore | null
   /** Writes per signed-in user */
   writeLimit: RateLimiter
 }

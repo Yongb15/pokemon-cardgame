@@ -6,6 +6,7 @@
 
 import { sql } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   check,
@@ -245,7 +246,7 @@ export const ownedCards = account.table(
     source: text('source').notNull(),
     packId: uuid('pack_id').references(() => packOpenings.id, { onDelete: 'set null' }),
     /** The open auction this copy is listed in (7c); cleared when the auction closes */
-    auctionId: uuid('auction_id'),
+    auctionId: uuid('auction_id').references((): AnyPgColumn => auctions.id, { onDelete: 'set null' }),
     acquiredAt: timestamp('acquired_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
   },
   (t) => [
@@ -301,6 +302,11 @@ export const auctions = account.table(
     check('auctions_time_check', sql`ends_at > starts_at and original_ends_at > starts_at`),
     check('auctions_extensions_check', sql`extensions between 0 and 10`),
     check('auctions_idem_check', sql`idem_key ~ '^[A-Za-z0-9_-]{8,64}$'`),
+    // Backstops for the app's rules (Security, 0016 review)
+    check('auctions_self_bid_check', sql`top_bidder_id is null or seller_id is null or top_bidder_id <> seller_id`),
+    check('auctions_extension_bound_check', sql`ends_at <= original_ends_at + interval '20 minutes'`),
+    check('auctions_closed_check', sql`(status = 'open') = (closed_at is null) and bid_count >= 0`),
+    check('auctions_sold_check', sql`status <> 'sold' or top_amount is not null`),
   ],
 )
 
