@@ -244,6 +244,8 @@ export const ownedCards = account.table(
     cardId: text('card_id').notNull(),
     source: text('source').notNull(),
     packId: uuid('pack_id').references(() => packOpenings.id, { onDelete: 'set null' }),
+    /** The open auction this copy is listed in (7c); cleared when the auction closes */
+    auctionId: uuid('auction_id'),
     acquiredAt: timestamp('acquired_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
   },
   (t) => [
@@ -251,5 +253,77 @@ export const ownedCards = account.table(
     index('owned_cards_pack_idx').on(t.packId),
     check('owned_cards_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
     check('owned_cards_source_check', sql.raw(`source in (${CARD_SOURCES.map((s) => `'${s}'`).join(', ')})`)),
+  ],
+)
+
+// --- M7 auctions (docs/auction/design.md §2–§4, migration 0016) -----------------------------------
+
+export const AUCTION_STATUSES = ['open', 'sold', 'unsold', 'cancelled'] as const
+export type AuctionStatus = (typeof AUCTION_STATUSES)[number]
+
+/**
+ * One auction of one owned card. The seller and the top bidder become NULL when an account is
+ * deleted after the auction closed (A-2: others' history stays, as "탈퇴한 사용자"). Writers lock
+ * this row first (§4 lock order); `version` grows with every change for the polling clients.
+ */
+export const auctions = account.table(
+  'auctions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sellerId: uuid('seller_id').references(() => users.id, { onDelete: 'set null' }),
+    ownedCardId: uuid('owned_card_id').references(() => ownedCards.id, { onDelete: 'set null' }),
+    cardId: text('card_id').notNull(),
+    startPrice: bigint('start_price', { mode: 'number' }).notNull(),
+    minStep: bigint('min_step', { mode: 'number' }).notNull(),
+    status: text('status').notNull().default('open'),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
+    endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+    originalEndsAt: timestamp('original_ends_at', { withTimezone: true }).notNull(),
+    extensions: integer('extensions').notNull().default(0),
+    topAmount: bigint('top_amount', { mode: 'number' }),
+    topBidderId: uuid('top_bidder_id').references(() => users.id, { onDelete: 'set null' }),
+    bidCount: integer('bid_count').notNull().default(0),
+    version: integer('version').notNull().default(0),
+    idemKey: text('idem_key').notNull(),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+  },
+  (t) => [
+    // One open auction per card copy: the database's last word on double listing (Security)
+    uniqueIndex('auctions_open_card_idx').on(t.ownedCardId).where(sql`status = 'open'`),
+    uniqueIndex('auctions_idem_idx').on(t.sellerId, t.idemKey),
+    index('auctions_open_ends_idx').on(t.status, t.endsAt),
+    index('auctions_seller_idx').on(t.sellerId, t.status),
+    index('auctions_top_idx').on(t.topBidderId, t.status),
+    check('auctions_status_check', sql.raw(`status in (${AUCTION_STATUSES.map((s) => `'${s}'`).join(', ')})`)),
+    check('auctions_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
+    check('auctions_price_check', sql`start_price between 1 and 100000000 and min_step between 1 and 100000000`),
+    check('auctions_top_check', sql`top_amount is null or top_amount between 1 and 100000000`),
+    check('auctions_time_check', sql`ends_at > starts_at and original_ends_at > starts_at`),
+    check('auctions_extensions_check', sql`extensions between 0 and 10`),
+    check('auctions_idem_check', sql`idem_key ~ '^[A-Za-z0-9_-]{8,64}$'`),
+  ],
+)
+
+/** Every bid, never edited. `alias_no` is the bidder's per-auction letter (A = 1, in first-bid order) */
+export const bids = account.table(
+  'bids',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    auctionId: uuid('auction_id')
+      .notNull()
+      .references(() => auctions.id),
+    bidderId: uuid('bidder_id').references(() => users.id, { onDelete: 'set null' }),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    aliasNo: integer('alias_no').notNull(),
+    idemKey: text('idem_key').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    uniqueIndex('bids_idem_idx').on(t.auctionId, t.bidderId, t.idemKey),
+    index('bids_auction_idx').on(t.auctionId, t.createdAt),
+    index('bids_bidder_idx').on(t.bidderId),
+    check('bids_amount_check', sql`amount between 1 and 100000000`),
+    check('bids_alias_check', sql`alias_no between 1 and 10000`),
+    check('bids_idem_check', sql`idem_key ~ '^[A-Za-z0-9_-]{8,64}$'`),
   ],
 )
