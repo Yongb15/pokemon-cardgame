@@ -1,0 +1,17 @@
+# The collector image's own ignore file (BuildKit): everything out, then only what the Dockerfile copies.
+# Secrets and local state stay out even if a COPY were widened (Security J-1).
+**
+!infra/collector/package.json
+!infra/collector/package-lock.json
+!scripts/collect-prices.ts
+!server/prices/**
+!server/db/**
+!data/index.json
+!data/tcgdex-map.json
+!data/sets.json
+**/*.test.ts
+server/prices/fixtures/**
+.env*
+**/.env*
+gha-creds-*.json
+**/node_modules

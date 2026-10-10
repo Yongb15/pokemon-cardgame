@@ -59,8 +59,10 @@ export type Handle = (
 /** A thrown error as a short, safe label: the class name and a database code if any */
 export function errorLabel(error: unknown) {
   if (!(error instanceof Error)) return 'unknown'
-  const code = (error as { code?: unknown }).code
-  return typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code) ? `${error.name} ${code}` : error.name
+  const { code, inner } = error as { code?: unknown; inner?: unknown }
+  if (typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)) return `${error.name} ${code}`
+  // DbError.inner is already a safe label (store.ts)
+  return typeof inner === 'string' ? `${error.name} (${inner})` : error.name
 }
 
 /**

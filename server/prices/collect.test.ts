@@ -95,3 +95,37 @@ describe('polite collection', () => {
     expect(late.stopped).toBe('deadline')
   })
 })
+
+describe('failure labels (safe constants only)', () => {
+  it('names database errors by code, or by the driver error and its cause code', async () => {
+    const { errorLabel } = await import('./collect.js')
+    const { DbError } = await import('./store.js')
+    const coded = Object.assign(new DbError('database error'), { code: '57014' })
+    expect(errorLabel(coded)).toBe('DbError 57014')
+    const network = Object.assign(new DbError('database error'), { inner: 'NeonDbError UND_ERR_SOCKET' })
+    expect(errorLabel(network)).toBe('DbError (NeonDbError UND_ERR_SOCKET)')
+    expect(errorLabel(new DbError('database error'))).toBe('DbError')
+    // A message never appears, even one with a host in it
+    expect(errorLabel(new Error('connect to db.example.neon.tech failed'))).toBe('Error')
+  })
+
+  it("labels the driver's errors by fetch cause or HTTP status, never by message", async () => {
+    const { driverLabel } = await import('./store.js')
+    class NeonDbError extends Error {
+      override name = 'NeonDbError'
+      sourceError?: unknown
+    }
+    const fetchFailed = new TypeError('fetch failed', { cause: Object.assign(new Error('ep-x.neon.tech'), { code: 'UND_ERR_SOCKET' }) })
+    const connect = Object.assign(new NeonDbError(`Error connecting to database: ${fetchFailed}`), { sourceError: fetchFailed })
+    expect(driverLabel(connect)).toBe('NeonDbError fetch TypeError UND_ERR_SOCKET')
+    const http = new NeonDbError('Server error (HTTP status 503): secret body ep-x.neon.tech')
+    expect(driverLabel(http)).toBe('NeonDbError HTTP 503')
+    // Drizzle's wrapper is looked through
+    expect(driverLabel(new Error('Failed query: select …', { cause: http }))).toBe('NeonDbError HTTP 503')
+    expect(driverLabel(new NeonDbError('something with ep-x.neon.tech'))).toBe('NeonDbError')
+    // The SQLSTATE in a 500's body, and nothing else from it
+    const full = new NeonDbError('Server error (HTTP status 500): {"message":"too many connections for role \\"collector_rw\\"","code":"53300"}')
+    expect(driverLabel(full)).toBe('NeonDbError HTTP 500 53300')
+    expect(driverLabel('nope')).toBeNull()
+  })
+})
