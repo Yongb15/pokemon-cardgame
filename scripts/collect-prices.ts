@@ -1,5 +1,6 @@
-// Daily price collection for every linked card (docs/price/collect-all.md). Run by
-// .github/workflows/collect-prices.yml with PRICE_DATABASE_URL (the collector_rw role).
+// Daily price collection for every linked card (docs/price/collect-all.md), then the day's PSA
+// graded prices (docs/price/psa.md). Run by the Cloud Run Job price-collector (infra/collector) with
+// PRICE_DATABASE_URL (the collector_rw role) and PRICETRACKER_API_KEY.
 //
 //   PRICE_DATABASE_URL=… npx tsx scripts/collect-prices.ts
 //
@@ -21,6 +22,7 @@ const { claimRefresh, refreshTimes, saveFx } = await import('../server/prices/st
 const { isBasicEnergy, loadPriceData, refreshCard } = await import('../server/prices/refresh.js')
 const { fetchFx } = await import('../server/prices/sources.js')
 const { collect, DUE_HOURS, dueOrder, errorLabel, isDueToday, todayUtc } = await import('../server/prices/collect.js')
+const { collectPsa, PSA_PER_DAY } = await import('../server/prices/psaCollect.js')
 
 const sql = neon(url)
 const MB = 1024 * 1024
@@ -37,13 +39,19 @@ async function checkGrants() {
     has_table_privilege('fx_rate', 'SELECT') and has_table_privilege('fx_rate', 'INSERT')
       and has_table_privilege('fx_rate', 'UPDATE') as fx_rw,
     has_table_privilege('card_edition_link', 'SELECT') as link_r,
+    has_table_privilege('psa_price', 'SELECT') and has_table_privilege('psa_price', 'INSERT')
+      and has_table_privilege('psa_price', 'UPDATE') as psa_rw,
+    has_table_privilege('psa_refresh', 'SELECT') and has_table_privilege('psa_refresh', 'INSERT')
+      and has_table_privilege('psa_refresh', 'UPDATE') as psa_refresh_rw,
+    has_table_privilege('psa_price', 'DELETE') or has_table_privilege('psa_price', 'TRUNCATE')
+      or has_table_privilege('psa_refresh', 'DELETE') or has_table_privilege('psa_refresh', 'TRUNCATE') as psa_delete,
     has_table_privilege('price_snapshot', 'DELETE') or has_table_privilege('price_snapshot', 'TRUNCATE') as snapshot_delete,
     has_table_privilege('card_view_daily', 'SELECT') or has_table_privilege('card_view_daily', 'INSERT') as views,
     has_table_privilege('daily_counter', 'SELECT') or has_table_privilege('daily_counter', 'INSERT') as budgets,
     coalesce(to_regnamespace('account') is not null and has_schema_privilege('account', 'USAGE'), false) as account,
     has_database_privilege(current_database(), 'CREATE') as db_create`) as Record<string, boolean>[]
-  const missing = ['snapshot_rw', 'refresh_rw', 'fx_rw', 'link_r'].filter((k) => g![k] !== true)
-  const excess = ['snapshot_delete', 'views', 'budgets', 'account', 'db_create'].filter((k) => g![k] === true)
+  const missing = ['snapshot_rw', 'refresh_rw', 'fx_rw', 'link_r', 'psa_rw', 'psa_refresh_rw'].filter((k) => g![k] !== true)
+  const excess = ['snapshot_delete', 'psa_delete', 'views', 'budgets', 'account', 'db_create'].filter((k) => g![k] === true)
   return { missing, excess }
 }
 
@@ -87,6 +95,26 @@ try {
   )
   const reasons = Object.entries(counts.reasons).sort((a, b) => b[1] - a[1])
   if (reasons.length) console.log(`failures by reason: ${reasons.map(([r, n]) => `${r} ×${n}`).join(', ')}`)
+
+  // PSA graded prices for today's share of the priciest cards (the key never appears in output)
+  const psaKey = process.env.PRICETRACKER_API_KEY
+  let psaStopped: string | null = null
+  // A short PSA trial: PSA_LIMIT=3 (also runs on a COLLECT_LIMIT run)
+  const psaLimit = Number(process.env.PSA_LIMIT)
+  const psaTrial = Number.isInteger(psaLimit) && psaLimit > 0
+  if (psaKey && (!process.env.COLLECT_LIMIT || psaTrial)) {
+    const psa = await collectPsa(psaKey, today, psaTrial ? Math.min(psaLimit, PSA_PER_DAY) : PSA_PER_DAY).catch((error: unknown) => {
+      console.error(`psa failed: ${errorLabel(error)}`)
+      return null
+    })
+    if (psa) {
+      psaStopped = psa.stopped
+      const why = Object.entries(psa.reasons).map(([r, n]) => `${r} ×${n}`).join(', ')
+      console.log(
+        `psa: targets ${psa.targets}, saved ${psa.saved}, no sales ${psa.noSales}, skipped ${psa.skipped}, failed ${psa.failed}, stopped ${psa.stopped ?? 'no'}${why ? ` (${why})` : ''}`,
+      )
+    }
+  } else console.log(psaKey ? 'psa: skipped on a limited run' : 'psa: no key, skipped')
   const after = await databaseBytes().catch((error: unknown) => {
     console.error(`database size unknown: ${errorLabel(error)}`)
     return before
@@ -97,6 +125,8 @@ try {
     process.exit(2)
   }
   if (counts.stopped === 'rate-limited' || counts.stopped === 'failures') process.exit(3)
+  // A key the source refuses: the run fails so the owner hears about it
+  if (psaStopped === 'unauthorized') process.exit(4)
 } catch (error) {
   // The name only: the message can hold a host or a query
   console.error(`collect failed: ${errorLabel(error)}`)

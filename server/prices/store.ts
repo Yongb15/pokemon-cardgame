@@ -361,3 +361,91 @@ export async function getLatestLevels(edition: 'en' | 'ja', sinceDay: string) {
     lastSeenOn: String(r.last_seen_on).slice(0, 10),
   }))
 }
+
+// --- PSA graded prices (docs/price/psa.md) ------------------------------------------------------
+
+/**
+ * The cards to collect PSA prices for today: the priciest `pool` cards by stored TCGplayer market
+ * (at least `minUsd`, seen in the last two weeks), not collected in the last 6 days, oldest first
+ */
+export async function psaTargets(today: string, minUsd: number, pool: number, limit: number) {
+  const result = await run((d) =>
+    d.execute(sql`
+      with latest as (
+        select distinct on (card_id, variant) card_id, market
+        from ${priceSnapshot}
+        where edition = 'en' and source = 'tcgplayer' and currency = 'USD' and flagged = false
+          and last_seen_on >= ${today}::date - 14
+        order by card_id, variant, captured_on desc
+      ), best as (
+        select card_id, max(market) as m from latest group by card_id
+        having max(market) >= ${minUsd} order by m desc limit ${pool}
+      )
+      select b.card_id from best b left join psa_refresh r on r.card_id = b.card_id
+      where r.refreshed_at is null or r.refreshed_at < now() - interval '6 days'
+      order by r.refreshed_at asc nulls first, b.m desc
+      limit ${limit}`),
+  )
+  return rowsOf(result).map((r) => String(r.card_id))
+}
+
+export async function savePsa(cardId: string, today: string, grades: { grade: string; median: number; sales: number; lastSaleOn: string | null }[]) {
+  for (const g of grades) {
+    await run((d) =>
+      d.execute(sql`
+        insert into psa_price (card_id, grade, captured_on, median, sales, last_sale_on)
+        values (${cardId}, ${g.grade}, ${today}, ${g.median}, ${g.sales}, ${g.lastSaleOn})
+        on conflict (card_id, grade, captured_on) do update
+        set median = excluded.median, sales = excluded.sales, last_sale_on = excluded.last_sale_on`),
+    )
+  }
+}
+
+export async function setPsaStatus(cardId: string, status: 'ok' | 'no_sales' | 'not_found' | 'error') {
+  await run((d) =>
+    d.execute(sql`
+      insert into psa_refresh (card_id, refreshed_at, status) values (${cardId}, now(), ${status})
+      on conflict (card_id) do update set refreshed_at = now(), status = excluded.status`),
+  )
+}
+
+export interface PsaRow {
+  grade: string
+  capturedOn: string
+  median: number
+  sales: number
+  lastSaleOn: string | null
+}
+
+/** A card's PSA rows since `sinceDay`, oldest first */
+export async function getPsaRows(cardId: string, sinceDay: string): Promise<PsaRow[]> {
+  const result = await run((d) =>
+    d.execute(sql`
+      select grade, captured_on, median, sales, last_sale_on from psa_price
+      where card_id = ${cardId} and captured_on >= ${sinceDay}
+      order by captured_on asc, grade asc`),
+  )
+  return rowsOf(result).map((r) => ({
+    grade: String(r.grade),
+    capturedOn: String(r.captured_on).slice(0, 10),
+    median: Number(r.median),
+    sales: Number(r.sales),
+    lastSaleOn: r.last_sale_on === null ? null : String(r.last_sale_on).slice(0, 10),
+  }))
+}
+
+/** Every card's latest PSA 10 since `sinceDay` (for the PSA 10 ranking) */
+export async function getLatestPsa10(sinceDay: string) {
+  const result = await run((d) =>
+    d.execute(sql`
+      select distinct on (card_id) card_id, median, sales, captured_on from psa_price
+      where grade = 'psa10' and captured_on >= ${sinceDay}
+      order by card_id, captured_on desc`),
+  )
+  return rowsOf(result).map((r) => ({
+    cardId: String(r.card_id),
+    median: Number(r.median),
+    sales: Number(r.sales),
+    capturedOn: String(r.captured_on).slice(0, 10),
+  }))
+}
