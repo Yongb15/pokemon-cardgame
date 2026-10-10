@@ -93,5 +93,5 @@ export async function refreshCard(cardId: string, now: Date, signal?: AbortSigna
 
   const status = en.status === 'ok' ? (en.rows.length ? 'ok' : 'not_found') : en.status
   await setRefreshStatus(cardId, status)
-  return { status, changed }
+  return { status, changed, ...(en.status === 'error' && { reason: `source ${en.reason ?? 'error'}` }) }
 }

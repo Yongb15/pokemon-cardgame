@@ -24,7 +24,8 @@ export interface PriceRow {
 export type FetchResult =
   | { status: 'ok'; rows: PriceRow[] }
   | { status: 'not_found' }
-  | { status: 'error' }
+  /** Why, for the collector's tally: "HTTP 403", "not JSON", "TimeoutError"… (never a URL or body) */
+  | { status: 'error'; reason?: string }
   /** 429 or 503: the source asks us to slow down (seconds to wait, when it says) */
   | { status: 'rate_limited'; retryAfter: number | null }
 
@@ -170,7 +171,8 @@ export async function fetchCardPrices(lang: 'en' | 'ja', tcgdexId: string, signa
     if (card === null) return { status: 'not_found' }
     return { status: 'ok', rows: parseTcgdexCard(card) }
   } catch (error) {
-    return error instanceof RateLimited ? { status: 'rate_limited', retryAfter: error.retryAfter } : { status: 'error' }
+    if (error instanceof RateLimited) return { status: 'rate_limited', retryAfter: error.retryAfter }
+    return { status: 'error', reason: error instanceof SourceError ? error.message : error instanceof Error ? error.name : 'unknown' }
   }
 }
 
