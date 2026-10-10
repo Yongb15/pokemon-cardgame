@@ -109,3 +109,30 @@ export const saveAccountDeck = (id: string, body: AccountDeckBody, version: numb
 export const deleteAccountDeck = (id: string) => accountFetch<void>(`/decks/${encodeURIComponent(id)}`, { method: 'DELETE' })
 export const importDecks = (decks: (AccountDeckBody & { sourceId: string; updatedAt: number })[]) =>
   accountFetch<ImportResult>('/decks/import', { method: 'POST', body: { decks } })
+
+// --- Points (M7 7a, docs/auction/design.md) ------------------------------------------------------
+
+export interface PointsSummary {
+  balance: number
+  held: number
+  available: number
+  /** Today in Korea (YYYY-MM-DD) */
+  today: string
+  claimedToday: boolean
+  /** The first bonus was granted by this very call */
+  bonusGranted: boolean
+}
+
+export type PointKind = 'signup_bonus' | 'daily_bonus' | 'pack_purchase' | 'sale_income' | 'sale_fee' | 'purchase' | 'admin_adjust'
+
+export interface PointEntry {
+  id: string
+  amount: number
+  kind: PointKind
+  createdAt: string
+}
+
+export const getPoints = () => accountFetch<PointsSummary>('/me/points')
+export const getPointEntries = (before: string | null) =>
+  accountFetch<{ entries: PointEntry[]; next: string | null }>(`/me/points/entries${before ? `?${new URLSearchParams({ before })}` : ''}`)
+export const claimDaily = () => accountFetch<PointsSummary & { claimed: boolean }>('/me/points/daily', { method: 'POST' })

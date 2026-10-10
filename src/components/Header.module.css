@@ -58,6 +58,14 @@
   }
 }
 
+/* Points and the account, pushed to the right together */
+.right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 /* Account (sign-in link or the user's menu), pushed to the right */
 .account,
 .accountButton,
@@ -126,6 +134,70 @@
   font-weight: 700;
 }
 
+/* "Today's check-in is waiting" on phones, where the button lives in the menu (qa 1) */
+.avatar {
+  position: relative;
+}
+
+.dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+@media (min-width: 641px) {
+  .dot {
+    display: none;
+  }
+}
+
+.menuPoints {
+  padding: 6px 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menuBalance {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.menuBalance b {
+  font-size: 16px;
+  color: var(--text-h);
+  font-variant-numeric: tabular-nums;
+}
+
+.menu .menuClaim {
+  padding: 9px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+  text-align: center;
+}
+
+.menuDone {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.menuError {
+  margin: 0;
+  font-size: 12px;
+  color: var(--warn-text);
+}
+
 .nickname {
   min-width: 0;
   overflow: hidden;
@@ -138,7 +210,7 @@
   top: calc(100% + 6px);
   right: 0;
   z-index: 20;
-  width: 220px;
+  width: 248px;
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -179,6 +251,13 @@
   color: var(--text-muted);
 }
 
+@media (min-width: 641px) and (max-width: 900px) {
+  /* Mid widths: the nickname gives way to the points first (qa 2) */
+  .nickname {
+    display: none;
+  }
+}
+
 @media (max-width: 640px) {
   .inner {
     gap: 20px;
@@ -201,4 +280,9 @@
     clip-path: inset(50%);
     white-space: nowrap;
   }
+}
+
+.menu .menuClaim[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: progress;
 }

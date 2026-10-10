@@ -99,6 +99,13 @@
       "when": 1791612688276,
       "tag": "0013_psa_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791617803118,
+      "tag": "0014_points_ledger",
+      "breakpoints": true
     }
   ]
 }
