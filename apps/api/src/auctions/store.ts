@@ -292,10 +292,15 @@ export class PgAuctionsStore implements AuctionsStore {
     return n
   }
 
+  private async settleIfExpired(auctionId: string) {
+    const { rows } = await this.db.execute<{ expired: boolean }>(sql`select (status = 'open' and now() >= ends_at) as expired from account.auctions where id = ${auctionId}`)
+    if (!rows[0]) return false
+    if (rows[0].expired) await this.settleOne(auctionId)
+    return true
+  }
+
   async get(auctionId: string): Promise<AuctionPublic | null> {
-    const first = await this.db.execute<AuctionRow>(sql`select ${SELECT_AUCTION} from account.auctions where id = ${auctionId}`)
-    if (!first.rows[0]) return null
-    if (first.rows[0].expired) await this.settleOne(auctionId)
+    if (!(await this.settleIfExpired(auctionId))) return null
     const { rows } = await this.db.execute<AuctionRow>(sql`select ${SELECT_AUCTION} from account.auctions where id = ${auctionId}`)
     const a = rows[0]!
     const bidRows = await this.db.execute<{ alias_no: number; amount: string; created_at: Date }>(sql`
@@ -324,6 +329,8 @@ export class PgAuctionsStore implements AuctionsStore {
   }
 
   async mine(auctionId: string, userId: string): Promise<AuctionMine> {
+    // Like every read that can show a result: an auction whose time is up is settled first
+    await this.settleIfExpired(auctionId)
     const { rows } = await this.db.execute<{ seller_id: string | null; top_bidder_id: string | null; top_amount: string | null; status: string; alias_no: number | null }>(sql`
       select a.seller_id, a.top_bidder_id, a.top_amount, a.status,
              (select alias_no from account.bids b where b.auction_id = a.id and b.bidder_id = ${userId} limit 1) as alias_no
