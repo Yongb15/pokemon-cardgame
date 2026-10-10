@@ -1,0 +1,119 @@
+/* "덱 구성" (docs/design/deck-add-and-stats.webp ⑤) */
+
+.stats {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.toggle {
+  width: 100%;
+  padding: 2px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 0;
+  background: none;
+  color: var(--text-h);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.body {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.stack {
+  height: 10px;
+  display: flex;
+  gap: 2px;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.stack i {
+  display: block;
+  height: 100%;
+  flex-basis: 0;
+}
+
+.legend,
+.types {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  font-size: 13px;
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.legend b {
+  color: var(--text-h);
+}
+
+.types {
+  gap: 6px;
+}
+
+.types li {
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.counts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.counts div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.counts dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
