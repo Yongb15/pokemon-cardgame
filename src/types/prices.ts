@@ -43,8 +43,21 @@ export interface CardPrices {
     ko: { state: 'links'; links: { term: string; kream: string; bunjang: string } }
   }
   mixedEditions: boolean
+  /** Missing from answers cached before PSA prices existed */
+  psa?: PsaView
   refresh: { refreshedAt: string | null; status: 'pending' | 'ok' | 'not_found' | 'error' | null; refreshing: boolean }
   note: string
 }
 
 export type PricesResponse = CardPrices | { card: string; hidden: true }
+
+/** PSA graded prices (server/prices/psaView.ts, docs/price/psa.md) */
+export type PsaView =
+  | { state: 'untracked'; minUsd: number }
+  | { state: 'pending' }
+  | {
+      state: 'ok'
+      capturedOn: string
+      grades: { grade: string; usd: number; krw: number | null; sales: number; lastSaleOn: string | null }[]
+      history: { grade: string; points: { date: string; usd: number }[] }[]
+    }

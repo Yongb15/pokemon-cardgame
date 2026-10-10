@@ -7,7 +7,8 @@ Project `pokemon-card-dex-511008`. Set up by hand with gcloud on 2026-10-10; rec
 | Image repo | AR `collector` (asia-southeast3) | immutable tags, cleanup: keep 5, delete after 30 days. Not the `api` repo (its deploy accounts can write there) |
 | Job | `price-collector` (asia-southeast3) | image by **digest**, 1 vCPU / 512 MiB, 1 task, retries 0, timeout 110 min |
 | Secret | `collector-db-url` (asia-southeast1) | production `collector_rw` URL through the **pooler** host (`ep-…-pooler`), attached as version **:2** (`PRICE_DATABASE_URL`). v1 (direct host) is disabled |
-| Run account | `collector-run` | `secretAccessor` on `collector-db-url` only |
+| Secret | `pricetracker-api-key` (asia-southeast1) | Pokemon Price Tracker API key for the PSA step (docs/price/psa.md), attached as **:1** (`PRICETRACKER_API_KEY`). Without it the step logs "psa: no key, skipped" |
+| Run account | `collector-run` | `secretAccessor` on `collector-db-url` and `pricetracker-api-key` only |
 | Schedule | Scheduler `price-collector-daily` (asia-southeast1) | `30 19 * * *` UTC → `POST …/locations/asia-southeast3/jobs/price-collector:run`, OAuth as `collector-scheduler` |
 | Caller account | `collector-scheduler` | `run.invoker` on this Job only (not `jobsExecutorWithOverrides`: overrides could change env/args) |
 

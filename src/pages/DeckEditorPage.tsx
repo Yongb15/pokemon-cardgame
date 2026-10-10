@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router'
 import CardPicker from '../components/deck/CardPicker'
 import DeckCardList from '../components/deck/DeckCardList'
 import DeckChecks from '../components/deck/DeckChecks'
+import DeckStats from '../components/deck/DeckStats'
 import ExportDialog from '../components/deck/ExportDialog'
 import { NotFoundState } from '../components/ListStates'
 import {
@@ -402,7 +403,10 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
       ) : loading ? (
         <p className={styles.muted}>카드 정보를 불러오는 중…</p>
       ) : (
-        <DeckChecks checks={checks} />
+        <>
+          <DeckChecks checks={checks} />
+          <DeckStats cards={deck.cards} info={info} defaultOpen={!isNarrow} />
+        </>
       )}
       {unknownIds.length > 0 && (
         <p className={styles.alert}>
