@@ -34,18 +34,19 @@ function wasSeen(id: string) {
 }
 
 /** One pack's five cards: flipped one by one (or all at once with reduced motion) */
-function Reveal({ pack, recovered, onAgain, canAgain, againReason, busy }: { pack: OpenedPack; recovered: boolean; onAgain: () => void; canAgain: boolean; againReason: string | null; busy: boolean }) {
+/** `pack` null: opening right now — the same section with face-down slots, so nothing moves when it lands (qa B7-1) */
+function Reveal({ pack, recovered, onAgain, canAgain, reasonId, busy }: { pack: OpenedPack | null; recovered: boolean; onAgain: () => void; canAgain: boolean; reasonId: string | undefined; busy: boolean }) {
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)')
-  const [shown, setShown] = useState(recovered || reduced ? 5 : 0)
+  const [shown, setShown] = useState(pack && (recovered || reduced) ? 5 : 0)
   const heading = useRef<HTMLHeadingElement>(null)
-  const { info } = useCardInfo(pack.cards.map((c) => c.cardId))
-  const done = shown >= 5
+  const { info } = useCardInfo(pack ? pack.cards.map((c) => c.cardId) : [])
+  const done = !!pack && shown >= 5
 
   useEffect(() => {
-    if (done) return
+    if (done || !pack) return
     const timer = setTimeout(() => setShown((n) => n + 1), FLIP_MS)
     return () => clearTimeout(timer)
-  }, [shown, done])
+  }, [shown, done, pack])
 
   // Done: focus the result heading, once (qa A-4)
   useEffect(() => {
@@ -61,18 +62,18 @@ function Reveal({ pack, recovered, onAgain, canAgain, againReason, busy }: { pac
     <section className={styles.result} aria-labelledby="pack-result">
       <div className={styles.resultHead}>
         <h2 id="pack-result" ref={heading} tabIndex={-1}>
-          {recovered ? `마지막으로 연 팩 · ${timeOf(pack.createdAt)}` : '팩 결과'}
+          {!pack ? '팩 여는 중…' : recovered ? `마지막으로 연 팩 · ${timeOf(pack.createdAt)}` : '팩 결과'}
         </h2>
-        {!done && (
+        {pack && !done && (
           <button type="button" className={styles.linkButton} onClick={() => setShown(5)}>
             모두 보기
           </button>
         )}
       </div>
       <ol className={styles.slots}>
-        {pack.cards.map((c, i) => {
+        {(pack?.cards ?? Array.from({ length: 5 }, (_, i) => ({ cardId: '', tier: 'common' as const, rareSlot: i === 4, isNew: false }))).map((c, i) => {
           const card = info.get(c.cardId)
-          const open = i < shown
+          const open = !!pack && i < shown
           return (
             <li key={i} className={c.rareSlot ? `${styles.slot} ${styles.rareSlot}` : styles.slot} aria-hidden={!done || undefined}>
               <div className={open ? `${styles.face} ${styles.open}` : styles.face}>
@@ -108,7 +109,7 @@ function Reveal({ pack, recovered, onAgain, canAgain, againReason, busy }: { pac
       </ol>
       {/* One announcement for the whole pack, after the last card (qa A-4) */}
       <p className="visually-hidden" role="status">
-        {done
+        {done && pack
           ? `${pack.cards.map((c) => `${label(c.cardId)} ${TIER_LABEL[c.tier]}${c.rareSlot ? ' 레어 슬롯' : ''}${c.isNew ? ' 새 카드' : ''}`).join(', ')}`
           : ''}
       </p>
@@ -118,12 +119,17 @@ function Reveal({ pack, recovered, onAgain, canAgain, againReason, busy }: { pac
           <Link className={styles.button} to="/collection">
             컬렉션 보기
           </Link>
-          <button type="button" className={styles.primary} aria-disabled={!canAgain || busy || undefined} onClick={() => canAgain && !busy && onAgain()}>
+          <button
+            type="button"
+            className={styles.primary}
+            aria-disabled={!canAgain || busy || !pack || undefined}
+            aria-describedby={canAgain ? undefined : reasonId}
+            onClick={() => canAgain && !busy && pack && onAgain()}
+          >
             {busy ? '여는 중…' : '한 팩 더 (1,000P)'}
           </button>
         </div>
       </div>
-      {againReason && <p className={styles.reason}>{againReason}</p>}
     </section>
   )
 }
@@ -134,7 +140,8 @@ export default function PacksPage() {
   const points = usePoints()
   const [catalog, setCatalog] = useState<PackCatalog | null>(null)
   const [catalogError, setCatalogError] = useState(false)
-  const [pack, setPack] = useState<{ pack: OpenedPack; recovered: boolean } | null>(null)
+  // `fresh`: the answer to the press in progress has arrived (until then the section shows face-down slots)
+  const [pack, setPack] = useState<{ pack: OpenedPack; recovered: boolean; fresh: boolean } | null>(null)
   const [lastSet, setLastSet] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -159,7 +166,7 @@ export default function PacksPage() {
     getLatestPack()
       .then(({ pack: last }) => {
         if (last && Date.now() - Date.parse(last.createdAt) < RECOVER_MS && !wasSeen(last.id)) {
-          setPack((current) => current ?? { pack: last, recovered: true })
+          setPack((current) => current ?? { pack: last, recovered: true, fresh: true })
           setLastSet(last.setId)
           markSeen(last.id)
         }
@@ -178,17 +185,20 @@ export default function PacksPage() {
     setError(null)
     if (!pending.current || pending.current.setId !== setId) pending.current = { setId, key: newRequestId() }
     setBusy(setId)
+    // The section shows up now, inside the click's input window, with face-down slots (qa B7-1)
+    setPack((current) => (current ? { ...current, fresh: false } : null))
     try {
       const res = await openPack(setId, pending.current.key)
       pending.current = null
       setPointsSummary(res.points)
       markSeen(res.pack.id)
-      setPack({ pack: res.pack, recovered: false })
+      setPack({ pack: res.pack, recovered: false, fresh: true })
       setLastSet(res.pack.setId)
     } catch (e) {
       if (e instanceof AccountApiError && e.status !== 0 && e.status < 500) pending.current = null // answered: a new press is a new request
       if (e instanceof AccountApiError && e.status === 429) setError(`${e.retryAfter ?? 60}초 뒤에 다시 열 수 있어요.`)
       else setError(e instanceof AccountApiError ? e.message : '팩을 열지 못했어요. 다시 눌러 주세요.')
+      setPack((current) => (current ? { ...current, fresh: true } : null))
     } finally {
       setBusy(null)
     }
@@ -218,15 +228,22 @@ export default function PacksPage() {
         </p>
       )}
 
-      {pack && lastSet && (
+      {/* One reason line for every open button (qa B7-2) */}
+      {short > 0 && (
+        <p id="pack-short" className={styles.reason}>
+          {won(short)} 부족해요 · 출석 체크로 모을 수 있어요
+        </p>
+      )}
+
+      {(pack || busy) && (
         <Reveal
-          key={pack.pack.id}
-          pack={pack.pack}
-          recovered={pack.recovered}
-          busy={busy === lastSet}
+          key={busy && !pack?.fresh ? 'opening' : (pack?.pack.id ?? 'opening')}
+          pack={busy && !pack?.fresh ? null : (pack?.pack ?? null)}
+          recovered={!!pack?.recovered}
+          busy={!!busy}
           canAgain={short === 0}
-          againReason={short ? `${won(short)} 부족해요 · 출석 체크로 모을 수 있어요` : null}
-          onAgain={() => void open(lastSet)}
+          reasonId={short ? 'pack-short' : undefined}
+          onAgain={() => lastSet && void open(lastSet)}
         />
       )}
 
@@ -256,12 +273,12 @@ export default function PacksPage() {
                   className={styles.primary}
                   aria-label={`${s.nameKo} 팩 열기, ${won(price)}`}
                   aria-disabled={short > 0 || !!busy || undefined}
+                  aria-describedby={short > 0 ? 'pack-short' : undefined}
                   onClick={() => short === 0 && void open(s.id)}
                 >
                   {busy === s.id ? '여는 중…' : `열기 ${won(price)}`}
                 </button>
               </div>
-              {short > 0 && <p className={styles.reason}>{won(short)} 부족해요 · 출석 체크로 모을 수 있어요</p>}
               {oddsOf === s.id && (
                 <div className={styles.odds}>
                   <table>

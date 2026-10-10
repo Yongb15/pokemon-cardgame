@@ -70,6 +70,8 @@ export interface PackCheck {
 }
 
 export interface PacksStore {
+  /** The pack a request id already opened (no lock: a hint before the rate limit; open() decides) */
+  prior(userId: string, idemKey: string): Promise<OpenedPack | null>
   open(userId: string, setId: string, idemKey: string, rng?: Rng, seeded?: boolean): Promise<OpenResult>
   latest(userId: string): Promise<OpenedPack | null>
   collection(userId: string, setId: string | null, page: number): Promise<{ rows: CollectionRow[]; more: boolean }>
@@ -133,6 +135,14 @@ export class PgPacksStore implements PacksStore {
       }
       return { kind: 'opened', pack: { id: pack.id, setId, cards, createdAt: new Date(pack.created_at) } }
     })
+  }
+
+  async prior(userId: string, idemKey: string) {
+    const { rows } = await this.db.execute<{ id: string; set_id: string; cards: string[]; created_at: Date }>(
+      sql`select id, set_id, cards, created_at from account.pack_openings where user_id = ${userId} and idem_key = ${idemKey}`,
+    )
+    const p = rows[0]
+    return p ? { id: p.id, setId: p.set_id, cards: asPackCards(p.set_id, p.cards, null), createdAt: new Date(p.created_at) } : null
   }
 
   async latest(userId: string) {

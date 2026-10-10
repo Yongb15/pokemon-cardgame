@@ -294,6 +294,11 @@ export class MemoryPacksStore implements PacksStore {
     return { kind: 'opened', pack: { id, setId, cards, createdAt } }
   }
 
+  async prior(userId: string, idemKey: string) {
+    const p = this.openings.find((o) => o.userId === userId && o.idemKey === idemKey)
+    return p ? { id: p.id, setId: p.setId, cards: asPackCards(p.setId, p.cards, null), createdAt: p.createdAt } : null
+  }
+
   async latest(userId: string) {
     const p = this.openings.filter((o) => o.userId === userId).at(-1)
     return p ? { id: p.id, setId: p.setId, cards: asPackCards(p.setId, p.cards, null), createdAt: p.createdAt } : null

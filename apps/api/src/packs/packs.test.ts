@@ -88,6 +88,11 @@ describe('card packs (preview)', () => {
     expect(again.body.points.balance).toBe(9000)
     expect((await t.call('/api/v1/me/packs/latest', { session })).body.pack.id).toBe(first.body.pack.id)
     expect((await t.call('/api/v1/me/packs/latest?id=x', { session })).status).toBe(400)
+    // Past the 10-a-minute limit, a retry of an opened pack still gets it back (qa B7-3)
+    for (let i = 0; i < 9; i++) await t.call('/api/v1/me/packs', { method: 'POST', session, body: { setId: SET, idemKey: `burst-${i}-key` } })
+    expect((await t.call('/api/v1/me/packs', { method: 'POST', session, body: { setId: SET, idemKey: 'burst-new-key' } })).status).toBe(429)
+    const late = await t.call('/api/v1/me/packs', { method: 'POST', session, body: { setId: SET, idemKey: 'request-0001' } })
+    expect(late.body).toMatchObject({ kind: 'repeat', pack: { id: first.body.pack.id } })
   })
 
   it('refuses when short of points and writes nothing', async () => {

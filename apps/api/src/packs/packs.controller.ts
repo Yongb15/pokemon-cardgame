@@ -48,8 +48,10 @@ abstract class PackRoutes extends UserRoutes {
 
 @Controller('packs')
 export class PacksCatalogController {
+  // Static odds: cacheable at the edge (qa Info)
   @Get()
-  catalog() {
+  catalog(@Res({ passthrough: true }) res: Response) {
+    res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600')
     return {
       price: PACK_PRICE,
       size: PACK_SIZE,
@@ -73,6 +75,9 @@ export class PacksController extends PackRoutes {
     if (!parsed.success) throw badRequest()
     const seed = 'seed' in parsed.data ? (parsed.data.seed as number | undefined) : undefined
     if (seed !== undefined) await this.testOnly(user.id)
+    // A retry of a pack already opened gets that pack, even at the rate limit (qa B7-3)
+    const prior = await this.packs.prior(user.id, parsed.data.idemKey)
+    if (prior) return { kind: 'repeat', pack: packView(prior), points: await this.services.points!.summary(user.id) }
     if (!packLimit.allow(user.id)) {
       res.setHeader('Retry-After', '60')
       throw new PublicError('카드팩은 1분에 10번까지 열 수 있어요.', 429)
