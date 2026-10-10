@@ -271,8 +271,8 @@ export class PgAuctionsStore implements AuctionsStore {
     })
   }
 
-  /** One auction's settlement in its own transaction (level 1 first); false if nothing to do */
-  /** : the sweep never waits behind a live bid (that bid settles it itself: Security) */
+  /** One auction's settlement in its own transaction (level 1 first); false if nothing to do.
+      `skipLocked`: the sweep never waits behind a live bid (that bid settles it itself: Security) */
   private async settleOne(auctionId: string, skipLocked = false) {
     return this.db.transaction(async (tx) => {
       const { rows } = await tx.execute<AuctionRow>(
