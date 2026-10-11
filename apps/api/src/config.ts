@@ -21,6 +21,8 @@ const schema = z.object({
     .optional(),
   /** 32 random bytes (base64url) that encrypt the short-lived __Host-oauth cookie */
   OAUTH_COOKIE_KEY: z.string().regex(/^[A-Za-z0-9_-]{43}$/).optional(),
+  /** 32 random bytes (base64url) of its own for the admin-only user pseudonyms (Security AD-2) */
+  ADMIN_PSEUDONYM_KEY: z.string().regex(/^[A-Za-z0-9_-]{43}$/).optional(),
   /** Google sign-in: the client id is public, the secret comes from the bundle */
   GOOGLE_CLIENT_ID: z.string().regex(/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/).optional(),
   GOOGLE_CLIENT_SECRET: z.string().regex(/^[A-Za-z0-9_-]{10,100}$/).optional(),
@@ -35,16 +37,23 @@ const schema = z.object({
     .url()
     .refine((value) => /^https:\/\/pokemon-card-dex(-[a-z0-9-]+)?\.vercel\.app$/.test(value))
     .optional(),
-}).refine((c) => c.APP_ENV !== 'production' || !c.PRICES_ORIGIN || c.PRICES_ORIGIN === c.PUBLIC_ORIGIN, {
-  message: 'PRICES_ORIGIN must be PUBLIC_ORIGIN in production',
 })
+  .refine((c) => c.APP_ENV !== 'production' || !c.PRICES_ORIGIN || c.PRICES_ORIGIN === c.PUBLIC_ORIGIN, {
+    message: 'PRICES_ORIGIN must be PUBLIC_ORIGIN in production',
+    path: ['PRICES_ORIGIN'],
+  })
+  // A key of its own: never the cookie key or the proxy secret (AD-2)
+  .refine((c) => !c.ADMIN_PSEUDONYM_KEY || (c.ADMIN_PSEUDONYM_KEY !== c.OAUTH_COOKIE_KEY && c.ADMIN_PSEUDONYM_KEY !== c.PROXY_SECRET), {
+    message: 'ADMIN_PSEUDONYM_KEY must be its own key',
+    path: ['ADMIN_PSEUDONYM_KEY'],
+  })
 
 export type Config = z.infer<typeof schema> & { proxyReady: boolean; googleReady: boolean; kakaoReady: boolean }
 
 export const CONFIG = Symbol('CONFIG')
 
 /** Keys that may come from the API_SECRETS bundle; plain settings like APP_ENV may not */
-const SECRET_KEYS = new Set(['PROXY_SECRET', 'DATABASE_URL', 'OAUTH_COOKIE_KEY', 'GOOGLE_CLIENT_SECRET', 'KAKAO_CLIENT_SECRET'])
+const SECRET_KEYS = new Set(['PROXY_SECRET', 'DATABASE_URL', 'OAUTH_COOKIE_KEY', 'GOOGLE_CLIENT_SECRET', 'KAKAO_CLIENT_SECRET', 'ADMIN_PSEUDONYM_KEY'])
 
 /**
  * Cloud Run gets all secrets of one environment as a single Secret Manager value (JSON) in
