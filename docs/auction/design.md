@@ -206,3 +206,13 @@ ERD·ADR: `docs/adr/0005-points-ledger-and-auctions.md`
 - **권한** `api_rw`: SELECT, INSERT(user_id, kind, auction_id, card_id, amount), UPDATE(amount, created_at, read_at). DELETE·다른 열 UPDATE 없음(시작 시 점검)
 - **API**: `GET /me/notifications` → { unread, items(최신 20) } — 본인의 마감된 경매를 먼저 정산(지연 정산과 같은 경로) · `POST /me/notifications/read` → 지금까지 전부 읽음(쓰기: origin 확인·분당 60회). 모두 no-store
 - **화면**: 901px 이상 헤더의 종(안 읽은 수, 10부터 9+) → 팝오버(열면 읽음). 900px 이하는 아바타 점 + 계정 메뉴 "알림 N" → `/notifications`. 로그인 시 한 번, 보이는 탭에서 1분마다, 탭으로 돌아올 때 확인(백그라운드 탭은 요청 없음)
+
+## 12. 경매 찜과 마감 임박 알림 (M8, docs/design/auction-watch.webp)
+
+- **찜**: 경매 상세의 "☆ 찜" → `auction_watches(user_id → users cascade, auction_id → auctions, created_at)`, PK (user, auction), 사용자당 100개(advisory lock 안에서 세기). 진행 중인 경매만 찜할 수 있고, 내 경매도 찜 가능(판매자에게는 아래 알림이 가지 않음). 끝난 경매의 찜은 남아도 알림이 더 생기지 않음
+- **알림 두 가지** (`notifications`, 경매 종류라 auction_id 있음, 다른 사용자 이름·별칭 없음 — A-3)
+  - `watch_bid` "찜한 경매에 새 입찰": **입찰과 같은 트랜잭션**(잠금 4단계, 쓰기만)에서 찜한 사람 전원에게 — 입찰한 본인, 밀려난 이전 최고 입찰자(이미 `outbid`를 받음), 판매자는 제외. `INSERT … SELECT FROM auction_watches … ON CONFLICT (user, auction, kind) DO UPDATE` 한 문장이라 찜이 많아도 쿼리 1번. 같은 경매에서 또 입찰이 들어오면 같은 행이 최신 현재가·안 읽음으로
+  - `watch_ending` "찜한 경매 마감 30분 전": 사용자가 알림을 읽을 때(`GET /me/notifications`, 경매 정산 → 가격 알림 다음) 그 사용자의 찜 중 진행 중이고 `ends_at - now() <= 30분`인 경매에 한 번만(`ON CONFLICT DO NOTHING`). 보이는 탭은 1분마다 알림을 읽으므로 사이트에 있으면 제때 보임. 연장돼도 다시 울리지 않음
+- **API**: `PUT /me/auctions/:id/watch` → 204(없는 경매 404, 끝난 경매 409, 100개 422) · `DELETE /me/auctions/:id/watch` → 204 · `GET /me/auctions/:id`의 `mine`에 `watching` 추가 · `GET /me/auctions`에 `watching` 목록(경매 목록과 같은 모양) 추가
+- **권한** `api_rw`: auction_watches SELECT·INSERT(user_id, auction_id)·DELETE(본인 찜 해제 — 사용자 설정이라 삭제, 가격 알림과 같은 판단). 시작 시 권한 검사·초과 권한 목록(테이블별)에 추가
+- **화면**: 상세 제목 옆 "☆ 찜 / ★ 찜함"(로그아웃이면 로그인으로, 로딩 중엔 같은 크기 자리), 경매 목록 "내 경매" 탭에 "찜한 경매" 묶음, 알림 문구 "**카드** 찜한 경매에 새 입찰이 들어왔어요. 현재가 4,200P" / "**카드** 찜한 경매가 30분 안에 끝나요"
