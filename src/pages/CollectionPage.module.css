@@ -142,7 +142,10 @@
   object-fit: cover;
 }
 
+/* Two lines (name + rarity) from the placeholder on, so the row text doesn't grow when it lands */
 .topName {
+  min-height: 39px;
+  justify-content: center;
   min-width: 0;
   display: flex;
   flex-direction: column;
