@@ -4,7 +4,7 @@ import styles from './AccountPages.module.css'
 
 const EFFECTIVE = '2026년 10월 11일'
 /** What changed last (shown under the date) */
-const CHANGES = '포인트·카드팩·경매·알림 추가(이전 시행일 2026년 10월 9일)'
+const CHANGES = '포인트·카드팩·경매·알림, 가격 알림·경매 찜 추가(이전 시행일 2026년 10월 9일)'
 
 function Policy({ title, children }: { title: string; children: ReactNode }) {
   useEffect(() => {
