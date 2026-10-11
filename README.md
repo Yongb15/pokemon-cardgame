@@ -54,7 +54,7 @@
 | 모노레포 | npm workspaces — 웹(루트), `apps/api`, `packages/shared`(덱·닉네임 규칙을 웹과 서버가 함께 사용) |
 | DB | PostgreSQL ([Neon](https://neon.tech), `production`·`dev` 브랜치), Drizzle ORM·마이그레이션, 용도별 최소 권한 계정(시세 `app_rw` · 계정 `api_rw` · 수집 `collector_rw`(삭제 권한 없음, 연결 8개), 서로의 스키마 접근 불가) |
 | 시세·환율 | [TCGdex](https://tcgdex.dev) (TCGplayer·Cardmarket 시세, 일본판 카드), [Frankfurter](https://frankfurter.dev) (ECB 환율), [Pokemon Price Tracker](https://www.pokemonpricetracker.com) (PSA 등급 판매가, 무료 플랜 하루 45장) |
-| 테스트 | Vitest 165개 (시세 규칙·순위·수집 순서·실패 라벨·PSA 응답 검증, 덱 구성 통계, 로그인 흐름·세션·id_token 검증, 덱·관심 카드 API, 하트 연타 순서) + GitHub Actions CI |
+| 테스트 | Vitest 웹 191개 + API 86개 (경매 라우트·알림, 시세 규칙·순위·수집 순서·실패 라벨·PSA 응답 검증, 덱 구성 통계, 로그인 흐름·세션·id_token 검증, 덱·관심 카드 API, 하트 연타 순서) + GitHub Actions CI |
 | 데이터 | 자체 보유 카드 데이터([pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)) + 공식 한국어 포켓몬·아이템·장소 이름([PokéAPI](https://github.com/PokeAPI/pokeapi)) + 공식 카드 검색과 대조한 이름 사전 + 자체 번역(비공식 표시) |
 | 덱 저장 | 로그아웃: 브라우저 localStorage, 로그인: 계정(PostgreSQL, 버전 번호로 동시 수정 감지), 공유는 URL 쿼리 |
 | 이미지 | 자체 변환 WebP, GitHub Pages 호스팅 |
@@ -63,24 +63,52 @@
 
 ## 구조
 
-```
-                      ┌─ scripts/build-data.mjs ───> data/          카드 20,635장 · 세트 176개 · 한국어 이름
-  (빌드 시 한 번 생성) ─┤
-                      └─ scripts/build-images.mjs ─> GitHub Pages   카드 이미지 WebP (245px · 440px)
+```mermaid
+flowchart TB
+  user(["브라우저 · React SPA"])
+  pages[("GitHub Pages<br/>카드 이미지 WebP")]
+  oidc["Google · Kakao 로그인 (OIDC)"]
 
-  브라우저 ──> /api/cards  (Vercel Function, server/cardsApi.ts)    검색 · 상세 · 이전/다음 · 관련 카드 · 덱 카드 일괄 조회
-          ├──> /api/cards/:id/prices  (Vercel Function, server/prices/)     저장된 시세 → 원화 · 그래프, 하루 지난 카드는 응답 뒤 갱신
-          ├──> 카드 이미지  (GitHub Pages, 실패하면 원본 이미지로 대체)
-          ├──> /api/prices/top  (Vercel Function)               시세 순위 TOP 50
-          ├──> /api/v1/*  ──(Vercel middleware, 비밀 헤더)──> Cloud Run NestJS  로그인 · 세션 · 계정 덱 · 관심 카드
-          │                                                        └──> Neon PostgreSQL (account 스키마, api_rw)
-          └──> localStorage (로그아웃 상태의 덱)
+  subgraph vercel["Vercel"]
+    direction LR
+    web["정적 화면<br/>(Vite 빌드)"]
+    fn["서버리스 함수<br/>/api/cards · /api/prices<br/>/api/prices/top · /api/prices/packs"]
+    mw["middleware<br/>/api/v1/* 프록시<br/>(비밀 헤더 추가)"]
+  end
 
-  Vercel Cron (매일 03:00 KST) ──> /api/cron/prices ──> TCGdex · Frankfurter ──> Neon PostgreSQL
-                                   (비밀 값 인증)        (하루 2,000장)            (바뀐 값만 저장)
-  Cloud Scheduler (매일 04:30 KST) ──> Cloud Run Job price-collector ──> TCGdex ──> Neon (풀러, collector_rw)
-                                       (오늘 대상 카드 전체, 동시 2개)     (1% 미만 변동은 같은 가격대로 연장)
+  subgraph gcp["Google Cloud Run (방콕)"]
+    direction LR
+    api["계정 API · NestJS<br/>로그인·세션·덱·관심 카드<br/>포인트·카드팩·경매·알림"]
+    sched["Cloud Scheduler<br/>매일 04:30 KST"] --> job["시세 수집기<br/>Cloud Run Job"]
+  end
+
+  ext["외부 시세·환율<br/>TCGdex · Frankfurter · Pokemon Price Tracker"]
+
+  subgraph neon["Neon PostgreSQL (싱가포르)"]
+    direction LR
+    acc[("account 스키마<br/>사용자·세션·덱·포인트 장부<br/>컬렉션·경매·입찰·알림")]
+    pub[("public 스키마<br/>시세 이력 · 환율 · PSA")]
+  end
+
+  user --> web
+  user -->|"카드·시세"| fn
+  user -->|"/api/v1/*"| mw
+  user -->|"이미지"| pages
+  mw --> api
+  api <-->|"인가 코드 + PKCE"| oidc
+  api -->|"api_rw · 컬럼 단위 권한"| acc
+  fn -->|"app_rw · 읽기"| pub
+  job -->|"수집"| ext
+  job -->|"collector_rw · 삭제 불가"| pub
 ```
+
+| 구성 | 위치 | 하는 일 |
+|---|---|---|
+| 화면 | Vercel (`src/`) | React SPA. 카드 데이터는 빌드 때 `data/`에 생성해 고정 |
+| 카드·시세 API | Vercel Functions (`api/`, `server/`) | 검색·상세, 저장된 시세를 원화로, 시세 순위, 카드팩 카드 시세(모든 사용자가 같은 캐시 응답) |
+| 계정 API | Cloud Run NestJS (`apps/api/`) | 로그인·세션, 계정 덱·관심 카드, 포인트 장부, 카드팩(서버에서 추첨), 경매 입찰·정산(잠금 순서), 알림 |
+| 시세 수집 | Cloud Run Job (`infra/collector/`) | 매일 TCGdex 연결 카드 전체 + 비싼 카드 45장 PSA 시세를 DB에 쌓음 |
+| DB | Neon PostgreSQL (`db/migrations/`) | 스키마를 둘로 나누고, 계정마다 필요한 권한만: 시세 함수는 account를, 계정 API는 시세 테이블을 볼 수 없음 |
 
 - 외부 API를 실시간으로 호출하지 않습니다. 카드 데이터는 고정된 커밋에서 생성하고(`data/meta.json`), 서버 함수가 메모리에 올려 응답합니다(검색 수 ms, 응답은 엣지에 하루 캐시).
 - 개발 서버(`npm run dev`)도 같은 서버 코드를 사용해 배포 환경과 동작이 같습니다.
