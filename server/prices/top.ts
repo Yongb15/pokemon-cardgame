@@ -1,6 +1,8 @@
 // GET /api/prices/top?edition=en|ja|psa10&set=<set id> — the priciest cards right now (docs/design/price-ranking.webp,
 // docs/design/psa-prices.webp ③). `psa10` ranks the collected PSA 10 medians: the only list of PSA
 // values we serve, capped at 50 (Security P-1).
+// GET /api/prices/batch?ids=a,b,c (its own function) — the same headline in won for 1–50 named cards,
+// for price alerts (docs/price/alerts.md). Ids sorted, unique and known, or 400: one URL per answer.
 // GET /api/prices/packs (its own function, no parameters) — every card-pack card's headline price in won, for "my
 // collection's value" (docs/design/collection-value.webp). One shared answer for everyone: the
 // browser multiplies by what it owns, so no user's collection ever reaches this function.
@@ -15,7 +17,7 @@ import path from 'node:path'
 import { addDays, headlineVariant, rateOn, toKrw, utcDay, type FxRow, type Variant } from './logic.js'
 import { isBasicEnergy, loadPriceData } from './refresh.js'
 import { PSA_MAX_AGE_DAYS } from './psaView.js'
-import { getFxRates, getLatestLevels, getLatestPsa10 } from './store.js'
+import { getFxRates, getLatestLevels, getLatestLevelsFor, getLatestPsa10 } from './store.js'
 
 export const TOP_LIMIT = 50
 /** A price not confirmed for a week is too old to rank */
@@ -116,6 +118,48 @@ const fail = (status: number, message: string) => json({ error: { message, code:
 
 const MEMO_MS = 10 * 60 * 1000
 const memory = new Map<string, { body: unknown; expires: number }>()
+
+export const BATCH_MAX = 50
+/** One card's headline in won (null: none), for 10 minutes */
+const cardMemo = new Map<string, { krw: number | null; expires: number }>()
+const CARD_ID = /^[A-Za-z0-9_.!?-]{1,40}$/
+
+/** /api/prices/batch: `ids` once, 1–50 known card ids in sorted order without repeats (one URL per answer) */
+export async function handleBatch(params: URLSearchParams, now = new Date()) {
+  const keys = [...params.keys()]
+  if (keys.length !== 1 || keys[0] !== 'ids') return fail(400, 'Bad request')
+  const ids = (params.get('ids') ?? '').split(',')
+  if (!ids.length || ids.length > BATCH_MAX || !ids.every((id, i) => CARD_ID.test(id) && (i === 0 || ids[i - 1]! < id))) {
+    return fail(400, 'Bad request')
+  }
+  try {
+    const { cards } = await loadPriceData()
+    if (!ids.every((id) => cards.has(id))) return fail(400, 'Bad request')
+    // Per card, not per URL: a new combination of ids reuses what's cached, so database reads grow with
+    // distinct cards, never with distinct URLs (Security PA-1)
+    const at = now.getTime()
+    const missing = ids.filter((id) => !((cardMemo.get(id)?.expires ?? 0) > at))
+    if (missing.length) {
+      const today = utcDay(now)
+      const fx = await getFxRates(addDays(today, -14))
+      const rates = new Map<string, FxRow[]>()
+      for (const r of fx) rates.set(r.currency, [...(rates.get(r.currency) ?? []), r as FxRow])
+      const wanted = new Set(missing)
+      const priced = new Map(rank(await getLatestLevelsFor('en', addDays(today, -FRESH_DAYS), missing), rates, today, (id) => wanted.has(id), missing.length).map((r) => [r.id, r.krw]))
+      if (cardMemo.size > 30_000) cardMemo.clear() // every card twice over; this just bounds it
+      for (const id of missing) cardMemo.set(id, { krw: priced.get(id) ?? null, expires: at + MEMO_MS })
+    }
+    const prices: Record<string, number> = {}
+    for (const id of ids) {
+      const krw = cardMemo.get(id)?.krw
+      if (krw != null) prices[id] = krw
+    }
+    const body = { today: utcDay(now), prices }
+    return json(body, 200, OK_CACHE)
+  } catch {
+    return fail(500, 'Server error')
+  }
+}
 
 /** /api/prices/packs: no query string at all, so one URL is one cache entry (Security V-1) */
 export function handlePacks(params: URLSearchParams, now = new Date()) {
