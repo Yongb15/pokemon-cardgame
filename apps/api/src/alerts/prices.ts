@@ -7,7 +7,26 @@ const MAX_BYTES = 64 * 1024
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
 export const BATCH_MAX = 50
 
-export type PriceFetch = (ids: string[]) => Promise<Map<string, number> | 'unknown' | null>
+/** The body, counted while it streams and dropped past 64 KB (Security Info: cap before buffering) */
+async function readCapped(res: Response): Promise<string | null> {
+  if (!res.body) return ''
+  const reader = res.body.getReader()
+  const chunks: Uint8Array[] = []
+  let size = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.byteLength
+    if (size > MAX_BYTES) {
+      await reader.cancel()
+      return null
+    }
+    chunks.push(value)
+  }
+  return new TextDecoder().decode(Buffer.concat(chunks))
+}
+
+export type PriceFetch =(ids: string[]) => Promise<Map<string, number> | 'unknown' | null>
 
 /**
  * `ids`: 1–50 card ids. Returns the won headline of each priced one, 'unknown' when the function says
@@ -28,8 +47,8 @@ export function batchPrices(origin: string, fetchImpl: typeof fetch = fetch): Pr
       if (res.status === 400) return 'unknown'
       // A challenge page or anything not JSON is a failure, not data (previews get bot-checked)
       if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith('application/json')) return null
-      const text = await res.text()
-      if (text.length > MAX_BYTES) return null
+      const text = await readCapped(res)
+      if (text === null) return null
       const body = JSON.parse(text) as unknown
       if (!body || typeof body !== 'object') return null
       const { today, prices } = body as { today?: unknown; prices?: unknown }

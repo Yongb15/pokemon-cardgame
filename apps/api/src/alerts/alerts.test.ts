@@ -40,6 +40,7 @@ describe('batch price lookup', () => {
     expect(await batchPrices(ORIGIN, reply({ error: 1 }, { status: 500 }))(['a'])).toBeNull()
     expect(await batchPrices(ORIGIN, (async () => Promise.reject(new TypeError('redirect'))) as unknown as typeof fetch)(['a'])).toBeNull()
     expect(await batchPrices(ORIGIN, reply({ error: 1 }, { status: 400 }))(['a'])).toBe('unknown')
+    expect(await batchPrices(ORIGIN, reply({ today: '2026-10-11', prices: {}, pad: 'x'.repeat(70_000) }))(['a'])).toBeNull()
   })
   it('asks the fixed host with sorted, unique ids and no cookies', async () => {
     let seen: { url: string; init: RequestInit } | null = null
