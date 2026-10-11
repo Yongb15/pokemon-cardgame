@@ -4,7 +4,7 @@
 //   POST /api/v1/me/packs { setId, idemKey }   → { kind: opened|repeat, pack, points }   422 short of points
 //   GET  /api/v1/me/packs/latest               → { pack | null } (the caller's own; no id parameter)
 //   GET  /api/v1/me/collection?set=&page=      → { cards: [{ cardId, count, test, newest }], more }
-//   GET  /api/v1/me/collection/summary         → { cards, distinct, sets: [{ id, owned, total }] }
+//   GET  /api/v1/me/collection/summary         → { cards, distinct, sets: [{ id, owned, total }], owned: [{ cardId, count }] }
 // Preview only, test accounts only (Security T-1/T-2, K-3):
 //   POST /api/v1/test/cards { cardId, count }  → 204 (pool card ids only, source 'test')
 //   GET  /api/v1/test/pack-check               → { mine, all } (cards[] vs copies per pack: counts)

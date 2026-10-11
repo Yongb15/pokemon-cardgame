@@ -1,12 +1,17 @@
 // GET /api/prices/top?edition=en|ja|psa10&set=<set id> — the priciest cards right now (docs/design/price-ranking.webp,
 // docs/design/psa-prices.webp ③). `psa10` ranks the collected PSA 10 medians: the only list of PSA
 // values we serve, capped at 50 (Security P-1).
+// GET /api/prices/packs (its own function, no parameters) — every card-pack card's headline price in won, for "my
+// collection's value" (docs/design/collection-value.webp). One shared answer for everyone: the
+// browser multiplies by what it owns, so no user's collection ever reaches this function.
 //
 // Ranks what has been collected: every card's latest unflagged level confirmed within the last
 // week, its headline price chosen as on the detail page (TCGplayer first, then normal → holo → …),
 // in won at today's rate. Cards nobody has fetched yet aren't in it; the page says so. Read-only:
 // no refreshes, no outside calls. Cached at the edge for an hour.
 
+import { readFile } from 'node:fs/promises'
+import path from 'node:path'
 import { addDays, headlineVariant, rateOn, toKrw, utcDay, type FxRow, type Variant } from './logic.js'
 import { isBasicEnergy, loadPriceData } from './refresh.js'
 import { PSA_MAX_AGE_DAYS } from './psaView.js'
@@ -17,6 +22,16 @@ export const TOP_LIMIT = 50
 const FRESH_DAYS = 7
 const SOURCE_ORDER = ['tcgplayer', 'cardmarket']
 const SET_ID = /^[a-z0-9]{1,20}$/
+
+/** The card-pack pool (apps/api/src/packs/pool.json, built by scripts/build-packs.mjs) */
+let poolIds: Promise<Set<string>> | null = null
+export function loadPoolIds() {
+  poolIds ??= readFile(path.join(process.cwd(), 'apps/api/src/packs/pool.json'), 'utf8').then((t) => {
+    const pool = JSON.parse(t) as { sets: { tiers: Record<string, string[]> }[] }
+    return new Set(pool.sets.flatMap((s) => Object.values(s.tiers).flat()))
+  })
+  return poolIds
+}
 
 export interface Level {
   cardId: string
@@ -102,6 +117,12 @@ const fail = (status: number, message: string) => json({ error: { message, code:
 const MEMO_MS = 10 * 60 * 1000
 const memory = new Map<string, { body: unknown; expires: number }>()
 
+/** /api/prices/packs: no query string at all, so one URL is one cache entry (Security V-1) */
+export function handlePacks(params: URLSearchParams, now = new Date()) {
+  if ([...params.keys()].length) return Promise.resolve(fail(400, 'Bad request'))
+  return handleTop(new URLSearchParams({ edition: 'packs' }), now)
+}
+
 /** `edition` and `set` are the only parameters; anything else is refused (like /prices: Security) */
 export async function handleTop(params: URLSearchParams, now = new Date()) {
   // One URL per answer: a repeated or empty parameter would make endless cache misses (Security T-1)
@@ -110,8 +131,8 @@ export async function handleTop(params: URLSearchParams, now = new Date()) {
   if ([...params.values()].some((value) => value === '')) return fail(400, 'Bad request')
   const edition = params.get('edition') ?? 'en'
   const set = params.get('set') ?? ''
-  if (edition !== 'en' && edition !== 'ja' && edition !== 'psa10') return fail(400, 'Bad request')
-  if (set && !SET_ID.test(set)) return fail(400, 'Bad request')
+  if (edition !== 'en' && edition !== 'ja' && edition !== 'psa10' && edition !== 'packs') return fail(400, 'Bad request')
+  if (set && (!SET_ID.test(set) || edition === 'packs')) return fail(400, 'Bad request')
 
   // Also in this instance's memory for 10 minutes, so edge misses don't each read the database
   const memoKey = `${edition}|${set}|${utcDay(now)}`
@@ -128,6 +149,14 @@ export async function handleTop(params: URLSearchParams, now = new Date()) {
     const keep = (id: string) => {
       const card = cards.get(id)
       return !!card && !isBasicEnergy(card) && (!set || card.set === set)
+    }
+    if (edition === 'packs') {
+      // English-edition headline (TCGplayer first), every pool card that has one; no cap: the pool is fixed
+      const pool = await loadPoolIds()
+      const priced = rank(await getLatestLevels('en', addDays(today, -FRESH_DAYS)), rates, today, (id) => pool.has(id), pool.size)
+      const body = { edition, today, prices: Object.fromEntries(priced.map((r) => [r.id, r.krw])) }
+      memory.set(memoKey, { body, expires: now.getTime() + MEMO_MS })
+      return json(body, 200, OK_CACHE)
     }
     const ranked =
       edition === 'psa10'
