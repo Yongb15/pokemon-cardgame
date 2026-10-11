@@ -134,7 +134,11 @@ export default function CollectionPage() {
                 {t ? (
                   <Link className={styles.topName} to={`/cards/${encodeURIComponent(t.cardId)}`}>
                     <b>{card ? (card.nameKo ?? card.name) : t.cardId}</b>
-                    <small>{card?.rarity ? rarityLabel(card.rarity) : ' '}</small>
+                    <small>
+                      {card?.rarity ? rarityLabel(card.rarity) : ' '}
+                      {/* The set after the rarity where there's room (qa M8-2) */}
+                      {card && <span className={styles.topSet}> · {card.set.nameKo ?? card.set.name}</span>}
+                    </small>
                   </Link>
                 ) : (
                   <span className={styles.topName} aria-hidden="true">
