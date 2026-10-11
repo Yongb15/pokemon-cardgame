@@ -42,6 +42,7 @@
 - **내 컬렉션 가치** — 모은 카드의 참고 시세 합계(원화), 가장 비싼 카드 TOP 5, 카드마다 장당 시세. 카드팩 카드 979장의 시세를 모든 사용자가 같은 캐시 응답 하나로 받고 브라우저가 내 장수와 곱함(내 컬렉션은 시세 서버로 가지 않음)
 - **가격 알림** — 카드 상세에서 "이 가격 이하가 되면 알려 줘"(최대 50개), 시세가 내려오면 알림 종으로. 사용자가 알림을 읽을 때 1시간에 한 번 확인(서버가 0대로 줄어도 동작)
 - **경매 찜** — ☆ 찜한 경매에 새 입찰이 들어오거나 마감 30분 전이면 알림, "내 경매"에 찜한 경매 묶음. 찜 개수는 공개하지 않음
+- **신고·관리자 화면** — 경매 신고(사유·설명, 신고자는 비공개) → 운영자가 `/admin`에서 확인하고 "신고 닫기"나 "경매 내리기"(묶인 포인트·카드 반환). 관리자는 DB 소유자만 지정, 로그인 12시간 안에만 작업 가능, 아니면 모든 관리자 경로가 404. 자기가 판매·입찰한 경매는 처리 불가, 다중 계정 확인용 관리자 전용 구분값(HMAC), 조치는 고칠 수 없는 기록으로 남김
 - **탐색 흐름 유지** — 상세에서 돌아오면 필터·페이지·스크롤 위치(모바일 "더 보기"로 쌓은 목록 포함) 복원
 - **반응형·접근성** — 6열 → 2열 그리드, 다크 모드, 키보드 조작, 스크린 리더 레이블, 강조색 글자·버튼 WCAG AA 대비, Lighthouse(모바일, 정식 주소) 접근성·권장사항·SEO 100점
 - **보안** — CSP·X-Frame-Options 등 보안 헤더, API 파라미터 화이트리스트와 길이·개수·중복 제한, 프로토타입 키(`constructor`, `__proto__`) 방어, 붙여넣은 덱 목록·공유 링크·저장소 값을 한 곳에서 검증. 로그인은 state·nonce·PKCE, `__Host-` 쿠키에 해시로 저장하는 세션, Origin 검사(CSRF), 사용자별 쓰기 제한, 컬럼 단위 최소 권한 DB 계정, 로그인 콜백 주소를 로그에서 제외
@@ -57,7 +58,7 @@
 | 모노레포 | npm workspaces — 웹(루트), `apps/api`, `packages/shared`(덱·닉네임 규칙을 웹과 서버가 함께 사용) |
 | DB | PostgreSQL ([Neon](https://neon.tech), `production`·`dev` 브랜치), Drizzle ORM·마이그레이션, 용도별 최소 권한 계정(시세 `app_rw` · 계정 `api_rw` · 수집 `collector_rw`(삭제 권한 없음, 연결 8개), 서로의 스키마 접근 불가) |
 | 시세·환율 | [TCGdex](https://tcgdex.dev) (TCGplayer·Cardmarket 시세, 일본판 카드), [Frankfurter](https://frankfurter.dev) (ECB 환율), [Pokemon Price Tracker](https://www.pokemonpricetracker.com) (PSA 등급 판매가, 무료 플랜 하루 45장) |
-| 테스트 | Vitest 웹 206개 + API 93개 (가격 알림·찜·서버 간 시세 조회 응답 검사, 경매 라우트·알림, 시세 규칙·순위·수집 순서·실패 라벨·PSA 응답 검증, 덱 구성 통계, 로그인 흐름·세션·id_token 검증, 덱·관심 카드 API, 하트 연타 순서) + GitHub Actions CI |
+| 테스트 | Vitest 웹 211개 + API 98개 (관리자 권한·신선도·이해 충돌, 가격 알림·찜·서버 간 시세 조회 응답 검사, 경매 라우트·알림, 시세 규칙·순위·수집 순서·실패 라벨·PSA 응답 검증, 덱 구성 통계, 로그인 흐름·세션·id_token 검증, 덱·관심 카드 API, 하트 연타 순서) + GitHub Actions CI |
 | 데이터 | 자체 보유 카드 데이터([pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)) + 공식 한국어 포켓몬·아이템·장소 이름([PokéAPI](https://github.com/PokeAPI/pokeapi)) + 공식 카드 검색과 대조한 이름 사전 + 자체 번역(비공식 표시) |
 | 덱 저장 | 로그아웃: 브라우저 localStorage, 로그인: 계정(PostgreSQL, 버전 번호로 동시 수정 감지), 공유는 URL 쿼리 |
 | 이미지 | 자체 변환 WebP, GitHub Pages 호스팅 |
@@ -229,6 +230,8 @@ node scripts/build-images.mjs <출력 폴더>   # 카드 이미지 WebP 생성 (
 | `GET /api/prices/packs`, `GET /api/prices/batch?ids=a,b` | 카드팩 카드 전체 / 정렬된 카드 1~50장의 원화 대표 시세 (다른 파라미터·정렬 안 된 id는 400) |
 | `GET·PUT·DELETE /api/v1/me/price-alerts[/:cardId]` | 가격 알림 ([설계](docs/price/alerts.md)) |
 | `PUT·DELETE /api/v1/me/auctions/:id/watch` | 경매 찜 |
+| `POST /api/v1/me/auctions/:id/report` | 경매 신고 (하루 10건) |
+| `/api/v1/admin/*` | 관리자 전용 — 신고 목록, 경매 상세, 신고 닫기·경매 내리기 ([설계](docs/auction/moderation.md)) |
 
 ## 폴더 구조
 
@@ -283,7 +286,8 @@ src/
 - [ ] 시세 확장 — 트레이너스 카드 일본판 연결, 한글판 낙찰가·사용자 제보
 - [x] v1.5.0 가상 포인트 경매 (M7) — 포인트 장부, 카드팩·컬렉션, 경매(동시 입찰·연장·정산), 알림
 - [x] v1.6.0 컬렉션 가치·가격 알림·경매 찜 (M8)
-- [ ] M8 나머지 — 신고·관리자 화면, 거래자 평가(닉네임 정책 먼저)
+- [x] v1.7.0 경매 신고·관리자 화면 (M8), llms.txt
+- [ ] 거래자 평가 — 경매마다 익명인 지금 원칙을 바꿔야 해서 보류
 - [ ] 새 세트 데이터 추가 (원본 데이터 저장소가 2026-09 이후 갱신되지 않음)
 
 ## 출처
