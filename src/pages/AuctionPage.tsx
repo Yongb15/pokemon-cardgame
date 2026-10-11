@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { AccountApiError, cancelAuction, getAuction, getMyAuction, placeBid, type AuctionMine, type AuctionState } from '../api/account'
+import { AccountApiError, cancelAuction, getAuction, getMyAuction, placeBid, unwatchAuction, watchAuction, type AuctionMine, type AuctionState } from '../api/account'
 import CardImg from '../components/CardImg'
 import { useCardInfo } from '../hooks/useDecks'
 import { loadPoints, usePoints } from '../hooks/usePoints'
@@ -14,6 +14,58 @@ const FEE_PERCENT = 5
 const fee = (n: number) => Math.floor((n * FEE_PERCENT) / 100)
 const digits = (s: string) => Number(s.replace(/[^\d]/g, '')) || 0
 const grouped = (n: number) => (n ? n.toLocaleString('ko-KR') : '')
+
+/**
+ * "☆ 찜 / ★ 찜함" beside the title (docs/design/auction-watch.webp ①). A same-size slot until we know;
+ * signed out it goes to sign-in. Only the viewer ever sees it (Security W-2)
+ */
+function WatchButton({ id, signedOut, mine, open, onChange }: { id: string; signedOut: boolean; mine: AuctionMine | null; open: boolean; onChange: (watching: boolean) => void }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  if (signedOut) {
+    return (
+      <Link className={styles.watch} to={`/login?${new URLSearchParams({ next: `/auctions/${id}` })}`}>
+        ☆ 찜
+      </Link>
+    )
+  }
+  if (!mine) return <span className={styles.watchSlot} aria-hidden="true" />
+  // An ended auction can't be newly watched; one already watched can still be let go
+  if (!open && !mine.watching) return <span className={styles.watchSlot} aria-hidden="true" />
+  const toggle = async () => {
+    if (busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      if (mine.watching) await unwatchAuction(id)
+      else await watchAuction(id)
+      onChange(!mine.watching)
+    } catch (e) {
+      setError(e instanceof AccountApiError ? e.message : '찜하지 못했어요. 다시 눌러 주세요.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <>
+      <button
+        type="button"
+        className={mine.watching ? `${styles.watch} ${styles.watching}` : styles.watch}
+        aria-pressed={mine.watching}
+        aria-disabled={busy || undefined}
+        title={mine.watching ? '찜 해제' : '찜하면 새 입찰과 마감 30분 전을 알려 드려요'}
+        onClick={() => void toggle()}
+      >
+        {mine.watching ? '★ 찜함' : '☆ 찜'}
+      </button>
+      {error && (
+        <span className="visually-hidden" role="alert">
+          {error}
+        </span>
+      )}
+    </>
+  )
+}
 
 /** /auctions/:id (docs/design/auction-m7.webp ②, design §9): the state, the bid box, the result */
 export default function AuctionPage() {
@@ -220,7 +272,10 @@ export default function AuctionPage() {
         </div>
         <div className={styles.infoCol}>
           <div>
-            <h1 className={styles.title}>{card ? (card.nameKo ?? card.name) : (state?.cardId ?? '경매')}</h1>
+            <div className={styles.titleRow}>
+              <h1 className={styles.title}>{card ? (card.nameKo ?? card.name) : (state?.cardId ?? '경매')}</h1>
+              <WatchButton id={id} signedOut={session.status === 'out'} mine={mine} open={!!state && state.status === 'open'} onChange={(watching) => setMine((m) => (m ? { ...m, watching } : m))} />
+            </div>
             <p className={styles.small}>
               {card ? `${card.set.nameKo} #${card.number}` : ' '} · 판매자{mine?.isSeller ? ' (나)' : ''}
             </p>

@@ -53,7 +53,7 @@ export default function MarketPage() {
   const [params, setParams] = useSearchParams()
   const raw = params.get('tab')
   const tab: Tab = raw === 'new' || raw === 'price' || raw === 'mine' ? raw : 'ending'
-  const [data, setData] = useState<{ tab: Tab; items: MarketItem[]; selling?: MarketItem[]; more: boolean; page: number } | null>(null)
+  const [data, setData] = useState<{ tab: Tab; items: MarketItem[]; selling?: MarketItem[]; watching?: MarketItem[]; more: boolean; page: number } | null>(null)
   const [error, setError] = useState<{ tab: Tab; message: string } | null>(null)
   const [reload, setReload] = useState(0)
   useTick()
@@ -70,7 +70,7 @@ export default function MarketPage() {
     const load =
       tab === 'mine'
         ? session.status === 'in'
-          ? getMyAuctions().then((r) => ({ tab, items: r.bidding, selling: r.selling, more: false, page: 0 }))
+          ? getMyAuctions().then((r) => ({ tab, items: r.bidding, selling: r.selling, watching: r.watching, more: false, page: 0 }))
           : null
         : getMarket(tab).then((r) => ({ tab, items: r.items, more: r.more, page: 0 }))
     if (!load) return
@@ -83,7 +83,7 @@ export default function MarketPage() {
   }, [tab, session.status, reload])
 
   const current = data?.tab === tab ? data : null
-  const ids = [...(current?.items ?? []), ...(current?.selling ?? [])].map((i) => i.cardId)
+  const ids = [...(current?.items ?? []), ...(current?.selling ?? []), ...(current?.watching ?? [])].map((i) => i.cardId)
   const { info } = useCardInfo(ids)
 
   const more = async () => {
@@ -138,6 +138,13 @@ export default function MarketPage() {
           <div className={styles.skeleton} aria-busy="true" aria-label="불러오는 중" />
         ) : tab === 'mine' ? (
           <>
+            {/* Watched first: the ones about to end come first (docs/design/auction-watch.webp ③) */}
+            <h2 className={styles.section}>찜한 경매 {current.watching?.length ?? 0}</h2>
+            {current.watching?.length ? (
+              <ul className={styles.grid}>{current.watching.map((i) => <Lot key={i.id} item={i} info={info} />)}</ul>
+            ) : (
+              <p className={styles.small}>찜한 경매가 없어요. 경매 상세에서 ☆ 찜을 누르면 새 입찰과 마감 30분 전을 알려 드려요.</p>
+            )}
             <h2 className={styles.section}>내가 올린 경매 {current.selling?.length ?? 0}</h2>
             {current.selling?.length ? (
               <ul className={styles.grid}>{current.selling.map((i) => <Lot key={i.id} item={i} info={info} />)}</ul>
