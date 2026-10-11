@@ -346,7 +346,7 @@ export const notifications = account.table(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    kind: text('kind', { enum: ['outbid', 'won', 'sold', 'unsold', 'price'] }).notNull(),
+    kind: text('kind', { enum: ['outbid', 'won', 'sold', 'unsold', 'price', 'watch_bid', 'watch_ending'] }).notNull(),
     /** Auction kinds only; a price alert (M8) has none */
     auctionId: uuid('auction_id').references(() => auctions.id),
     cardId: text('card_id').notNull(),
@@ -361,7 +361,7 @@ export const notifications = account.table(
     // One price notification per card: firing again brings the same row back unread
     uniqueIndex('notifications_price_once_idx').on(t.userId, t.cardId).where(sql`kind = 'price'`),
     index('notifications_user_idx').on(t.userId, t.createdAt),
-    check('notifications_kind_check', sql`kind in ('outbid', 'won', 'sold', 'unsold', 'price')`),
+    check('notifications_kind_check', sql`kind in ('outbid', 'won', 'sold', 'unsold', 'price', 'watch_bid', 'watch_ending')`),
     check('notifications_auction_check', sql`(kind = 'price') = (auction_id is null)`),
     check('notifications_target_check', sql`(kind = 'price') = (target is not null) and (target is null or target between 100 and 100000000)`),
     check('notifications_amount_check', sql`amount is null or amount between 1 and 100000000`),
@@ -398,3 +398,22 @@ export const alertChecks = account.table('alert_checks', {
     .references(() => users.id, { onDelete: 'cascade' }),
   checkedAt: timestamp('checked_at', { withTimezone: true }).notNull().defaultNow(),
 })
+
+/**
+ * Watched auctions (docs/auction/design.md §12): the user's own setting, removed on unwatch. Its
+ * notifications are worked out when the user reads theirs, never inside a bid (Security W-1). The
+ * count of watchers is never shown to anyone (W-2).
+ */
+export const auctionWatches = account.table(
+  'auction_watches',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    auctionId: uuid('auction_id')
+      .notNull()
+      .references(() => auctions.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.auctionId] }), index('auction_watches_auction_idx').on(t.auctionId)],
+)

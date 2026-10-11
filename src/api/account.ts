@@ -213,6 +213,8 @@ export interface AuctionMine {
   isTop: boolean
   myAlias: string | null
   held: number
+  /** I watch it (only ever shown to me) */
+  watching: boolean
 }
 
 export interface MarketItem {
@@ -236,7 +238,9 @@ export const getMarket = (sort: 'ending' | 'new' | 'price', page = 0) =>
 /** The public, briefly cached state (not for setting the clock: qa) */
 export const getAuction = (id: string, signal?: AbortSignal) => accountFetch<AuctionState>(`/auctions/${encodeURIComponent(id)}`, { signal })
 export const getMyAuction = (id: string) => accountFetch<{ mine: AuctionMine; serverNow: string }>(`/me/auctions/${encodeURIComponent(id)}`)
-export const getMyAuctions = () => accountFetch<{ selling: MarketItem[]; bidding: MarketItem[] }>('/me/auctions')
+export const getMyAuctions = () => accountFetch<{ selling: MarketItem[]; bidding: MarketItem[]; watching: MarketItem[] }>('/me/auctions')
+export const watchAuction = (id: string) => accountFetch<void>(`/me/auctions/${encodeURIComponent(id)}/watch`, { method: 'PUT' })
+export const unwatchAuction = (id: string) => accountFetch<void>(`/me/auctions/${encodeURIComponent(id)}/watch`, { method: 'DELETE' })
 export const createAuction = (cardId: string, startPrice: number, duration: string, idemKey: string) =>
   accountFetch<{ auctionId: string }>('/me/auctions', { method: 'POST', body: { cardId, startPrice, duration, idemKey } })
 export const placeBid = (id: string, amount: number, idemKey: string) =>
@@ -249,7 +253,7 @@ export const cancelAuction = (id: string) => accountFetch<{ result: 'ok' }>(`/me
 /** Auction notifications (docs/auction/design.md §7d): the newest 20 and how many are unread */
 export interface NotificationItem {
   id: string
-  kind: 'outbid' | 'won' | 'sold' | 'unsold' | 'price'
+  kind: 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending'
   /** null for a price alert */
   auctionId: string | null
   cardId: string

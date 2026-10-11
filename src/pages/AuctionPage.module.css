@@ -56,6 +56,48 @@
   color: var(--text-h);
 }
 
+/* Title and the watch button on one row; the button has the same box before it knows (CLS) */
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.watch,
+.watchSlot {
+  flex: none;
+  min-width: 82px;
+  height: 34px;
+  margin-top: 2px;
+}
+
+.watch {
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.watching {
+  border-color: var(--accent-strong);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.watch[aria-disabled='true'] {
+  opacity: 0.6;
+}
+
 .small {
   margin: 0;
   font-size: 13px;

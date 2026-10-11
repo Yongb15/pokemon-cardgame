@@ -37,6 +37,18 @@ function Text({ item, name }: { item: NotificationItem; name: string }) {
           <b>{name}</b> 경매가 입찰 없이 끝났어요. 카드는 컬렉션으로 돌아왔어요
         </>
       )
+    case 'watch_bid':
+      return (
+        <>
+          <b>{name}</b> 찜한 경매에 새 입찰이 들어왔어요. 현재가 <b>{won(amount)}</b>
+        </>
+      )
+    case 'watch_ending':
+      return (
+        <>
+          <b>{name}</b> 찜한 경매가 30분 안에 끝나요
+        </>
+      )
     case 'price':
       return (
         <>

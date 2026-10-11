@@ -17,6 +17,10 @@ export const MAX_OPEN_PER_SELLER = 10
 export const EXTEND_SECONDS = 120
 export const MAX_EXTENSIONS = 10
 export const FEE_PERCENT = 5
+/** Watched auctions per user (§12) */
+export const MAX_WATCHES = 100
+/** "Ends soon" for watchers */
+export const ENDING_SOON_MINUTES = 30
 /** Listing lengths in minutes; previews also offer short ones for testing (Security T-1) */
 export const DURATIONS: Record<string, number> = { '1h': 60, '24h': 1440, '72h': 4320 }
 export const TEST_DURATIONS: Record<string, number> = { '2m': 2, '5m': 5 }
@@ -31,6 +35,10 @@ export const AUCTIONS_PRIVILEGES: [string, string | null, string][] = [
   ...['auction_id', 'bidder_id', 'amount', 'alias_no', 'idem_key'].map((c): [string, string, string] => ['bids', c, 'INSERT']),
   ['owned_cards', 'user_id', 'UPDATE'],
   ['owned_cards', 'auction_id', 'UPDATE'],
+  ['auction_watches', null, 'SELECT'],
+  ['auction_watches', null, 'DELETE'],
+  ['auction_watches', 'user_id', 'INSERT'],
+  ['auction_watches', 'auction_id', 'INSERT'],
 ]
 
 export const AUCTIONS_EXCESS: [string, string | null, string][] = [
@@ -40,6 +48,8 @@ export const AUCTIONS_EXCESS: [string, string | null, string][] = [
   ['auctions', 'start_price', 'UPDATE'],
   ['bids', null, 'UPDATE'],
   ['bids', null, 'DELETE'],
+  // Watches: deletable (the user's setting), never edited (Security W-4)
+  ['auction_watches', null, 'UPDATE'],
 ]
 
 /** 1 → A, 26 → Z, 27 → AA */
@@ -95,6 +105,8 @@ export interface AuctionMine {
   myAlias: string | null
   /** What their current top bid holds */
   held: number
+  /** They watch this auction (never shown to anyone else: W-2) */
+  watching: boolean
 }
 
 export type ListResult = { kind: 'listed' | 'repeat'; auctionId: string } | { kind: 'no_card' | 'limit' }
@@ -105,6 +117,7 @@ export type BidResult =
   | { kind: 'insufficient'; available: number; need: number }
 export type CancelResult = 'ok' | 'not_found' | 'has_bids' | 'closed'
 export type LeaveResult = { kind: 'deleted' } | { kind: 'blocked'; auctions: string[] }
+export type WatchResult = 'ok' | 'not_found' | 'closed' | 'limit'
 
 export interface MarketItem {
   id: string
@@ -125,7 +138,11 @@ export interface AuctionsStore {
   mine(auctionId: string, userId: string): Promise<AuctionMine>
   market(sort: 'ending' | 'new' | 'price', setPrefix: string | null, page: number): Promise<{ items: MarketItem[]; more: boolean }>
   /** The user's auctions as seller or top bidder (settling any that ran out) */
-  myAuctions(userId: string): Promise<{ selling: MarketItem[]; bidding: MarketItem[] }>
+  myAuctions(userId: string): Promise<{ selling: MarketItem[]; bidding: MarketItem[]; watching: MarketItem[] }>
+  watch(userId: string, auctionId: string): Promise<WatchResult>
+  unwatch(userId: string, auctionId: string): Promise<void>
+  /** The reader's watch notifications, worked out now (§12, Security W-1); returns how many were written */
+  watchNotices(userId: string): Promise<number>
   /** Settle auctions whose time is up, one transaction each in id order; `userId` limits it to theirs */
   settleExpired(limit: number, userId?: string): Promise<number>
   /** Account deletion under the account lock (Security): refused while seller or top bidder of an open auction */
@@ -341,18 +358,20 @@ export class PgAuctionsStore implements AuctionsStore {
   async mine(auctionId: string, userId: string): Promise<AuctionMine> {
     // Like every read that can show a result: an auction whose time is up is settled first
     await this.settleIfExpired(auctionId)
-    const { rows } = await this.db.execute<{ seller_id: string | null; top_bidder_id: string | null; top_amount: string | null; status: string; alias_no: number | null }>(sql`
+    const { rows } = await this.db.execute<{ seller_id: string | null; top_bidder_id: string | null; top_amount: string | null; status: string; alias_no: number | null; watching: boolean }>(sql`
       select a.seller_id, a.top_bidder_id, a.top_amount, a.status,
-             (select alias_no from account.bids b where b.auction_id = a.id and b.bidder_id = ${userId} limit 1) as alias_no
+             (select alias_no from account.bids b where b.auction_id = a.id and b.bidder_id = ${userId} limit 1) as alias_no,
+             exists (select 1 from account.auction_watches w where w.auction_id = a.id and w.user_id = ${userId}) as watching
       from account.auctions a where a.id = ${auctionId}`)
     const r = rows[0]
-    if (!r) return { isSeller: false, isTop: false, myAlias: null, held: 0 }
+    if (!r) return { isSeller: false, isTop: false, myAlias: null, held: 0, watching: false }
     const isTop = r.top_bidder_id === userId
     return {
       isSeller: r.seller_id === userId,
       isTop,
       myAlias: r.alias_no ? aliasOf(r.alias_no) : null,
       held: isTop && r.status === 'open' && r.top_amount !== null ? Number(r.top_amount) : 0,
+      watching: r.watching,
     }
   }
 
@@ -380,7 +399,66 @@ export class PgAuctionsStore implements AuctionsStore {
          or id in (select auction_id from account.bids where bidder_id = ${userId})
       order by (status = 'open') desc, ends_at desc
       limit 100`)
-    return { selling: rows.filter((r) => r.selling).map(toItem), bidding: rows.filter((r) => !r.selling).map(toItem) }
+    const watched = await this.db.execute<{ id: string; card_id: string; start_price: string; top_amount: string | null; bid_count: number; ends_at: Date; status: AuctionRow['status']; expired: boolean }>(sql`
+      select a.id, a.card_id, a.start_price, a.top_amount, a.bid_count, a.ends_at, a.status, (a.status = 'open' and now() >= a.ends_at) as expired
+      from account.auction_watches w join account.auctions a on a.id = w.auction_id
+      where w.user_id = ${userId}
+      order by (a.status = 'open') desc, a.ends_at asc
+      limit ${MAX_WATCHES}`)
+    return { selling: rows.filter((r) => r.selling).map(toItem), bidding: rows.filter((r) => !r.selling).map(toItem), watching: watched.rows.map(toItem) }
+  }
+
+  async watch(userId: string, auctionId: string): Promise<WatchResult> {
+    return this.db.transaction(async (tx) => {
+      // One writer per user for the count (like decks and price alerts)
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`watches:${userId}`}, 0))`)
+      const a = await tx.execute<{ open: boolean }>(sql`select (status = 'open' and now() < ends_at) as open from account.auctions where id = ${auctionId}`)
+      if (!a.rows[0]) return 'not_found'
+      if (!a.rows[0].open) return 'closed'
+      const n = await tx.execute<{ n: number; mine: boolean }>(sql`
+        select count(*)::int as n, bool_or(auction_id = ${auctionId}) as mine from account.auction_watches where user_id = ${userId}`)
+      if (n.rows[0]!.mine) return 'ok'
+      if (n.rows[0]!.n >= MAX_WATCHES) return 'limit'
+      await tx.execute(sql`insert into account.auction_watches (user_id, auction_id) values (${userId}, ${auctionId}) on conflict do nothing`)
+      return 'ok'
+    })
+  }
+
+  async unwatch(userId: string, auctionId: string) {
+    await this.db.execute(sql`delete from account.auction_watches where user_id = ${userId} and auction_id = ${auctionId}`)
+  }
+
+  async watchNotices(userId: string) {
+    // Its own transaction, after settlement and price alerts; only the reader's rows (Security W-1).
+    // Never the seller's own auction, never one they bid on (outbid/won cover those)
+    return this.db.transaction(async (tx) => {
+      const bids = await tx.execute(sql`
+        insert into account.notifications (user_id, kind, auction_id, card_id, amount)
+        select ${userId}, 'watch_bid', a.id, a.card_id, a.top_amount
+        from account.auction_watches w
+        join account.auctions a on a.id = w.auction_id
+        cross join lateral (select max(b.created_at) as last_bid from account.bids b where b.auction_id = a.id) lb
+        left join account.notifications n on n.user_id = ${userId} and n.auction_id = a.id and n.kind = 'watch_bid'
+        where w.user_id = ${userId}
+          and a.status = 'open' and now() < a.ends_at and a.top_amount is not null
+          and a.seller_id is distinct from ${userId}
+          and not exists (select 1 from account.bids mine where mine.auction_id = a.id and mine.bidder_id = ${userId})
+          and lb.last_bid > w.created_at
+          and (n.id is null or lb.last_bid > n.created_at)
+        on conflict (user_id, auction_id, kind)
+        do update set amount = excluded.amount, created_at = clock_timestamp(), read_at = null
+        returning id`)
+      const ending = await tx.execute(sql`
+        insert into account.notifications (user_id, kind, auction_id, card_id)
+        select ${userId}, 'watch_ending', a.id, a.card_id
+        from account.auction_watches w join account.auctions a on a.id = w.auction_id
+        where w.user_id = ${userId}
+          and a.status = 'open' and now() < a.ends_at and a.ends_at - now() <= make_interval(mins => ${ENDING_SOON_MINUTES})
+          and a.seller_id is distinct from ${userId}
+        on conflict (user_id, auction_id, kind) do nothing
+        returning id`)
+      return bids.rows.length + ending.rows.length
+    })
   }
 
   async leave(userId: string): Promise<LeaveResult> {
