@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FxRow } from './logic.js'
-import { handleTop, loadPoolIds, rank, type Level } from './top.js'
+import { handlePacks, handleTop, loadPoolIds, rank, type Level } from './top.js'
 
 const today = '2026-10-09'
 const rates = new Map<string, FxRow[]>([
@@ -64,6 +64,14 @@ describe('the /api/prices/top request', () => {
 })
 
 describe('the card-pack pool for collection value', () => {
+  it('/api/prices/packs refuses any query string before touching the database (Security V-1)', async () => {
+    for (const query of ['edition=en', 'edition=', 'edition=packs', 'edition=packs&edition=packs', 'x=1', 'set=me5']) {
+      const res = await handlePacks(new URLSearchParams(query))
+      expect(res.status, query).toBe(400)
+      expect(res.headers.get('cache-control')).toBe('no-store')
+    }
+  })
+
   it('reads every pool card id once', async () => {
     const ids = await loadPoolIds()
     expect(ids.size).toBeGreaterThan(900)

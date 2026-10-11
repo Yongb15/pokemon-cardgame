@@ -18,10 +18,8 @@ function cardsApi(): Plugin {
       }
       // /api/prices/top (and /packs) is its own function on Vercel too (server/prices/top.ts)
       server.middlewares.use('/api/prices/packs', async (req, res) => {
-        const { handleTop } = (await server.ssrLoadModule('/server/prices/top.ts')) as typeof import('./server/prices/top.js')
-        const params = new URL(req.url ?? '/', 'http://localhost').searchParams
-        params.append('edition', 'packs')
-        const response = await handleTop(params)
+        const { handlePacks } = (await server.ssrLoadModule('/server/prices/top.ts')) as typeof import('./server/prices/top.js')
+        const response = await handlePacks(new URL(req.url ?? '/', 'http://localhost').searchParams)
         res.statusCode = response.status
         response.headers.forEach((value: string, key: string) => res.setHeader(key, value))
         res.end(await response.text())

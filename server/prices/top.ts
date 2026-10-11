@@ -1,7 +1,7 @@
 // GET /api/prices/top?edition=en|ja|psa10&set=<set id> — the priciest cards right now (docs/design/price-ranking.webp,
 // docs/design/psa-prices.webp ③). `psa10` ranks the collected PSA 10 medians: the only list of PSA
 // values we serve, capped at 50 (Security P-1).
-// GET /api/prices/packs (→ edition=packs) — every card-pack card's headline price in won, for "my
+// GET /api/prices/packs (its own function, no parameters) — every card-pack card's headline price in won, for "my
 // collection's value" (docs/design/collection-value.webp). One shared answer for everyone: the
 // browser multiplies by what it owns, so no user's collection ever reaches this function.
 //
@@ -116,6 +116,12 @@ const fail = (status: number, message: string) => json({ error: { message, code:
 
 const MEMO_MS = 10 * 60 * 1000
 const memory = new Map<string, { body: unknown; expires: number }>()
+
+/** /api/prices/packs: no query string at all, so one URL is one cache entry (Security V-1) */
+export function handlePacks(params: URLSearchParams, now = new Date()) {
+  if ([...params.keys()].length) return Promise.resolve(fail(400, 'Bad request'))
+  return handleTop(new URLSearchParams({ edition: 'packs' }), now)
+}
 
 /** `edition` and `set` are the only parameters; anything else is refused (like /prices: Security) */
 export async function handleTop(params: URLSearchParams, now = new Date()) {
