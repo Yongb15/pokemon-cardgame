@@ -1,11 +1,13 @@
 // Auction notifications (docs/auction/design.md §7d). Signed in only, no-store like every route.
-//   GET  /api/v1/me/notifications        → { unread, items } (newest 20; the user's ended auctions settle first)
+//   GET  /api/v1/me/notifications        → { unread, items } (newest 20; the user's ended auctions settle
+//        first, then their price alerts are checked, once an hour)
 //   POST /api/v1/me/notifications/read   → { unread: 0 } (everything up to now; a write: origin-checked, limited)
 
 import { Body, Controller, Get, HttpCode, Inject, Post, Query, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { SERVICES, type Services } from '../auth/auth.controller.js'
 import { UserRoutes } from '../data/data.controller.js'
+import { checkAlerts } from '../alerts/alerts.controller.js'
 import { PublicError } from '../errors.js'
 
 @Controller('me/notifications')
@@ -26,6 +28,8 @@ export class NotificationsController extends UserRoutes {
     if (Object.keys(query).length) throw new PublicError('요청을 처리할 수 없습니다.', 400)
     // A "won" or "sold" exists once the auction is settled: settle the user's own ended ones first
     await this.services.auctions?.settleExpired(20, user.id)
+    // Then this user's price alerts, at most once an hour, in their own transaction (Security PA-2)
+    await checkAlerts(this.services, user.id)
     return this.notifications.list(user.id)
   }
 

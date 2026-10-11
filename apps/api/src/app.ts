@@ -10,6 +10,9 @@ import { AuctionsPublicController, MyAuctionsController, TestAuctionsController 
 import type { AuctionsStore } from './auctions/store.js'
 import { NotificationsController } from './notifications/notifications.controller.js'
 import type { NotificationsStore } from './notifications/store.js'
+import { PriceAlertsController } from './alerts/alerts.controller.js'
+import { batchPrices, type PriceFetch } from './alerts/prices.js'
+import type { AlertsStore } from './alerts/store.js'
 import { PacksCatalogController, PacksController, TestPacksController } from './packs/packs.controller.js'
 import type { PacksStore } from './packs/store.js'
 import { PointsController, TestDataController } from './points/points.controller.js'
@@ -42,6 +45,7 @@ class AppModule {
         AuctionsPublicController,
         MyAuctionsController,
         NotificationsController,
+        PriceAlertsController,
         // Test-only routes exist only with the test sign-in (Security T-1)
         ...(services.testProvider ? [TestAuthController, TestDataController, TestPacksController, TestAuctionsController] : []),
       ],
@@ -57,6 +61,9 @@ export interface Dependencies {
   packs?: PacksStore | null
   auctions?: AuctionsStore | null
   notifications?: NotificationsStore | null
+  alerts?: AlertsStore | null
+  /** Tests swap the price lookup for a fake */
+  prices?: PriceFetch | null
   testProvider?: TestProvider | null
   /** Tests swap the real providers' endpoints for local fakes */
   google?: Provider | null
@@ -85,6 +92,8 @@ export function buildServices(config: Config, deps: Dependencies = {}): Services
     packs: store ? (deps.packs ?? null) : null,
     auctions: store ? (deps.auctions ?? null) : null,
     notifications: store ? (deps.notifications ?? null) : null,
+    alerts: store ? (deps.alerts ?? null) : null,
+    prices: store && deps.alerts ? (deps.prices ?? batchPrices(config.PUBLIC_ORIGIN)) : null,
     writeLimit: new RateLimiter(60, 60_000),
   }
 }

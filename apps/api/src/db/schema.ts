@@ -346,20 +346,55 @@ export const notifications = account.table(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    kind: text('kind', { enum: ['outbid', 'won', 'sold', 'unsold'] }).notNull(),
-    auctionId: uuid('auction_id')
-      .notNull()
-      .references(() => auctions.id),
+    kind: text('kind', { enum: ['outbid', 'won', 'sold', 'unsold', 'price'] }).notNull(),
+    /** Auction kinds only; a price alert (M8) has none */
+    auctionId: uuid('auction_id').references(() => auctions.id),
     cardId: text('card_id').notNull(),
     amount: bigint('amount', { mode: 'number' }),
+    /** Price alerts: the target at fire time (a snapshot: the alert may change or go later, Security Q4) */
+    target: integer('target'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
     readAt: timestamp('read_at', { withTimezone: true }),
   },
   (t) => [
     uniqueIndex('notifications_once_idx').on(t.userId, t.auctionId, t.kind),
+    // One price notification per card: firing again brings the same row back unread
+    uniqueIndex('notifications_price_once_idx').on(t.userId, t.cardId).where(sql`kind = 'price'`),
     index('notifications_user_idx').on(t.userId, t.createdAt),
-    check('notifications_kind_check', sql`kind in ('outbid', 'won', 'sold', 'unsold')`),
+    check('notifications_kind_check', sql`kind in ('outbid', 'won', 'sold', 'unsold', 'price')`),
+    check('notifications_auction_check', sql`(kind = 'price') = (auction_id is null)`),
+    check('notifications_target_check', sql`(kind = 'price') = (target is not null) and (target is null or target between 100 and 100000000)`),
     check('notifications_amount_check', sql`amount is null or amount between 1 and 100000000`),
     check('notifications_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
   ],
 )
+
+// --- M8 price alerts (docs/price/alerts.md) --------------------------------------------------------
+
+/** "Tell me when this card is at or under this price": fires once, then waits to be saved again */
+export const priceAlerts = account.table(
+  'price_alerts',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    cardId: text('card_id').notNull(),
+    targetKrw: integer('target_krw').notNull(),
+    active: boolean('active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    triggeredAt: timestamp('triggered_at', { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.cardId] }),
+    check('price_alerts_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
+    check('price_alerts_target_check', sql`target_krw between 100 and 100000000 and target_krw % 100 = 0`),
+  ],
+)
+
+/** When a user's alerts were last compared with prices: at most once an hour (claimed atomically) */
+export const alertChecks = account.table('alert_checks', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  checkedAt: timestamp('checked_at', { withTimezone: true }).notNull().defaultNow(),
+})
