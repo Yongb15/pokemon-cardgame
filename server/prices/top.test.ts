@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FxRow } from './logic.js'
-import { handleTop, rank, type Level } from './top.js'
+import { handleTop, loadPoolIds, rank, type Level } from './top.js'
 
 const today = '2026-10-09'
 const rates = new Map<string, FxRow[]>([
@@ -55,11 +55,19 @@ describe('price ranking', () => {
 
 describe('the /api/prices/top request', () => {
   it('refuses unknown parameters and bad values before touching the database', async () => {
-    for (const query of ['edition=ko', 'edition=en&x=1', 'set=../x', 'set=' + 'a'.repeat(21), 'range=30d', 'edition=en&edition=ja', 'edition=en&edition=en&edition=en', 'set=&edition=en', 'edition=']) {
+    for (const query of ['edition=ko', 'edition=en&x=1', 'set=../x', 'set=' + 'a'.repeat(21), 'range=30d', 'edition=en&edition=ja', 'edition=en&edition=en&edition=en', 'set=&edition=en', 'edition=', 'edition=packs&set=me5', 'edition=packs&edition=en', 'edition=packs&x=1']) {
       const res = await handleTop(new URLSearchParams(query))
       expect(res.status, query).toBe(400)
       expect(res.headers.get('cache-control')).toBe('no-store')
     }
+  })
+})
+
+describe('the card-pack pool for collection value', () => {
+  it('reads every pool card id once', async () => {
+    const ids = await loadPoolIds()
+    expect(ids.size).toBeGreaterThan(900)
+    expect(ids.has('me5-1')).toBe(true)
   })
 })
 

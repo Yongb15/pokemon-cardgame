@@ -17,7 +17,7 @@
       "maxDuration": 15
     },
     "api/price-top.ts": {
-      "includeFiles": "{data/index.json,data/tcgdex-map.json}",
+      "includeFiles": "{data/index.json,data/tcgdex-map.json,apps/api/src/packs/pool.json}",
       "maxDuration": 15
     }
   },
@@ -25,6 +25,10 @@
     {
       "source": "/api/prices/top",
       "destination": "/api/price-top"
+    },
+    {
+      "source": "/api/prices/packs",
+      "destination": "/api/price-top?edition=packs"
     },
     {
       "source": "/api/cards/:id/prices",

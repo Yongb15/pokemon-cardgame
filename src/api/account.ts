@@ -174,6 +174,8 @@ export interface CollectionSummary {
   cards: number
   distinct: number
   sets: { id: string; owned: number; total: number }[]
+  /** Copies per card (test copies excluded) */
+  owned: { cardId: string; count: number }[]
 }
 
 export const getPackCatalog = () => accountFetch<PackCatalog>('/packs')

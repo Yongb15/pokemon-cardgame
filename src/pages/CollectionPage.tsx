@@ -6,9 +6,13 @@ import ListAuctionDialog from '../components/ListAuctionDialog'
 import { useCardInfo } from '../hooks/useDecks'
 import { useSession } from '../hooks/useSession'
 import { rarityLabel } from '../lib/cardText'
+import { collectionValue, loadPackPrices, wonKrw } from '../lib/collectionValue'
 import styles from './CollectionPage.module.css'
 
-/** /collection (docs/design/packs-7b.webp ④): what the user's packs gave, by card, with set progress */
+/**
+ * /collection (docs/design/packs-7b.webp ④, collection-value.webp): what the user's packs gave, by card,
+ * with set progress and the cards' reference value in won
+ */
 export default function CollectionPage() {
   const session = useSession()
   const [catalog, setCatalog] = useState<PackCatalog | null>(null)
@@ -18,6 +22,7 @@ export default function CollectionPage() {
   const [error, setError] = useState<string | null>(null)
   const [loadingMore, setLoadingMore] = useState(false)
   const [listing, setListing] = useState<{ cardId: string; name: string } | null>(null)
+  const [prices, setPrices] = useState<Record<string, number> | 'error' | null>(null)
   const signedIn = session.status === 'in'
   const key = set ?? ''
 
@@ -30,6 +35,13 @@ export default function CollectionPage() {
       document.title = 'Pokémon Card Dex'
     }
   }, [])
+
+  useEffect(() => {
+    if (!signedIn) return
+    loadPackPrices()
+      .then(setPrices)
+      .catch(() => setPrices('error'))
+  }, [signedIn])
 
   useEffect(() => {
     if (!signedIn) return
@@ -50,7 +62,11 @@ export default function CollectionPage() {
   }, [signedIn, key])
 
   const current = list?.key === key ? list : null
-  const { info } = useCardInfo(current?.cards.map((c) => c.cardId) ?? [])
+  const priceMap = prices && prices !== 'error' ? prices : null
+  const value = summary && priceMap ? collectionValue(summary.owned, priceMap) : null
+  // Rows the "priciest" block will have, known before the prices arrive: it keeps its height (CLS)
+  const topRows = summary ? Math.min(5, summary.owned.length) : 0
+  const { info } = useCardInfo([...(current?.cards.map((c) => c.cardId) ?? []), ...(value?.top.map((t) => t.cardId) ?? [])])
 
   if (session.status === 'out') return <Navigate to="/login?next=%2Fcollection" replace />
 
@@ -90,7 +106,51 @@ export default function CollectionPage() {
           <dt>서로 다른 카드</dt>
           <dd>{summary ? `${summary.distinct.toLocaleString('ko-KR')}종` : '…'}</dd>
         </div>
+        <div className={styles.value}>
+          <dt>참고 시세 합계</dt>
+          <dd>{value ? wonKrw(value.total) : prices === 'error' ? '—' : '…'}</dd>
+        </div>
       </dl>
+      <p className={styles.valueNote}>
+        {prices === 'error'
+          ? '시세를 불러오지 못했어요. 잠시 후 다시 열어 주세요.'
+          : `영문판 TCGplayer 시세(원화)로 계산한 참고값이에요${value ? ` · 시세 있는 ${value.priced}종 기준${value.unpriced ? `, ${value.unpriced}종은 시세 없음` : ''}` : ''} · 포인트와는 무관해요`}
+      </p>
+
+      {topRows > 0 && (
+        <section className={styles.top} aria-labelledby="top-title">
+          <h2 id="top-title">
+            가장 비싼 카드 <small>장당 시세</small>
+          </h2>
+          <ol>
+            {Array.from({ length: topRows }, (_, i) => {
+              const t = value?.top[i]
+              const card = t ? info.get(t.cardId) : undefined
+              return (
+                <li key={t?.cardId ?? `slot${i}`}>
+                  <span className={styles.rank}>{i + 1}</span>
+                  <span className={styles.thumb}>{card && <CardImg src={card.images.small} fallback={card.images.fallbackSmall} alt="" width={245} height={342} loading="lazy" />}</span>
+                  {t ? (
+                    <Link className={styles.topName} to={`/cards/${encodeURIComponent(t.cardId)}`}>
+                      <b>{card ? (card.nameKo ?? card.name) : t.cardId}</b>
+                      <small>{card?.rarity ? rarityLabel(card.rarity) : ' '}</small>
+                    </Link>
+                  ) : (
+                    <span className={styles.topName} aria-hidden="true">
+                      <b> </b>
+                      <small> </small>
+                    </span>
+                  )}
+                  <span className={styles.topPrice}>
+                    {t ? wonKrw(t.krw) : ' '}
+                    <small>{t ? (t.count > 1 ? `× ${t.count} = ${wonKrw(t.krw * t.count)}` : '× 1') : ' '}</small>
+                  </span>
+                </li>
+              )
+            })}
+          </ol>
+        </section>
+      )}
 
       <ul className={styles.progress} aria-label="세트별 모은 카드">
         {(progress.length ? progress : Array.from({ length: 6 }, (_, i) => ({ id: `p${i}`, owned: 0, total: 0 }))).map((s) => (
@@ -151,6 +211,9 @@ export default function CollectionPage() {
                     </span>
                     <b>{name}</b>
                     <small>{card?.rarity ? rarityLabel(card.rarity) : ' '}</small>
+                    <span className={priceMap && Object.hasOwn(priceMap, c.cardId) ? styles.price : styles.noPrice}>
+                      {priceMap ? (Object.hasOwn(priceMap, c.cardId) ? wonKrw(priceMap[c.cardId]!) : '시세 없음') : ' '}
+                    </span>
                   </Link>
                   {free > 0 ? (
                     <button type="button" className={styles.listButton} aria-label={`${name} 경매 등록`} onClick={() => setListing({ cardId: c.cardId, name })}>
