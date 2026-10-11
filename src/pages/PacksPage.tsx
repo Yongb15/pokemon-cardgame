@@ -48,10 +48,11 @@ function Reveal({ pack, recovered, onAgain, canAgain, reasonId, busy }: { pack: 
     return () => clearTimeout(timer)
   }, [shown, done, pack])
 
-  // Done: focus the result heading, once (qa A-4)
+  // Done: focus the result heading, once (qa A-4) — after a press only: a pack recovered on load
+  // sits below the sets and mustn't pull the page down to it
   useEffect(() => {
-    if (done) heading.current?.focus()
-  }, [done])
+    if (done && !recovered) heading.current?.focus()
+  }, [done, recovered])
 
   const label = (cardId: string) => {
     const card = info.get(cardId)
@@ -205,6 +206,21 @@ export default function PacksPage() {
   }
 
   const setName = (id: string) => catalog?.sets.find((s) => s.id === id)?.nameKo ?? id
+  // A recovered pack (found after load, not from a press) goes below the sets, so nothing on screen moves
+  // when it arrives (qa v1.5.0 M-1); a press puts the result above, inside its input window (qa B7-1)
+  const below = !!pack?.recovered && !busy
+  const result = (pack || busy) && (
+    <Reveal
+      key={busy && !pack?.fresh ? 'opening' : (pack?.pack.id ?? 'opening')}
+      pack={busy && !pack?.fresh ? null : (pack?.pack ?? null)}
+      recovered={!!pack?.recovered}
+      busy={!!busy}
+      canAgain={short === 0}
+      reasonId={short ? 'pack-short' : undefined}
+      onAgain={() => lastSet && void open(lastSet)}
+    />
+  )
+
 
   return (
     <main className={styles.main}>
@@ -235,17 +251,7 @@ export default function PacksPage() {
         </p>
       )}
 
-      {(pack || busy) && (
-        <Reveal
-          key={busy && !pack?.fresh ? 'opening' : (pack?.pack.id ?? 'opening')}
-          pack={busy && !pack?.fresh ? null : (pack?.pack ?? null)}
-          recovered={!!pack?.recovered}
-          busy={!!busy}
-          canAgain={short === 0}
-          reasonId={short ? 'pack-short' : undefined}
-          onAgain={() => lastSet && void open(lastSet)}
-        />
-      )}
+      {!below && result}
 
       {catalogError ? (
         <p className={styles.alert} role="alert">
@@ -303,6 +309,7 @@ export default function PacksPage() {
           ))}
         </ul>
       )}
+      {below && result}
       <p className={styles.small}>
         포인트와 카드는 현금 가치가 없고, 사거나 바꿀 수 없어요. {pack ? `방금 연 세트: ${setName(pack.pack.setId)}` : ''}
       </p>
