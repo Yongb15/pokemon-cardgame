@@ -18,6 +18,16 @@ const env = { PUBLIC_ORIGIN: ORIGIN, PROXY_SECRET: SECRET, OAUTH_COOKIE_KEY: ran
 const reply = (body: unknown, init: { status?: number; type?: string } = {}) =>
   (async () => new Response(typeof body === 'string' ? body : JSON.stringify(body), { status: init.status ?? 200, headers: { 'content-type': init.type ?? 'application/json; charset=utf-8' } })) as unknown as typeof fetch
 
+describe('PRICES_ORIGIN', () => {
+  it('is our own Vercel host, and only PUBLIC_ORIGIN in production', () => {
+    const base = { ...env, APP_ENV: 'preview' as const }
+    expect(() => loadConfig({ ...base, PRICES_ORIGIN: 'https://pokemon-card-dex-git-feature-x-dydqls-projects.vercel.app' })).not.toThrow()
+    expect(() => loadConfig({ ...base, PRICES_ORIGIN: 'https://evil.example' })).toThrow()
+    expect(() => loadConfig({ ...base, PRICES_ORIGIN: 'http://pokemon-card-dex.vercel.app' })).toThrow()
+    expect(() => loadConfig({ ...env, APP_ENV: 'production', PRICES_ORIGIN: 'https://pokemon-card-dex-git-x.vercel.app' })).toThrow()
+  })
+})
+
 describe('batch price lookup', () => {
   it('keeps only positive whole won for the ids it asked about', async () => {
     const fetchImpl = reply({ today: '2026-10-11', prices: { 'me5-1': 120, 'me5-2': 0, 'me5-3': 1.5, 'me5-4': '9', other: 5, 'me5-5': 200_000_000 } })

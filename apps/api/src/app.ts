@@ -93,7 +93,7 @@ export function buildServices(config: Config, deps: Dependencies = {}): Services
     auctions: store ? (deps.auctions ?? null) : null,
     notifications: store ? (deps.notifications ?? null) : null,
     alerts: store ? (deps.alerts ?? null) : null,
-    prices: store && deps.alerts ? (deps.prices ?? batchPrices(config.PUBLIC_ORIGIN)) : null,
+    prices: store && deps.alerts ? (deps.prices ?? batchPrices(config.PRICES_ORIGIN ?? config.PUBLIC_ORIGIN)) : null,
     writeLimit: new RateLimiter(60, 60_000),
   }
 }
