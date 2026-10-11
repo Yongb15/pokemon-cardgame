@@ -4,16 +4,22 @@
 
 **🔗 https://pokemon-card-dex-green.vercel.app**  ·  개발 버전(develop): [pokemon-card-dex-git-develop-dydqls-projects.vercel.app](https://pokemon-card-dex-git-develop-dydqls-projects.vercel.app)
 
+<p align="center"><img src="docs/screenshots/demo.gif" width="760" alt="검색 → 카드 상세 → 시세 순위 → 경매 (데모)"></p>
+
 <table>
   <tr>
     <td width="64%"><img src="docs/screenshots/list-desktop.webp" alt="카드 목록 (151 세트, 번호순)"></td>
     <td rowspan="2"><img src="docs/screenshots/search-mobile-dark.webp" alt="모바일 다크 모드에서 '피카츄' 한국어 검색"></td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/detail-desktop.webp" alt="카드 상세 (리자몽 ex)"></td>
+    <td><img src="docs/screenshots/detail-desktop.webp" alt="카드 상세 (리자몽 ex) — 기술·대회 사용 가능 여부·원화 시세"></td>
   </tr>
   <tr>
-    <td colspan="2"><img src="docs/screenshots/deck-editor-desktop.webp" alt="덱 빌더 (드래펄트 ex 덱, 규칙 검사 통과)"></td>
+    <td colspan="2"><img src="docs/screenshots/prices-desktop.webp" alt="시세 순위 TOP 50 (영문판·일본판·PSA 10)"></td>
+  </tr>
+  <tr>
+    <td width="64%"><img src="docs/screenshots/deck-editor-desktop.webp" alt="덱 (리자몽 ex, 익스팬디드 규칙 통과, 덱 구성 통계)"></td>
+    <td><img src="docs/screenshots/market-desktop.webp" alt="가상 포인트 경매 목록"></td>
   </tr>
 </table>
 
