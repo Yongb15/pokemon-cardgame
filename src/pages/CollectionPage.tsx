@@ -64,9 +64,9 @@ export default function CollectionPage() {
   const current = list?.key === key ? list : null
   const priceMap = prices && prices !== 'error' ? prices : null
   const value = summary && priceMap ? collectionValue(summary.owned, priceMap) : null
-  // The "priciest" block's rows: five while loading (a pack alone gives five cards), then what the
-  // summary says, then the priced ones. Reserved from the first paint so nothing below moves (CLS)
-  const topRows = value ? Math.min(5, value.top.length) : summary ? Math.min(5, summary.owned.length) : signedIn ? 5 : 0
+  // The "priciest" block is always five rows tall, loading or not, however many cards have a price:
+  // nothing below it moves (CLS). Placeholder rows while loading, a note when there are fewer than five
+  const topRows = value ? value.top.length : prices === 'error' ? 0 : 5
   const { info } = useCardInfo([...(current?.cards.map((c) => c.cardId) ?? []), ...(value?.top.map((t) => t.cardId) ?? [])])
 
   if (session.status === 'out') return <Navigate to="/login?next=%2Fcollection" replace />
@@ -118,7 +118,7 @@ export default function CollectionPage() {
           : `영문판 TCGplayer 시세(원화)로 계산한 참고값이에요${value ? ` · 시세 있는 ${value.priced}종 기준${value.unpriced ? `, ${value.unpriced}종은 시세 없음` : ''}` : ''} · 포인트와는 무관해요`}
       </p>
 
-      {topRows > 0 && (
+      {signedIn && (
         <section className={styles.top} aria-labelledby="top-title">
           <h2 id="top-title">
             가장 비싼 카드 <small>장당 시세</small>
@@ -150,6 +150,12 @@ export default function CollectionPage() {
               )
             })}
           </ol>
+          {value && value.top.length < 5 && (
+            <p className={styles.topNote}>
+              {summary?.owned.length ? (value.top.length ? '시세 있는 카드는 여기까지예요.' : '아직 시세 있는 카드가 없어요.') : '카드팩을 열면 비싼 카드부터 보여 드려요.'}
+            </p>
+          )}
+          {prices === 'error' && <p className={styles.topNote}>시세를 불러오지 못했어요.</p>}
         </section>
       )}
 
