@@ -118,46 +118,45 @@ export default function CollectionPage() {
           : `영문판 TCGplayer 시세(원화)로 계산한 참고값이에요${value ? ` · 시세 있는 ${value.priced}종 기준${value.unpriced ? `, ${value.unpriced}종은 시세 없음` : ''}` : ''} · 포인트와는 무관해요`}
       </p>
 
-      {session.status !== 'out' && (
-        <section className={styles.top} aria-labelledby="top-title">
-          <h2 id="top-title">
-            가장 비싼 카드 <small>장당 시세</small>
-          </h2>
-          <ol>
-            {Array.from({ length: topRows }, (_, i) => {
-              const t = value?.top[i]
-              const card = t ? info.get(t.cardId) : undefined
-              return (
-                <li key={t?.cardId ?? `slot${i}`}>
-                  <span className={styles.rank}>{i + 1}</span>
-                  <span className={styles.thumb}>{card && <CardImg src={card.images.small} fallback={card.images.fallbackSmall} alt="" width={245} height={342} loading="lazy" />}</span>
-                  {t ? (
-                    <Link className={styles.topName} to={`/cards/${encodeURIComponent(t.cardId)}`}>
-                      <b>{card ? (card.nameKo ?? card.name) : t.cardId}</b>
-                      <small>{card?.rarity ? rarityLabel(card.rarity) : ' '}</small>
-                    </Link>
-                  ) : (
-                    <span className={styles.topName} aria-hidden="true">
-                      <b> </b>
-                      <small> </small>
-                    </span>
-                  )}
-                  <span className={styles.topPrice}>
-                    {t ? wonKrw(t.krw) : ' '}
-                    <small>{t ? (t.count > 1 ? `× ${t.count} = ${wonKrw(t.krw * t.count)}` : '× 1') : ' '}</small>
+      {/* Signed out already went to /login above: shown from the first paint, during the sign-in check too */}
+      <section className={styles.top} aria-labelledby="top-title">
+        <h2 id="top-title">
+          가장 비싼 카드 <small>장당 시세</small>
+        </h2>
+        <ol>
+          {Array.from({ length: topRows }, (_, i) => {
+            const t = value?.top[i]
+            const card = t ? info.get(t.cardId) : undefined
+            return (
+              <li key={t?.cardId ?? `slot${i}`}>
+                <span className={styles.rank}>{i + 1}</span>
+                <span className={styles.thumb}>{card && <CardImg src={card.images.small} fallback={card.images.fallbackSmall} alt="" width={245} height={342} loading="lazy" />}</span>
+                {t ? (
+                  <Link className={styles.topName} to={`/cards/${encodeURIComponent(t.cardId)}`}>
+                    <b>{card ? (card.nameKo ?? card.name) : t.cardId}</b>
+                    <small>{card?.rarity ? rarityLabel(card.rarity) : ' '}</small>
+                  </Link>
+                ) : (
+                  <span className={styles.topName} aria-hidden="true">
+                    <b> </b>
+                    <small> </small>
                   </span>
-                </li>
-              )
-            })}
-          </ol>
-          {value && value.top.length < 5 && (
-            <p className={styles.topNote}>
-              {summary?.owned.length ? (value.top.length ? '시세 있는 카드는 여기까지예요.' : '아직 시세 있는 카드가 없어요.') : '카드팩을 열면 비싼 카드부터 보여 드려요.'}
-            </p>
-          )}
-          {prices === 'error' && <p className={styles.topNote}>시세를 불러오지 못했어요.</p>}
-        </section>
-      )}
+                )}
+                <span className={styles.topPrice}>
+                  {t ? wonKrw(t.krw) : ' '}
+                  <small>{t ? (t.count > 1 ? `× ${t.count} = ${wonKrw(t.krw * t.count)}` : '× 1') : ' '}</small>
+                </span>
+              </li>
+            )
+          })}
+        </ol>
+        {value && value.top.length < 5 && (
+          <p className={styles.topNote}>
+            {summary?.owned.length ? (value.top.length ? '시세 있는 카드는 여기까지예요.' : '아직 시세 있는 카드가 없어요.') : '카드팩을 열면 비싼 카드부터 보여 드려요.'}
+          </p>
+        )}
+        {prices === 'error' && <p className={styles.topNote}>시세를 불러오지 못했어요.</p>}
+      </section>
 
       <ul className={styles.progress} aria-label="세트별 모은 카드">
         {(progress.length ? progress : Array.from({ length: 6 }, (_, i) => ({ id: `p${i}`, owned: 0, total: 0 }))).map((s) => (
