@@ -213,6 +213,7 @@ for (const setId of ourSets) {
     }
     let best = null
     let why = ''
+    let compared = false
     // 1) The artwork, when both pictures exist
     const mine = await artHash(enImage(en.id))
     if (mine) {
@@ -221,6 +222,7 @@ for (const setId of ourSets) {
         const theirs = await artHash(jaImage(ja))
         if (theirs) scored.push({ ja, d: hamming(mine, theirs) })
       }
+      compared = scored.length > 0
       scored.sort((a, b) => a.d - b.d)
       const [first, second] = scored
       if (first && first.d <= SAME_ART && (!second || second.d - first.d >= ART_MARGIN)) {
@@ -228,8 +230,10 @@ for (const setId of ourSets) {
         why = `art(${first.d}${second ? `/${second.d}` : ''})`
       }
     }
-    // 2) Without a usable picture: one candidate with the same illustrator (and rarity, if known)
-    if (!best) {
+    // 2) Only when no picture could be compared at all: one candidate with the same illustrator (and
+    // rarity, if known). Pictures that exist but don't decide mean "not sure", not "ask the illustrator":
+    // that guess was wrong twice in qa's sample (sv4pt5-81, sv4pt5-82)
+    if (!best && !compared) {
       const same = candidates.filter((ja) => !!norm(en.artist) && norm(en.artist) === norm(ja.illustrator))
       if (same.length === 1) {
         const rarityToo = knownRarity(en.rarity) && norm(en.rarity) === norm(same[0].rarity)
