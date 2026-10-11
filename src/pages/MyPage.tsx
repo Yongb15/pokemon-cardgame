@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router'
 import { AccountApiError, getSummary, leave, logoutEverywhere, renameMe } from '../api/account'
 import Dialog from '../components/deck/Dialog'
+import PointsLedger from '../components/PointsLedger'
 import { clearSession, refreshSession, setSessionUser, useSession } from '../hooks/useSession'
 import styles from './AccountPages.module.css'
 
@@ -154,6 +155,8 @@ export default function MyPage() {
               <span className={styles.chip}>{session.user.providers.map((p) => PROVIDER_LABEL[p] ?? p).join(' · ')}</span>
             </div>
           </section>
+
+          <PointsLedger />
 
           <section className={styles.section} aria-labelledby="my-data">
             <h2 id="my-data">내 데이터</h2>

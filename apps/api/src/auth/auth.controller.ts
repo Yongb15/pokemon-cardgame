@@ -10,6 +10,10 @@ import { randomInt } from 'node:crypto'
 import type { Request, Response } from 'express'
 import type { Config } from '../config.js'
 import type { UserDataStore } from '../data/store.js'
+import type { AuctionsStore } from '../auctions/store.js'
+import type { NotificationsStore } from '../notifications/store.js'
+import type { PacksStore } from '../packs/store.js'
+import type { PointsStore } from '../points/store.js'
 import type { RateLimiter } from './guards.js'
 import { clearCookie, OAUTH_COOKIE, readCookie, setCookie } from './cookies.js'
 import { pkceChallenge, randomToken, safeEqual, seal, unseal } from './crypto.js'
@@ -31,6 +35,13 @@ export interface Services {
   cookieKey: Buffer | null
   /** Decks, favorites, nickname, leaving (null without a database) */
   data: UserDataStore | null
+  /** Points ledger (M7; null without a database) */
+  points: PointsStore | null
+  /** Card packs and the collection (M7 7b) */
+  packs: PacksStore | null
+  /** Auctions (M7 7c) */
+  auctions: AuctionsStore | null
+  notifications: NotificationsStore | null
   /** Writes per signed-in user */
   writeLimit: RateLimiter
 }

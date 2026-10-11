@@ -22,3 +22,8 @@
   color: inherit;
   font-weight: 700;
 }
+
+/* The mobile header is 56px, desktop 64px: the footer sits just below the fold either way */
+.page {
+  min-height: calc(100svh - 56px);
+}

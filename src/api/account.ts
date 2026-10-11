@@ -109,3 +109,150 @@ export const saveAccountDeck = (id: string, body: AccountDeckBody, version: numb
 export const deleteAccountDeck = (id: string) => accountFetch<void>(`/decks/${encodeURIComponent(id)}`, { method: 'DELETE' })
 export const importDecks = (decks: (AccountDeckBody & { sourceId: string; updatedAt: number })[]) =>
   accountFetch<ImportResult>('/decks/import', { method: 'POST', body: { decks } })
+
+// --- Points (M7 7a, docs/auction/design.md) ------------------------------------------------------
+
+export interface PointsSummary {
+  balance: number
+  held: number
+  available: number
+  /** Today in Korea (YYYY-MM-DD) */
+  today: string
+  claimedToday: boolean
+  /** The first bonus was granted by this very call */
+  bonusGranted: boolean
+}
+
+export type PointKind = 'signup_bonus' | 'daily_bonus' | 'pack_purchase' | 'sale_income' | 'sale_fee' | 'purchase' | 'admin_adjust'
+
+export interface PointEntry {
+  id: string
+  amount: number
+  kind: PointKind
+  createdAt: string
+}
+
+export const getPoints = () => accountFetch<PointsSummary>('/me/points')
+export const getPointEntries = (before: string | null) =>
+  accountFetch<{ entries: PointEntry[]; next: string | null }>(`/me/points/entries${before ? `?${new URLSearchParams({ before })}` : ''}`)
+export const claimDaily = () => accountFetch<PointsSummary & { claimed: boolean }>('/me/points/daily', { method: 'POST' })
+
+// --- Card packs and the collection (M7 7b, docs/auction/packs.md) --------------------------------
+
+export type PackTier = 'common' | 'uncommon' | 'rare' | 'double' | 'illustration' | 'ultra' | 'sir' | 'hyper'
+
+export interface PackCatalog {
+  price: number
+  size: number
+  sets: { id: string; nameKo: string; releaseDate: string; cards: number; odds: { tier: PackTier; percent: number; cards: number }[] }[]
+}
+
+export interface PackCard {
+  cardId: string
+  tier: PackTier
+  rareSlot: boolean
+  isNew: boolean
+}
+
+export interface OpenedPack {
+  id: string
+  setId: string
+  cards: PackCard[]
+  createdAt: string
+}
+
+export interface CollectionCard {
+  cardId: string
+  count: number
+  test: number
+  /** Copies in an open auction */
+  listed: number
+  newest: string
+}
+
+export interface CollectionSummary {
+  cards: number
+  distinct: number
+  sets: { id: string; owned: number; total: number }[]
+}
+
+export const getPackCatalog = () => accountFetch<PackCatalog>('/packs')
+export const openPack = (setId: string, idemKey: string) =>
+  accountFetch<{ kind: 'opened' | 'repeat'; pack: OpenedPack; points: PointsSummary }>('/me/packs', { method: 'POST', body: { setId, idemKey } })
+export const getLatestPack = () => accountFetch<{ pack: OpenedPack | null }>('/me/packs/latest')
+export const getCollection = (set: string | null, page: number) =>
+  accountFetch<{ cards: CollectionCard[]; more: boolean }>(`/me/collection?${new URLSearchParams({ ...(set && { set }), ...(page > 0 && { page: String(page) }) })}`)
+export const getCollectionSummary = () => accountFetch<CollectionSummary>('/me/collection/summary')
+
+// --- Auctions (M7 7c, docs/auction/design.md) ----------------------------------------------------
+
+export type AuctionStatus = 'open' | 'ending' | 'sold' | 'unsold' | 'cancelled'
+
+export interface AuctionState {
+  id: string
+  cardId: string
+  status: AuctionStatus
+  startPrice: number
+  minStep: number
+  minBid: number
+  topAmount: number | null
+  topAlias: string | null
+  bidCount: number
+  endsAt: string
+  extensions: number
+  maxExtensions: number
+  version: number
+  closedAt: string | null
+  bids: { alias: string; amount: number; at: string }[]
+}
+
+export interface AuctionMine {
+  isSeller: boolean
+  isTop: boolean
+  myAlias: string | null
+  held: number
+}
+
+export interface MarketItem {
+  id: string
+  cardId: string
+  price: number
+  hasBids: boolean
+  bidCount: number
+  endsAt: string
+  status: AuctionStatus
+}
+
+export type BidOutcome =
+  | { kind: 'ok' | 'repeat'; version: number }
+  | { kind: 'closed' | 'ended' | 'own' }
+  | { kind: 'too_low'; minBid: number }
+  | { kind: 'insufficient'; available: number; need: number }
+
+export const getMarket = (sort: 'ending' | 'new' | 'price', page = 0) =>
+  accountFetch<{ items: MarketItem[]; more: boolean }>(`/auctions?${new URLSearchParams({ sort, ...(page > 0 && { page: String(page) }) })}`)
+/** The public, briefly cached state (not for setting the clock: qa) */
+export const getAuction = (id: string, signal?: AbortSignal) => accountFetch<AuctionState>(`/auctions/${encodeURIComponent(id)}`, { signal })
+export const getMyAuction = (id: string) => accountFetch<{ mine: AuctionMine; serverNow: string }>(`/me/auctions/${encodeURIComponent(id)}`)
+export const getMyAuctions = () => accountFetch<{ selling: MarketItem[]; bidding: MarketItem[] }>('/me/auctions')
+export const createAuction = (cardId: string, startPrice: number, duration: string, idemKey: string) =>
+  accountFetch<{ auctionId: string }>('/me/auctions', { method: 'POST', body: { cardId, startPrice, duration, idemKey } })
+export const placeBid = (id: string, amount: number, idemKey: string) =>
+  accountFetch<{ result: BidOutcome; state: AuctionState; mine: AuctionMine; serverNow: string }>(`/me/auctions/${encodeURIComponent(id)}/bids`, {
+    method: 'POST',
+    body: { amount, idemKey },
+  })
+export const cancelAuction = (id: string) => accountFetch<{ result: 'ok' }>(`/me/auctions/${encodeURIComponent(id)}/cancel`, { method: 'POST' })
+
+/** Auction notifications (docs/auction/design.md §7d): the newest 20 and how many are unread */
+export interface NotificationItem {
+  id: string
+  kind: 'outbid' | 'won' | 'sold' | 'unsold'
+  auctionId: string
+  cardId: string
+  amount: number | null
+  at: string
+  read: boolean
+}
+export const getNotifications = () => accountFetch<{ unread: number; items: NotificationItem[] }>('/me/notifications')
+export const markNotificationsRead = () => accountFetch<{ unread: 0 }>('/me/notifications/read', { method: 'POST' })

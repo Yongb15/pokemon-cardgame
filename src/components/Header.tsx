@@ -1,5 +1,7 @@
 import { Link, useLocation } from 'react-router'
 import AccountMenu from './AccountMenu'
+import NotificationBell from './NotificationBell'
+import PointsBar, { PointsNotice } from './PointsBar'
 import styles from './Header.module.css'
 
 function Logo() {
@@ -17,6 +19,7 @@ export default function Header() {
   const onCards = pathname === '/' || pathname.startsWith('/cards/')
   const onDecks = pathname === '/decks' || pathname.startsWith('/decks/')
   const onPrices = pathname === '/prices'
+  const onMarket = pathname === '/market' || pathname.startsWith('/auctions/')
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
@@ -31,12 +34,24 @@ export default function Header() {
           <Link className={onPrices ? styles.active : undefined} to="/prices" aria-current={onPrices ? 'page' : undefined}>
             시세
           </Link>
-          <Link className={onDecks ? styles.active : undefined} to="/decks" aria-current={onDecks ? 'page' : undefined}>
-            덱 빌더
+          <Link className={onMarket ? styles.active : undefined} to="/market" aria-current={onMarket ? 'page' : undefined}>
+            경매
+          </Link>
+          {/* Four items fit at 320px with the short label; the name stays "덱 빌더" (qa) */}
+          <Link className={onDecks ? styles.active : undefined} to="/decks" aria-current={onDecks ? 'page' : undefined} aria-label="덱 빌더">
+            <span className={styles.long}>덱 빌더</span>
+            <span className={styles.short} aria-hidden="true">
+              덱
+            </span>
           </Link>
         </nav>
-        <AccountMenu />
+        <div className={styles.right}>
+          <PointsBar />
+          <NotificationBell />
+          <AccountMenu />
+        </div>
       </div>
+      <PointsNotice />
     </header>
   )
 }

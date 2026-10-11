@@ -26,6 +26,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      # The card-pack pool must be exactly what the card data gives (Security 7b (a))
+      - run: node scripts/build-packs.mjs --check
       - run: npm run build
       - run: npm run build --workspace apps/api
       # Production dependencies only: dev-only findings (drizzle-kit's esbuild) are accepted

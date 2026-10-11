@@ -163,6 +163,12 @@ export class PgStore implements AccountStore {
     return required.filter((_, i) => ok[i] !== true).map(([t, c, p]) => `${p} ${t}${c ? `.${c}` : ''}`)
   }
 
+  /** Of the given grants, the ones api_rw has (for "must not have" lists) */
+  async grantedOf(list: [string, string | null, string][]): Promise<string[]> {
+    const missing = new Set(await this.missingPrivileges(list))
+    return list.map(([t, c, p]) => `${p} ${t}${c ? `.${c}` : ''}`).filter((name) => !missing.has(name))
+  }
+
   /**
    * Grants api_rw must NOT have: a migration that widens them by mistake shows up as a start-up
    * warning (Security, step 3 Info). Returns the ones it has.

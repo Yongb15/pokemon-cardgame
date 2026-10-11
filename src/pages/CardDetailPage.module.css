@@ -1,6 +1,10 @@
 .main {
   width: 100%;
   max-width: calc(var(--page-width) + var(--gutter) * 2);
+  /* At least a screen tall (header included), so the footer starts below the fold: on a tall
+     screen it used to show under the loading skeleton and jump away when the card arrived
+     (qa: CLS 0.14–0.17 at 640–900px) */
+  min-height: calc(100svh - 56px); /* the mobile header is 56px, desktop 64px */
   margin: 0 auto;
   padding: 28px var(--gutter) 64px;
 }

@@ -1,0 +1,72 @@
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item,
+.itemNew {
+  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+.list li:first-child > * {
+  border-top: 0;
+}
+
+.itemNew {
+  background: var(--accent-soft);
+}
+
+.item:hover,
+.itemNew:hover {
+  background: var(--surface-muted);
+}
+
+/* A fixed box: the image arriving later doesn't move the text (qa: CLS) */
+.thumb {
+  width: 36px;
+  aspect-ratio: 245 / 342;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--skeleton);
+}
+
+.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.text b {
+  color: var(--text-h);
+}
+
+.when {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.empty {
+  margin: 0;
+  padding: 24px 16px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+}

@@ -6,8 +6,12 @@
 
 import { sql } from 'drizzle-orm'
 import {
+  type AnyPgColumn,
+  bigint,
+  boolean,
   check,
   customType,
+  date,
   index,
   integer,
   jsonb,
@@ -131,5 +135,231 @@ export const favorites = account.table(
     primaryKey({ columns: [t.userId, t.cardId] }),
     index('favorites_user_idx').on(t.userId, t.createdAt),
     check('favorites_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
+  ],
+)
+
+// --- M7 points (docs/auction/design.md §2, ADR 0005) ----------------------------------------------
+
+export const POINT_KINDS = ['signup_bonus', 'daily_bonus', 'pack_purchase', 'sale_income', 'sale_fee', 'purchase', 'admin_adjust'] as const
+export type PointKind = (typeof POINT_KINDS)[number]
+
+/**
+ * The points ledger: one row per change, never updated or deleted (api_rw has INSERT and SELECT
+ * only). A user's balance is the sum of their rows; `idem_key` makes a retried request a no-op.
+ */
+export const pointEntries = account.table(
+  'point_entries',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    kind: text('kind').notNull(),
+    /** What it was for: an auction or pack id, or 'test' for a preview top-up */
+    ref: text('ref'),
+    idemKey: text('idem_key').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    uniqueIndex('point_entries_idem_idx').on(t.userId, t.idemKey),
+    index('point_entries_user_idx').on(t.userId, t.createdAt),
+    check('point_entries_amount_check', sql`amount <> 0 and amount between -100000000 and 100000000`),
+    check('point_entries_kind_check', sql.raw(`kind in (${POINT_KINDS.map((k) => `'${k}'`).join(', ')})`)),
+    check('point_entries_ref_check', sql`ref is null or ref ~ '^[A-Za-z0-9_:-]{1,64}$'`),
+    check('point_entries_idem_check', sql`idem_key ~ '^[A-Za-z0-9_:-]{1,80}$'`),
+  ],
+)
+
+/**
+ * Each user's balance (the ledger's sum, kept in the same transaction) and what open bids hold.
+ * Writers lock this row (FOR UPDATE); the CHECK makes a negative or over-held balance impossible
+ * whatever the code does.
+ */
+export const pointAccounts = account.table(
+  'point_accounts',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    balance: bigint('balance', { mode: 'number' }).notNull().default(0),
+    held: bigint('held', { mode: 'number' }).notNull().default(0),
+    version: integer('version').notNull().default(0),
+  },
+  () => [check('point_accounts_balance_check', sql`held >= 0 and balance >= held and balance <= 10000000000`)],
+)
+
+/** One check-in a day per user (the KST date) */
+export const dailyClaims = account.table(
+  'daily_claims',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    day: date('day').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+)
+
+// --- M7 card packs and collection (docs/auction/packs.md) ----------------------------------------
+
+export const CARD_SOURCES = ['pack', 'auction', 'test'] as const
+
+/**
+ * One row per opened pack: the audit record (what it cost, the five cards it gave). Never updated:
+ * when cards change hands in 7c, this still says what the pack produced (Security 7b (b)).
+ */
+export const packOpenings = account.table(
+  'pack_openings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    setId: text('set_id').notNull(),
+    cost: bigint('cost', { mode: 'number' }).notNull(),
+    cards: text('cards').array().notNull(),
+    /** Drawn with a test seed (preview only): left out of any odds statistics */
+    seeded: boolean('seeded').notNull().default(false),
+    idemKey: text('idem_key').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    uniqueIndex('pack_openings_idem_idx').on(t.userId, t.idemKey),
+    index('pack_openings_user_idx').on(t.userId, t.createdAt),
+    check('pack_openings_set_check', sql`set_id ~ '^[a-z0-9]{1,20}$'`),
+    check('pack_openings_cost_check', sql`cost between 1 and 100000000`),
+    check('pack_openings_cards_check', sql`cardinality(cards) = 5`),
+    check('pack_openings_idem_check', sql`idem_key ~ '^[A-Za-z0-9_-]{8,64}$'`),
+  ],
+)
+
+/** The virtual cards a user owns, one row per copy (the unit an auction sells in 7c) */
+export const ownedCards = account.table(
+  'owned_cards',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    cardId: text('card_id').notNull(),
+    source: text('source').notNull(),
+    packId: uuid('pack_id').references(() => packOpenings.id, { onDelete: 'set null' }),
+    /** The open auction this copy is listed in (7c); cleared when the auction closes */
+    auctionId: uuid('auction_id').references((): AnyPgColumn => auctions.id, { onDelete: 'set null' }),
+    acquiredAt: timestamp('acquired_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    index('owned_cards_user_idx').on(t.userId, t.acquiredAt),
+    index('owned_cards_pack_idx').on(t.packId),
+    check('owned_cards_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
+    check('owned_cards_source_check', sql.raw(`source in (${CARD_SOURCES.map((s) => `'${s}'`).join(', ')})`)),
+  ],
+)
+
+// --- M7 auctions (docs/auction/design.md §2–§4, migration 0016) -----------------------------------
+
+export const AUCTION_STATUSES = ['open', 'sold', 'unsold', 'cancelled'] as const
+export type AuctionStatus = (typeof AUCTION_STATUSES)[number]
+
+/**
+ * One auction of one owned card. The seller and the top bidder become NULL when an account is
+ * deleted after the auction closed (A-2: others' history stays, as "탈퇴한 사용자"). Writers lock
+ * this row first (§4 lock order); `version` grows with every change for the polling clients.
+ */
+export const auctions = account.table(
+  'auctions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    sellerId: uuid('seller_id').references(() => users.id, { onDelete: 'set null' }),
+    ownedCardId: uuid('owned_card_id').references(() => ownedCards.id, { onDelete: 'set null' }),
+    cardId: text('card_id').notNull(),
+    startPrice: bigint('start_price', { mode: 'number' }).notNull(),
+    minStep: bigint('min_step', { mode: 'number' }).notNull(),
+    status: text('status').notNull().default('open'),
+    startsAt: timestamp('starts_at', { withTimezone: true }).notNull().defaultNow(),
+    endsAt: timestamp('ends_at', { withTimezone: true }).notNull(),
+    originalEndsAt: timestamp('original_ends_at', { withTimezone: true }).notNull(),
+    extensions: integer('extensions').notNull().default(0),
+    topAmount: bigint('top_amount', { mode: 'number' }),
+    topBidderId: uuid('top_bidder_id').references(() => users.id, { onDelete: 'set null' }),
+    bidCount: integer('bid_count').notNull().default(0),
+    version: integer('version').notNull().default(0),
+    idemKey: text('idem_key').notNull(),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+  },
+  (t) => [
+    // One open auction per card copy: the database's last word on double listing (Security)
+    uniqueIndex('auctions_open_card_idx').on(t.ownedCardId).where(sql`status = 'open'`),
+    uniqueIndex('auctions_idem_idx').on(t.sellerId, t.idemKey),
+    index('auctions_open_ends_idx').on(t.status, t.endsAt),
+    index('auctions_seller_idx').on(t.sellerId, t.status),
+    index('auctions_top_idx').on(t.topBidderId, t.status),
+    check('auctions_status_check', sql.raw(`status in (${AUCTION_STATUSES.map((s) => `'${s}'`).join(', ')})`)),
+    check('auctions_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
+    check('auctions_price_check', sql`start_price between 1 and 100000000 and min_step between 1 and 100000000`),
+    check('auctions_top_check', sql`top_amount is null or top_amount between 1 and 100000000`),
+    check('auctions_time_check', sql`ends_at > starts_at and original_ends_at > starts_at`),
+    check('auctions_extensions_check', sql`extensions between 0 and 10`),
+    check('auctions_idem_check', sql`idem_key ~ '^[A-Za-z0-9_-]{8,64}$'`),
+    // Backstops for the app's rules (Security, 0016 review)
+    check('auctions_self_bid_check', sql`top_bidder_id is null or seller_id is null or top_bidder_id <> seller_id`),
+    check('auctions_extension_bound_check', sql`ends_at <= original_ends_at + interval '20 minutes'`),
+    check('auctions_closed_check', sql`(status = 'open') = (closed_at is null) and bid_count >= 0`),
+    check('auctions_sold_check', sql`status <> 'sold' or top_amount is not null`),
+  ],
+)
+
+/** Every bid, never edited. `alias_no` is the bidder's per-auction letter (A = 1, in first-bid order) */
+export const bids = account.table(
+  'bids',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    auctionId: uuid('auction_id')
+      .notNull()
+      .references(() => auctions.id),
+    bidderId: uuid('bidder_id').references(() => users.id, { onDelete: 'set null' }),
+    amount: bigint('amount', { mode: 'number' }).notNull(),
+    aliasNo: integer('alias_no').notNull(),
+    idemKey: text('idem_key').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    uniqueIndex('bids_idem_idx').on(t.auctionId, t.bidderId, t.idemKey),
+    index('bids_auction_idx').on(t.auctionId, t.createdAt),
+    index('bids_bidder_idx').on(t.bidderId),
+    check('bids_amount_check', sql`amount between 1 and 100000000`),
+    check('bids_alias_check', sql`alias_no between 1 and 10000`),
+    check('bids_idem_check', sql`idem_key ~ '^[A-Za-z0-9_-]{8,64}$'`),
+  ],
+)
+
+/**
+ * Auction notifications for one user (docs/auction/design.md §7d): who was outbid, who won, the
+ * seller's sold / unsold. One row per (user, auction, kind): being outbid again updates it and makes it
+ * unread again. Rows hold no other user's id or name (A-3); they go with the account.
+ */
+export const notifications = account.table(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: ['outbid', 'won', 'sold', 'unsold'] }).notNull(),
+    auctionId: uuid('auction_id')
+      .notNull()
+      .references(() => auctions.id),
+    cardId: text('card_id').notNull(),
+    amount: bigint('amount', { mode: 'number' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+    readAt: timestamp('read_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('notifications_once_idx').on(t.userId, t.auctionId, t.kind),
+    index('notifications_user_idx').on(t.userId, t.createdAt),
+    check('notifications_kind_check', sql`kind in ('outbid', 'won', 'sold', 'unsold')`),
+    check('notifications_amount_check', sql`amount is null or amount between 1 and 100000000`),
+    check('notifications_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
   ],
 )

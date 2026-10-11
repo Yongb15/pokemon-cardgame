@@ -10,6 +10,11 @@ import CardListPage from './pages/CardListPage.tsx'
 import DeckEditorPage from './pages/DeckEditorPage.tsx'
 import DeckListPage from './pages/DeckListPage.tsx'
 import FavoritesPage from './pages/FavoritesPage.tsx'
+import AuctionPage from './pages/AuctionPage'
+import CollectionPage from './pages/CollectionPage'
+import MarketPage from './pages/MarketPage'
+import NotificationsPage from './pages/NotificationsPage'
+import PacksPage from './pages/PacksPage'
 import LoginPage from './pages/LoginPage.tsx'
 import MyPage from './pages/MyPage.tsx'
 import PricesPage from './pages/PricesPage.tsx'
@@ -39,6 +44,11 @@ const router = createBrowserRouter([
       { path: 'login', element: <LoginPage /> },
       { path: 'me', element: <MyPage /> },
       { path: 'favorites', element: <FavoritesPage /> },
+      { path: 'packs', element: <PacksPage /> },
+      { path: 'collection', element: <CollectionPage /> },
+      { path: 'market', element: <MarketPage /> },
+      { path: 'auctions/:id', element: <AuctionPage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
       { path: 'privacy', element: <PrivacyPage /> },
       { path: 'terms', element: <TermsPage /> },
       { path: '*', element: <NotFoundPage /> },

@@ -99,6 +99,41 @@
       "when": 1791612688276,
       "tag": "0013_psa_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791617803118,
+      "tag": "0014_points_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791632323329,
+      "tag": "0015_packs_collection",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791634097976,
+      "tag": "0016_auctions",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1791634237832,
+      "tag": "0017_auction_guards",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1791637290461,
+      "tag": "0018_notifications",
+      "breakpoints": true
     }
   ]
 }
