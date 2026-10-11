@@ -165,9 +165,9 @@ export default function AccountMenu() {
           )}
           <hr />
           {/* Up to 900px the bell lives here (docs/design/notify-7d.webp ②) */}
-          <Link className={styles.menuNotes} to="/notifications">
+          <Link className={styles.menuNotes} to="/notifications" aria-label={unread > 0 ? `알림 ${unread}개 안 읽음` : undefined}>
             <span>알림</span>
-            {unread > 0 && <b aria-label={`${unread}개 안 읽음`}>{unread > 99 ? '99+' : unread}</b>}
+            {unread > 0 && <b aria-hidden="true">{unread > 99 ? '99+' : unread}</b>}
           </Link>
           <Link to="/me">마이페이지 · 포인트 내역</Link>
           <Link to="/favorites">관심 카드</Link>

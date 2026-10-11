@@ -34,6 +34,7 @@
 .nav a {
   color: inherit;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .nav .active {
@@ -270,8 +271,8 @@
   color: var(--text-muted);
 }
 
-@media (min-width: 641px) and (max-width: 900px) {
-  /* Mid widths: the nickname gives way to the points first (qa 2) */
+@media (min-width: 641px) and (max-width: 1000px) {
+  /* Mid widths: the nickname gives way first, to the points and (from 901px) the bell (qa 2, qa 7d-1) */
   .nickname {
     display: none;
   }

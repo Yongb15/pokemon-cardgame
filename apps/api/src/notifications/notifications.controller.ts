@@ -2,7 +2,7 @@
 //   GET  /api/v1/me/notifications        → { unread, items } (newest 20; the user's ended auctions settle first)
 //   POST /api/v1/me/notifications/read   → { unread: 0 } (everything up to now; a write: origin-checked, limited)
 
-import { Controller, Get, HttpCode, Inject, Post, Query, Req, Res } from '@nestjs/common'
+import { Body, Controller, Get, HttpCode, Inject, Post, Query, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { SERVICES, type Services } from '../auth/auth.controller.js'
 import { UserRoutes } from '../data/data.controller.js'
@@ -31,8 +31,12 @@ export class NotificationsController extends UserRoutes {
 
   @Post('read')
   @HttpCode(200)
-  async read(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async read(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: unknown) {
     const user = await this.writer(req, res)
+    // Nothing to send: an unknown body is refused like elsewhere (qa 7d-3)
+    if (body !== undefined && body !== null && (typeof body !== 'object' || Object.keys(body).length)) {
+      throw new PublicError('요청을 처리할 수 없습니다.', 400)
+    }
     await this.notifications.markRead(user.id)
     return { unread: 0 }
   }

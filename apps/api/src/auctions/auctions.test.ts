@@ -155,6 +155,8 @@ describe('auction routes (preview)', () => {
     const read = await t.call('/api/v1/me/notifications/read', { method: 'POST', session })
     expect(read.status).toBe(200)
     expect(read.body).toEqual({ unread: 0 })
+    expect((await t.call('/api/v1/me/notifications/read', { method: 'POST', session, body: { x: 1 } })).status).toBe(400)
+    expect((await t.call('/api/v1/me/notifications/read', { method: 'POST', session, body: {} })).status).toBe(200)
   })
 
   it('test hooks: test accounts only', async () => {
