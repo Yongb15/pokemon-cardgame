@@ -17,6 +17,13 @@ function cardsApi(): Plugin {
         // no .env: the prices API answers 500 locally, everything else works
       }
       // /api/prices/top (and /packs) is its own function on Vercel too (server/prices/top.ts)
+      server.middlewares.use('/api/prices/batch', async (req, res) => {
+        const { handleBatch } = (await server.ssrLoadModule('/server/prices/top.ts')) as typeof import('./server/prices/top.js')
+        const response = await handleBatch(new URL(req.url ?? '/', 'http://localhost').searchParams)
+        res.statusCode = response.status
+        response.headers.forEach((value: string, key: string) => res.setHeader(key, value))
+        res.end(await response.text())
+      })
       server.middlewares.use('/api/prices/packs', async (req, res) => {
         const { handlePacks } = (await server.ssrLoadModule('/server/prices/top.ts')) as typeof import('./server/prices/top.js')
         const response = await handlePacks(new URL(req.url ?? '/', 'http://localhost').searchParams)

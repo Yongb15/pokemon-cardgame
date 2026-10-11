@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FxRow } from './logic.js'
-import { handlePacks, handleTop, loadPoolIds, rank, type Level } from './top.js'
+import { handleBatch, handlePacks, handleTop, loadPoolIds, rank, type Level } from './top.js'
 
 const today = '2026-10-09'
 const rates = new Map<string, FxRow[]>([
@@ -57,6 +57,17 @@ describe('the /api/prices/top request', () => {
   it('refuses unknown parameters and bad values before touching the database', async () => {
     for (const query of ['edition=ko', 'edition=en&x=1', 'set=../x', 'set=' + 'a'.repeat(21), 'range=30d', 'edition=en&edition=ja', 'edition=en&edition=en&edition=en', 'set=&edition=en', 'edition=', 'edition=packs&set=me5', 'edition=packs&edition=en', 'edition=packs&x=1']) {
       const res = await handleTop(new URLSearchParams(query))
+      expect(res.status, query).toBe(400)
+      expect(res.headers.get('cache-control')).toBe('no-store')
+    }
+  })
+})
+
+describe('the /api/prices/batch request', () => {
+  it('takes ids once, sorted, unique and well-formed, 1–50 of them, before touching the database', async () => {
+    const many = Array.from({ length: 51 }, (_, i) => `me5-${String(i + 100)}`).sort().join(',')
+    for (const query of ['', 'ids=', 'ids=me5-2,me5-1', 'ids=me5-1,me5-1', 'ids=me5-1&ids=me5-2', 'ids=me5-1&x=1', 'ids=../x', 'ids=me5-1,', `ids=${many}`]) {
+      const res = await handleBatch(new URLSearchParams(query))
       expect(res.status, query).toBe(400)
       expect(res.headers.get('cache-control')).toBe('no-store')
     }

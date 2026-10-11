@@ -50,7 +50,7 @@ function fakeStore(calls: string[]): AuctionsStore {
 
 function fakeNotifications(calls: string[]): NotificationsStore {
   return {
-    list: async () => (calls.push('notes'), { unread: 1, items: [{ id: AID, kind: 'outbid', auctionId: AID, cardId: 'me5-1', amount: 300, at: new Date().toISOString(), read: false }] }),
+    list: async () => (calls.push('notes'), { unread: 1, items: [{ id: AID, kind: 'outbid', auctionId: AID, cardId: 'me5-1', amount: 300, target: null, at: new Date().toISOString(), read: false }] }),
     markRead: async () => (calls.push('read'), 1),
   }
 }

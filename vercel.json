@@ -20,6 +20,10 @@
       "includeFiles": "{data/index.json,data/tcgdex-map.json,apps/api/src/packs/pool.json}",
       "maxDuration": 15
     },
+    "api/price-batch.ts": {
+      "includeFiles": "{data/index.json,data/tcgdex-map.json}",
+      "maxDuration": 15
+    },
     "api/price-packs.ts": {
       "includeFiles": "{data/index.json,data/tcgdex-map.json,apps/api/src/packs/pool.json}",
       "maxDuration": 15
@@ -29,6 +33,10 @@
     {
       "source": "/api/prices/top",
       "destination": "/api/price-top"
+    },
+    {
+      "source": "/api/prices/batch",
+      "destination": "/api/price-batch"
     },
     {
       "source": "/api/prices/packs",

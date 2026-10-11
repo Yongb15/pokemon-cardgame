@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { Tx } from '../points/store.js'
 
-export type NotificationKind = 'outbid' | 'won' | 'sold' | 'unsold'
+export type NotificationKind = 'outbid' | 'won' | 'sold' | 'unsold' | 'price'
 
 /** The newest this many come back; older ones stay but aren't listed */
 export const LIST_SIZE = 20
@@ -25,7 +25,7 @@ export const NOTIFICATIONS_EXCESS: [string, string | null, string][] = [
 ]
 
 /** One per (user, auction, kind): being outbid again brings it back as unread with the new price */
-export async function notify(tx: Tx, userId: string, kind: NotificationKind, auctionId: string, cardId: string, amount: number | null) {
+export async function notify(tx: Tx, userId: string, kind: Exclude<NotificationKind, 'price'>, auctionId: string, cardId: string, amount: number | null) {
   await tx.execute(sql`
     insert into account.notifications (user_id, kind, auction_id, card_id, amount)
     values (${userId}, ${kind}, ${auctionId}, ${cardId}, ${amount})
@@ -35,9 +35,12 @@ export async function notify(tx: Tx, userId: string, kind: NotificationKind, auc
 export interface NotificationItem {
   id: string
   kind: NotificationKind
-  auctionId: string
+  /** null for a price alert */
+  auctionId: string | null
   cardId: string
   amount: number | null
+  /** Price alerts: the target it fired for */
+  target: number | null
   at: string
   read: boolean
 }
@@ -52,8 +55,8 @@ export class PgNotificationsStore implements NotificationsStore {
   constructor(private readonly db: NodePgDatabase) {}
 
   async list(userId: string) {
-    const { rows } = await this.db.execute<{ id: string; kind: NotificationKind; auction_id: string; card_id: string; amount: string | null; created_at: Date; read_at: Date | null }>(sql`
-      select id, kind, auction_id, card_id, amount, created_at, read_at from account.notifications
+    const { rows } = await this.db.execute<{ id: string; kind: NotificationKind; auction_id: string | null; card_id: string; amount: string | null; target: number | null; created_at: Date; read_at: Date | null }>(sql`
+      select id, kind, auction_id, card_id, amount, target, created_at, read_at from account.notifications
       where user_id = ${userId} order by created_at desc, id limit ${LIST_SIZE}`)
     const unread = await this.db.execute<{ n: number }>(sql`
       select count(*)::int as n from account.notifications where user_id = ${userId} and read_at is null`)
@@ -65,6 +68,7 @@ export class PgNotificationsStore implements NotificationsStore {
         auctionId: r.auction_id,
         cardId: r.card_id,
         amount: r.amount === null ? null : Number(r.amount),
+        target: r.target,
         at: new Date(r.created_at).toISOString(),
         read: r.read_at !== null,
       })),
