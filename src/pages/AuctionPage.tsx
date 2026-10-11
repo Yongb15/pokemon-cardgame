@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import { AccountApiError, cancelAuction, getAuction, getMyAuction, placeBid, unwatchAuction, watchAuction, type AuctionMine, type AuctionState } from '../api/account'
 import CardImg from '../components/CardImg'
+import ReportDialog from '../components/ReportDialog'
 import { useCardInfo } from '../hooks/useDecks'
 import { loadPoints, usePoints } from '../hooks/usePoints'
-import { useSession } from '../hooks/useSession'
+import { useSession, wasSignedIn } from '../hooks/useSession'
 import { learnServerTime, serverNow, timeLeft } from '../lib/auctions'
 import { newRequestId } from '../lib/packs'
 import { won } from '../lib/points'
@@ -82,6 +83,7 @@ export default function AuctionPage() {
   const [state, setState] = useState<AuctionState | null>(null)
   const [missing, setMissing] = useState(false)
   const [mine, setMine] = useState<AuctionMine | null>(null)
+  const [reporting, setReporting] = useState(false)
   const [amount, setAmount] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -292,8 +294,9 @@ export default function AuctionPage() {
             <h2 id="bid-title" className="visually-hidden">
               입찰
             </h2>
-            {!state ? (
-              <div className={styles.boxSkeleton} aria-busy="true" />
+            {/* Until the auction and who's looking are both known: one step from skeleton to the final box (qa MOD-1) */}
+            {!state || (session.status === 'unknown' && !(state.status !== 'open' || timeUp)) ? (
+              <div className={session.status === 'in' || (session.status === 'unknown' && wasSignedIn()) ? `${styles.boxSkeleton} ${styles.boxSkeletonIn}` : styles.boxSkeleton} aria-busy="true" />
             ) : finished ? (
               <p className={styles.result} role="status">
                 {result()}
@@ -409,7 +412,16 @@ export default function AuctionPage() {
               <p className={styles.small}>아직 입찰이 없어요.</p>
             )}
           </section>
-          <p className={styles.small}>포인트와 카드는 현금 가치가 없고, 사거나 바꿀 수 없어요. 현금 거래는 금지예요.</p>
+          <p className={styles.small}>
+            포인트와 카드는 현금 가치가 없고, 사거나 바꿀 수 없어요. 현금 거래는 금지예요.{' '}
+            {/* Signed in, and not on your own auction (docs/design/moderation.webp ①) */}
+            {session.status === 'in' && mine && !mine.isSeller && (
+              <button type="button" className={styles.reportLink} onClick={() => setReporting(true)}>
+                이 경매 신고
+              </button>
+            )}
+          </p>
+          {reporting && <ReportDialog auctionId={id} onClose={() => setReporting(false)} />}
         </div>
       </div>
     </main>

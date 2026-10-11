@@ -122,10 +122,25 @@
   background: var(--surface);
 }
 
+/* "이 경매 신고": a quiet text button in the footnote */
+.reportLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  text-decoration: underline;
+}
+
 .boxSkeleton {
   height: 210px;
   border-radius: 10px;
   background: var(--skeleton);
+}
+
+/* Signed in, the box will hold the bid form (41px taller than the signed-out link): skeleton at that size (qa MOD-1) */
+.boxSkeletonIn {
+  height: 251px;
 }
 
 .row {

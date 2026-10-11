@@ -346,7 +346,7 @@ export const notifications = account.table(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    kind: text('kind', { enum: ['outbid', 'won', 'sold', 'unsold', 'price', 'watch_bid', 'watch_ending'] }).notNull(),
+    kind: text('kind', { enum: ['outbid', 'won', 'sold', 'unsold', 'price', 'watch_bid', 'watch_ending', 'removed'] }).notNull(),
     /** Auction kinds only; a price alert (M8) has none */
     auctionId: uuid('auction_id').references(() => auctions.id),
     cardId: text('card_id').notNull(),
@@ -361,7 +361,7 @@ export const notifications = account.table(
     // One price notification per card: firing again brings the same row back unread
     uniqueIndex('notifications_price_once_idx').on(t.userId, t.cardId).where(sql`kind = 'price'`),
     index('notifications_user_idx').on(t.userId, t.createdAt),
-    check('notifications_kind_check', sql`kind in ('outbid', 'won', 'sold', 'unsold', 'price', 'watch_bid', 'watch_ending')`),
+    check('notifications_kind_check', sql`kind in ('outbid', 'won', 'sold', 'unsold', 'price', 'watch_bid', 'watch_ending', 'removed')`),
     check('notifications_auction_check', sql`(kind = 'price') = (auction_id is null)`),
     check('notifications_target_check', sql`(kind = 'price') = (target is not null) and (target is null or target between 100 and 100000000)`),
     check('notifications_amount_check', sql`amount is null or amount between 1 and 100000000`),
@@ -416,4 +416,64 @@ export const auctionWatches = account.table(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
   },
   (t) => [primaryKey({ columns: [t.userId, t.auctionId] }), index('auction_watches_auction_idx').on(t.auctionId)],
+)
+
+// --- M8 reports and moderation (docs/auction/moderation.md, Security AD-1..AD-4) ----------------------
+
+/** Who may moderate. Rows come from the database owner only: api_rw can just read (AD-1) */
+export const admins = account.table('admins', {
+  userId: uuid('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
+/**
+ * A user's report of an auction: once per auction, fixed reasons, a short cleaned note that is cleared
+ * 90 days after the report is resolved (AD-3). The reporter is never shown to anyone, admins included
+ */
+export const auctionReports = account.table(
+  'auction_reports',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    auctionId: uuid('auction_id')
+      .notNull()
+      .references(() => auctions.id),
+    reason: text('reason', { enum: ['price_manipulation', 'rmt', 'wrong_item', 'other'] }).notNull(),
+    note: text('note'),
+    status: text('status', { enum: ['open', 'dismissed', 'actioned'] })
+      .notNull()
+      .default('open'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+    resolvedAt: timestamp('resolved_at', { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.auctionId] }),
+    index('auction_reports_open_idx').on(t.auctionId).where(sql`status = 'open'`),
+    check('auction_reports_reason_check', sql`reason in ('price_manipulation', 'rmt', 'wrong_item', 'other')`),
+    check('auction_reports_status_check', sql`status in ('open', 'dismissed', 'actioned') and (status = 'open') = (resolved_at is null)`),
+    check('auction_reports_note_check', sql`note is null or char_length(note) between 1 and 200`),
+  ],
+)
+
+/** What a moderator did and why: append-only; the admin's id goes if they leave, the record stays */
+export const adminActions = account.table(
+  'admin_actions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    adminId: uuid('admin_id').references(() => users.id, { onDelete: 'set null' }),
+    auctionId: uuid('auction_id')
+      .notNull()
+      .references(() => auctions.id),
+    action: text('action', { enum: ['dismiss', 'remove'] }).notNull(),
+    reason: text('reason').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    index('admin_actions_auction_idx').on(t.auctionId, t.createdAt),
+    check('admin_actions_action_check', sql`action in ('dismiss', 'remove')`),
+    check('admin_actions_reason_check', sql`char_length(reason) between 1 and 200`),
+  ],
 )

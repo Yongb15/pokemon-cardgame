@@ -15,8 +15,29 @@ let session: Session = { status: 'unknown' }
 let pending: Promise<void> | null = null
 const listeners = new Set<() => void>()
 
+const HINT_KEY = 'card-dex:signed-in'
+
+/**
+ * Whether this browser was signed in last time: a layout hint only (placeholders sized for what will
+ * most likely come), never used to decide anything (qa MOD-1). Storage can be missing or blocked
+ */
+export function wasSignedIn() {
+  try {
+    return localStorage.getItem(HINT_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 function set(next: Session) {
   session = next
+  if (next.status === 'in' || next.status === 'out') {
+    try {
+      localStorage.setItem(HINT_KEY, next.status === 'in' ? '1' : '0')
+    } catch {
+      // no storage: placeholders just use the signed-out size
+    }
+  }
   for (const listener of listeners) listener()
 }
 
