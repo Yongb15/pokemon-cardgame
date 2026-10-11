@@ -296,7 +296,7 @@ export default function AuctionPage() {
             </h2>
             {/* Until the auction and who's looking are both known: one step from skeleton to the final box (qa MOD-1) */}
             {!state || (session.status === 'unknown' && !(state.status !== 'open' || timeUp)) ? (
-              <div className={styles.boxSkeleton} aria-busy="true" />
+              <div className={session.status === 'in' ? `${styles.boxSkeleton} ${styles.boxSkeletonIn}` : styles.boxSkeleton} aria-busy="true" />
             ) : finished ? (
               <p className={styles.result} role="status">
                 {result()}

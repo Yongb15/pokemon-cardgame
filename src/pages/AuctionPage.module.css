@@ -138,6 +138,11 @@
   background: var(--skeleton);
 }
 
+/* Signed in, the box will hold the bid form (41px taller than the signed-out link): skeleton at that size (qa MOD-1) */
+.boxSkeletonIn {
+  height: 251px;
+}
+
 .row {
   display: flex;
   flex-wrap: wrap;
