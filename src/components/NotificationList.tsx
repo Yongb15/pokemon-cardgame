@@ -46,7 +46,7 @@ function Text({ item, name }: { item: NotificationItem; name: string }) {
     case 'removed':
       return (
         <>
-          <b>{name}</b> 경매가 운영 정책에 따라 내려졌어요. 묶인 포인트와 카드는 돌아왔어요
+          <b>{name}</b> 경매가 운영 정책에 따라 내려졌어요. 입찰로 묶였던 포인트와 등록한 카드는 돌아왔어요
         </>
       )
     case 'watch_ending':

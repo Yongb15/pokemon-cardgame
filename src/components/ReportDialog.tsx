@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AccountApiError, reportAuction, type ReportReason } from '../api/account'
 import Dialog from './deck/Dialog'
 import styles from './ListAuctionDialog.module.css'
@@ -18,6 +18,10 @@ export default function ReportDialog({ auctionId, onClose }: { auctionId: string
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const closeAfter = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (done) closeAfter.current?.focus()
+  }, [done])
 
   const submit = async () => {
     if (busy) return
@@ -39,7 +43,7 @@ export default function ReportDialog({ auctionId, onClose }: { auctionId: string
         <div className={styles.form}>
           <p role="status">신고했어요. 운영자가 확인할게요.</p>
           <div className={styles.actions}>
-            <button type="button" className={styles.primary} onClick={onClose}>
+            <button type="button" className={styles.primary} ref={closeAfter} onClick={onClose}>
               닫기
             </button>
           </div>

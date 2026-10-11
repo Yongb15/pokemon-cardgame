@@ -29,9 +29,11 @@ export function AdminReportsPage() {
   const [list, setList] = useState<ReportedAuction[] | null | 'none'>(null)
   const { info } = useCardInfo(list && list !== 'none' ? list.map((a) => a.cardId) : [])
   useEffect(() => {
-    document.title = '신고 확인 · Pokémon Card Dex'
     adminReports()
-      .then((r) => setList(r.auctions))
+      .then((r) => {
+        document.title = '신고 확인 · Pokémon Card Dex'
+        setList(r.auctions)
+      })
       .catch(() => setList('none'))
     return () => {
       document.title = 'Pokémon Card Dex'
