@@ -39,6 +39,9 @@
 - **덱 동기화** — 로그인하면 계정에 저장(최대 100개), 브라우저 덱을 계정으로 가져오기(같은 덱은 한 번만), 0.8초 뒤 자동 저장과 저장 상태 표시, 다른 기기에서 먼저 바꾸면 덮어쓰지 않고 "최신 불러오기 / 내 변경을 사본으로" 선택
 - **가상 포인트·카드팩·경매** — 현금 가치 없는 포인트(가입 10,000P, 매일 출석 500P, 경매 판매)와 포인트 내역. 최신 6개 세트 카드팩(희귀 슬롯 확률 공개, 10만 분율 정수), 내 컬렉션. 내 카드를 경매에 올리고(1·24·72시간, 시작가 100P 단위) 입찰, 마감 2분 전 입찰이면 2분 연장(최대 10번), 낙찰 시 포인트·카드 이동과 수수료 5%. 판매자·입찰자는 경매마다 "판매자", "입찰자 A/B"로만 표시(닉네임·사용자 id 없음)
 - **경매 알림** — 다른 사람이 더 높게 입찰했을 때, 낙찰·판매·유찰됐을 때. 데스크톱은 헤더의 종(안 읽은 수), 모바일은 계정 메뉴와 알림 페이지. 보이는 탭에서만 1분마다 확인
+- **내 컬렉션 가치** — 모은 카드의 참고 시세 합계(원화), 가장 비싼 카드 TOP 5, 카드마다 장당 시세. 카드팩 카드 979장의 시세를 모든 사용자가 같은 캐시 응답 하나로 받고 브라우저가 내 장수와 곱함(내 컬렉션은 시세 서버로 가지 않음)
+- **가격 알림** — 카드 상세에서 "이 가격 이하가 되면 알려 줘"(최대 50개), 시세가 내려오면 알림 종으로. 사용자가 알림을 읽을 때 1시간에 한 번 확인(서버가 0대로 줄어도 동작)
+- **경매 찜** — ☆ 찜한 경매에 새 입찰이 들어오거나 마감 30분 전이면 알림, "내 경매"에 찜한 경매 묶음. 찜 개수는 공개하지 않음
 - **탐색 흐름 유지** — 상세에서 돌아오면 필터·페이지·스크롤 위치(모바일 "더 보기"로 쌓은 목록 포함) 복원
 - **반응형·접근성** — 6열 → 2열 그리드, 다크 모드, 키보드 조작, 스크린 리더 레이블, 강조색 글자·버튼 WCAG AA 대비, Lighthouse(모바일, 정식 주소) 접근성·권장사항·SEO 100점
 - **보안** — CSP·X-Frame-Options 등 보안 헤더, API 파라미터 화이트리스트와 길이·개수·중복 제한, 프로토타입 키(`constructor`, `__proto__`) 방어, 붙여넣은 덱 목록·공유 링크·저장소 값을 한 곳에서 검증. 로그인은 state·nonce·PKCE, `__Host-` 쿠키에 해시로 저장하는 세션, Origin 검사(CSRF), 사용자별 쓰기 제한, 컬럼 단위 최소 권한 DB 계정, 로그인 콜백 주소를 로그에서 제외
@@ -54,7 +57,7 @@
 | 모노레포 | npm workspaces — 웹(루트), `apps/api`, `packages/shared`(덱·닉네임 규칙을 웹과 서버가 함께 사용) |
 | DB | PostgreSQL ([Neon](https://neon.tech), `production`·`dev` 브랜치), Drizzle ORM·마이그레이션, 용도별 최소 권한 계정(시세 `app_rw` · 계정 `api_rw` · 수집 `collector_rw`(삭제 권한 없음, 연결 8개), 서로의 스키마 접근 불가) |
 | 시세·환율 | [TCGdex](https://tcgdex.dev) (TCGplayer·Cardmarket 시세, 일본판 카드), [Frankfurter](https://frankfurter.dev) (ECB 환율), [Pokemon Price Tracker](https://www.pokemonpricetracker.com) (PSA 등급 판매가, 무료 플랜 하루 45장) |
-| 테스트 | Vitest 웹 191개 + API 86개 (경매 라우트·알림, 시세 규칙·순위·수집 순서·실패 라벨·PSA 응답 검증, 덱 구성 통계, 로그인 흐름·세션·id_token 검증, 덱·관심 카드 API, 하트 연타 순서) + GitHub Actions CI |
+| 테스트 | Vitest 웹 206개 + API 93개 (가격 알림·찜·서버 간 시세 조회 응답 검사, 경매 라우트·알림, 시세 규칙·순위·수집 순서·실패 라벨·PSA 응답 검증, 덱 구성 통계, 로그인 흐름·세션·id_token 검증, 덱·관심 카드 API, 하트 연타 순서) + GitHub Actions CI |
 | 데이터 | 자체 보유 카드 데이터([pokemon-tcg-data](https://github.com/PokemonTCG/pokemon-tcg-data)) + 공식 한국어 포켓몬·아이템·장소 이름([PokéAPI](https://github.com/PokeAPI/pokeapi)) + 공식 카드 검색과 대조한 이름 사전 + 자체 번역(비공식 표시) |
 | 덱 저장 | 로그아웃: 브라우저 localStorage, 로그인: 계정(PostgreSQL, 버전 번호로 동시 수정 감지), 공유는 URL 쿼리 |
 | 이미지 | 자체 변환 WebP, GitHub Pages 호스팅 |
@@ -222,7 +225,10 @@ node scripts/build-images.mjs <출력 폴더>   # 카드 이미지 WebP 생성 (
 | `GET /api/v1/me/points`, `/me/points/entries`, `POST /me/points/daily` | 포인트 잔액·내역·출석 ([설계](docs/auction/design.md)) |
 | `GET /api/v1/packs`, `POST /api/v1/me/packs`, `/me/collection` | 카드팩 목록·확률, 팩 열기, 내 컬렉션 ([확률](docs/auction/packs.md)) |
 | `GET /api/v1/auctions`, `/auctions/:id` (ETag, 2초 캐시), `POST /api/v1/me/auctions`, `/me/auctions/:id/bids`, `/cancel` | 경매 목록·상세, 등록·입찰·취소 |
-| `GET /api/v1/me/notifications`, `POST /me/notifications/read` | 경매 알림, 모두 읽음 |
+| `GET /api/v1/me/notifications`, `POST /me/notifications/read` | 알림(경매·가격·찜), 모두 읽음 — 읽을 때 본인의 가격 알림·찜 알림을 계산 |
+| `GET /api/prices/packs`, `GET /api/prices/batch?ids=a,b` | 카드팩 카드 전체 / 정렬된 카드 1~50장의 원화 대표 시세 (다른 파라미터·정렬 안 된 id는 400) |
+| `GET·PUT·DELETE /api/v1/me/price-alerts[/:cardId]` | 가격 알림 ([설계](docs/price/alerts.md)) |
+| `PUT·DELETE /api/v1/me/auctions/:id/watch` | 경매 찜 |
 
 ## 폴더 구조
 
@@ -276,6 +282,8 @@ src/
 - [x] v1.4.0 덱에 담기·덱 구성, PSA 등급 시세(M5.3)
 - [ ] 시세 확장 — 트레이너스 카드 일본판 연결, 한글판 낙찰가·사용자 제보
 - [x] v1.5.0 가상 포인트 경매 (M7) — 포인트 장부, 카드팩·컬렉션, 경매(동시 입찰·연장·정산), 알림
+- [x] v1.6.0 컬렉션 가치·가격 알림·경매 찜 (M8)
+- [ ] M8 나머지 — 신고·관리자 화면, 거래자 평가(닉네임 정책 먼저)
 - [ ] 새 세트 데이터 추가 (원본 데이터 저장소가 2026-09 이후 갱신되지 않음)
 
 ## 출처
