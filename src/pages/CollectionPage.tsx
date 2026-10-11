@@ -118,7 +118,7 @@ export default function CollectionPage() {
           : `영문판 TCGplayer 시세(원화)로 계산한 참고값이에요${value ? ` · 시세 있는 ${value.priced}종 기준${value.unpriced ? `, ${value.unpriced}종은 시세 없음` : ''}` : ''} · 포인트와는 무관해요`}
       </p>
 
-      {signedIn && (
+      {session.status !== 'out' && (
         <section className={styles.top} aria-labelledby="top-title">
           <h2 id="top-title">
             가장 비싼 카드 <small>장당 시세</small>
