@@ -211,6 +211,8 @@ node scripts/build-images.mjs <출력 폴더>   # 카드 이미지 WebP 생성 (
 
 ## API
 
+이 사이트가 쓰는 엔드포인트 목록입니다(개발 참고용). **시세 관련 응답은 화면 표시용이며 외부에 공개 API로 제공하지 않습니다** — 출처 약관(Pokemon Price Tracker 등)에 따라 재배포·대체 데이터 소스로 쓸 수 없습니다.
+
 | 요청 | 설명 |
 |---|---|
 | `GET /api/cards?name=&type=&set=&rarity=&supertype=&format=&sort=&page=&pageSize=` | 검색 (`sort`: newest, oldest, name, number / `supertype`: Pokémon, Trainer, Energy / `format`: standard, expanded / `pageSize` 최대 250) |

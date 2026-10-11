@@ -14,10 +14,11 @@ A Korean/English Pokémon TCG card database with KRW price history (TCGplayer, C
 
 ## Public data API
 
+시세 응답은 이 사이트 화면용이며 공개 API로 제공하지 않습니다. (Price data is for this site's pages only and is not offered as a public API.)
+
+
 - [카드 검색](https://pokemon-card-dex-green.vercel.app/api/cards?name=리자몽): `GET /api/cards?name=&type=&set=&rarity=&sort=&page=&pageSize=`
 - [카드 상세](https://pokemon-card-dex-green.vercel.app/api/cards/sv4pt5-54): `GET /api/cards/:id`
-- [카드 시세](https://pokemon-card-dex-green.vercel.app/api/cards/sv4pt5-54/prices?range=30d): `GET /api/cards/:id/prices?range=30d|90d` (원화 환산, 이력)
-- [시세 순위](https://pokemon-card-dex-green.vercel.app/api/prices/top?edition=en): `GET /api/prices/top?edition=en|ja|psa10`
 
 ## Optional
 
