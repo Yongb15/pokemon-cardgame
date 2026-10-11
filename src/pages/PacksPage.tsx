@@ -309,10 +309,11 @@ export default function PacksPage() {
           ))}
         </ul>
       )}
-      {below && result}
       <p className={styles.small}>
         포인트와 카드는 현금 가치가 없고, 사거나 바꿀 수 없어요. {pack ? `방금 연 세트: ${setName(pack.pack.setId)}` : ''}
       </p>
+      {/* Last of all: a recovered pack arriving after load pushes nothing on screen down (qa v1.6.0 L-3) */}
+      {below && result}
     </main>
   )
 }

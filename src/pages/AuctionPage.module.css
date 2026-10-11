@@ -122,6 +122,12 @@
   background: var(--surface);
 }
 
+/* The sign-in link's height while the session check runs (qa v1.6.0 L-1) */
+.formSlot {
+  display: block;
+  height: 42px;
+}
+
 .boxSkeleton {
   height: 210px;
   border-radius: 10px;

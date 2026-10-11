@@ -322,6 +322,10 @@ export default function AuctionPage() {
                       <p className={styles.small}>입찰이 있어 취소할 수 없어요.</p>
                     )}
                   </div>
+                ) : session.status === 'unknown' ? (
+                  // Not the bid form yet: drawn for a moment and then swapped for the sign-in link, it
+                  // moved the page for signed-out visitors (qa v1.6.0 L-1). The link's size until we know
+                  <span className={styles.formSlot} aria-hidden="true" />
                 ) : session.status === 'out' ? (
                   <Link className={styles.primary} to={`/login?${new URLSearchParams({ next: `/auctions/${id}` })}`}>
                     로그인하고 입찰하기
