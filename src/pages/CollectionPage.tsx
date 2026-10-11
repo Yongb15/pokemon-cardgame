@@ -64,8 +64,9 @@ export default function CollectionPage() {
   const current = list?.key === key ? list : null
   const priceMap = prices && prices !== 'error' ? prices : null
   const value = summary && priceMap ? collectionValue(summary.owned, priceMap) : null
-  // Rows the "priciest" block will have, known before the prices arrive: it keeps its height (CLS)
-  const topRows = summary ? Math.min(5, summary.owned.length) : 0
+  // The "priciest" block's rows: five while loading (a pack alone gives five cards), then what the
+  // summary says, then the priced ones. Reserved from the first paint so nothing below moves (CLS)
+  const topRows = value ? Math.min(5, value.top.length) : summary ? Math.min(5, summary.owned.length) : signedIn ? 5 : 0
   const { info } = useCardInfo([...(current?.cards.map((c) => c.cardId) ?? []), ...(value?.top.map((t) => t.cardId) ?? [])])
 
   if (session.status === 'out') return <Navigate to="/login?next=%2Fcollection" replace />
