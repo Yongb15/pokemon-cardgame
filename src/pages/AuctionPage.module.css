@@ -122,6 +122,16 @@
   background: var(--surface);
 }
 
+/* "이 경매 신고": a quiet text button in the footnote */
+.reportLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  text-decoration: underline;
+}
+
 /* The sign-in link's height while the session check runs (qa v1.6.0 L-1) */
 .formSlot {
   display: block;

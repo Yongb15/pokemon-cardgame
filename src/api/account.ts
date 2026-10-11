@@ -239,6 +239,37 @@ export const getMarket = (sort: 'ending' | 'new' | 'price', page = 0) =>
 export const getAuction = (id: string, signal?: AbortSignal) => accountFetch<AuctionState>(`/auctions/${encodeURIComponent(id)}`, { signal })
 export const getMyAuction = (id: string) => accountFetch<{ mine: AuctionMine; serverNow: string }>(`/me/auctions/${encodeURIComponent(id)}`)
 export const getMyAuctions = () => accountFetch<{ selling: MarketItem[]; bidding: MarketItem[]; watching: MarketItem[] }>('/me/auctions')
+// --- Reports and moderation (docs/auction/moderation.md) ---------------------------------------------
+export type ReportReason = 'price_manipulation' | 'rmt' | 'wrong_item' | 'other'
+export const reportAuction = (id: string, reason: ReportReason, note?: string) =>
+  accountFetch<{ result: 'ok' }>(`/me/auctions/${encodeURIComponent(id)}/report`, { method: 'POST', body: { reason, ...(note && { note }) } })
+export interface ReportedAuction {
+  id: string
+  cardId: string
+  status: string
+  price: number
+  reports: number
+  reasons: Partial<Record<ReportReason, number>>
+  firstAt: string
+}
+export interface AdminAuction {
+  id: string
+  cardId: string
+  status: string
+  startPrice: number
+  topAmount: number | null
+  endsAt: string
+  bidCount: number
+  seller: { pseudonym: string | null }
+  bids: { alias: string; pseudonym: string | null; amount: number; at: string }[]
+  reports: { reporter: string; reason: ReportReason; note: string | null; status: string; at: string }[]
+  actions: { action: 'dismiss' | 'remove'; reason: string; at: string }[]
+}
+export const adminReports = () => accountFetch<{ auctions: ReportedAuction[] }>('/admin/reports')
+export const adminAuction = (id: string) => accountFetch<{ auction: AdminAuction }>(`/admin/auctions/${encodeURIComponent(id)}`)
+export const adminModerate = (id: string, action: 'dismiss' | 'remove', reason: string) =>
+  accountFetch<{ result: 'ok' }>(`/admin/auctions/${encodeURIComponent(id)}/${action}`, { method: 'POST', body: { reason } })
+
 export const watchAuction = (id: string) => accountFetch<void>(`/me/auctions/${encodeURIComponent(id)}/watch`, { method: 'PUT' })
 export const unwatchAuction = (id: string) => accountFetch<void>(`/me/auctions/${encodeURIComponent(id)}/watch`, { method: 'DELETE' })
 export const createAuction = (cardId: string, startPrice: number, duration: string, idemKey: string) =>
@@ -253,7 +284,7 @@ export const cancelAuction = (id: string) => accountFetch<{ result: 'ok' }>(`/me
 /** Auction notifications (docs/auction/design.md §7d): the newest 20 and how many are unread */
 export interface NotificationItem {
   id: string
-  kind: 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending'
+  kind: 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending' | 'removed'
   /** null for a price alert */
   auctionId: string | null
   cardId: string

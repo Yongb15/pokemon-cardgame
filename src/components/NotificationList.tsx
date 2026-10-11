@@ -43,6 +43,12 @@ function Text({ item, name }: { item: NotificationItem; name: string }) {
           <b>{name}</b> 찜한 경매에 새 입찰이 들어왔어요. 현재가 <b>{won(amount)}</b>
         </>
       )
+    case 'removed':
+      return (
+        <>
+          <b>{name}</b> 경매가 운영 정책에 따라 내려졌어요. 묶인 포인트와 카드는 돌아왔어요
+        </>
+      )
     case 'watch_ending':
       return (
         <>
