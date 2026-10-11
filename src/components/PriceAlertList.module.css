@@ -83,3 +83,9 @@
 .remove:hover {
   background: var(--surface-muted);
 }
+
+.empty {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}

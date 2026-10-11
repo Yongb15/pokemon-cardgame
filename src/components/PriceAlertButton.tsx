@@ -117,7 +117,7 @@ function AlertDialog({ cardId, name, target, onClose }: { cardId: string; name: 
         )}
         <p id="alert-help" className={invalid && text ? styles.warn : styles.small}>
           {invalid && text
-            ? '100원 이상, 100원 단위로 정해 주세요.'
+            ? '₩100~₩100,000,000 사이에서 100원 단위로 정해 주세요.'
             : '이 가격 이하가 되면 알림 종으로 알려 드려요. 하루 한 번 모으는 영문판 시세 기준이고, 한 번 울리면 꺼져요.'}
         </p>
         {error && (
