@@ -1,0 +1,26 @@
+# Pokémon Card Dex
+
+> 포켓몬 트레이딩 카드 게임(TCG) 카드 20,635장을 한국어·영어로 검색하고, 영문판·일본판·PSA 등급 시세를 원화로 보고, 60장 덱을 짜 볼 수 있는 비공식 팬 웹 도감입니다. 로그인하면 덱·관심 카드를 동기화하고, 현금 가치가 없는 가상 포인트로 카드팩을 열고 경매로 사고팔 수 있습니다.
+
+A Korean/English Pokémon TCG card database with KRW price history (TCGplayer, Cardmarket, PSA graded), a 60-card deck builder with format checks, and a virtual-points card pack and auction game. Unofficial fan project; not affiliated with Nintendo, Creatures or GAME FREAK. Prices are reference values only.
+
+## Pages
+
+- [카드 목록·검색](https://pokemon-card-dex-green.vercel.app/): 한국어·영어 이름, 타입·세트·희귀도 필터, 정렬
+- [시세 순위](https://pokemon-card-dex-green.vercel.app/prices): 지금 가장 비싼 카드 TOP 50 (영문판·일본판·PSA 10)
+- [덱 빌더](https://pokemon-card-dex-green.vercel.app/decks): 60장 덱, 규칙 검사, Pokémon TCG Live 형식 가져오기·내보내기
+- [경매](https://pokemon-card-dex-green.vercel.app/market): 가상 포인트 경매 (현금 거래 금지)
+- [카드 상세 예시](https://pokemon-card-dex-green.vercel.app/cards/sv4pt5-54): 기술·특성, 대회 사용 가능 여부, 판본별 시세 그래프
+
+## Public data API
+
+- [카드 검색](https://pokemon-card-dex-green.vercel.app/api/cards?name=리자몽): `GET /api/cards?name=&type=&set=&rarity=&sort=&page=&pageSize=`
+- [카드 상세](https://pokemon-card-dex-green.vercel.app/api/cards/sv4pt5-54): `GET /api/cards/:id`
+- [카드 시세](https://pokemon-card-dex-green.vercel.app/api/cards/sv4pt5-54/prices?range=30d): `GET /api/cards/:id/prices?range=30d|90d` (원화 환산, 이력)
+- [시세 순위](https://pokemon-card-dex-green.vercel.app/api/prices/top?edition=en): `GET /api/prices/top?edition=en|ja|psa10`
+
+## Optional
+
+- [소스 코드 (GitHub)](https://github.com/Yongb15/pokemon-cardgame): React 19 + Vite, Vercel Functions, NestJS on Cloud Run, Neon PostgreSQL
+- [개인정보처리방침](https://pokemon-card-dex-green.vercel.app/privacy)
+- [이용약관](https://pokemon-card-dex-green.vercel.app/terms)
