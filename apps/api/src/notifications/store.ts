@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { Tx } from '../points/store.js'
 
-export type NotificationKind = 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending'
+export type NotificationKind = 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending' | 'removed'
 
 /** The newest this many come back; older ones stay but aren't listed */
 export const LIST_SIZE = 20

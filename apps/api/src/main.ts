@@ -5,6 +5,7 @@ import { loadConfig } from './config.js'
 import { DATA_PRIVILEGES, PgDataStore } from './data/store.js'
 import { connectDatabase } from './db/client.js'
 import { AUCTIONS_EXCESS, AUCTIONS_PRIVILEGES, PgAuctionsStore } from './auctions/store.js'
+import { MODERATION_EXCESS, MODERATION_PRIVILEGES, PgModerationStore } from './moderation/store.js'
 import { ALERTS_EXCESS, ALERTS_PRIVILEGES, PgAlertsStore } from './alerts/store.js'
 import { NOTIFICATIONS_EXCESS, NOTIFICATIONS_PRIVILEGES, PgNotificationsStore } from './notifications/store.js'
 import { PgPacksStore, PACKS_EXCESS, PACKS_PRIVILEGES } from './packs/store.js'
@@ -21,14 +22,15 @@ const packs = database ? new PgPacksStore(database.db) : null
 const auctions = database ? new PgAuctionsStore(database.db) : null
 const notifications = database ? new PgNotificationsStore(database.db) : null
 const alerts = database ? new PgAlertsStore(database.db) : null
+const moderation = database ? new PgModerationStore(database.db) : null
 
 if (store) {
-  const missing = await store.missingPrivileges([...REQUIRED_PRIVILEGES, ...DATA_PRIVILEGES, ...POINTS_PRIVILEGES, ...PACKS_PRIVILEGES, ...AUCTIONS_PRIVILEGES, ...NOTIFICATIONS_PRIVILEGES, ...ALERTS_PRIVILEGES])
+  const missing = await store.missingPrivileges([...REQUIRED_PRIVILEGES, ...DATA_PRIVILEGES, ...POINTS_PRIVILEGES, ...PACKS_PRIVILEGES, ...AUCTIONS_PRIVILEGES, ...NOTIFICATIONS_PRIVILEGES, ...ALERTS_PRIVILEGES, ...MODERATION_PRIVILEGES])
   if (missing.length) {
     console.error(`database grants don't match this code (missing: ${missing.join(', ')}); refusing to start`)
     process.exit(1)
   }
-  const excess = [...(await store.excessPrivileges()), ...(await store.grantedOf([...POINTS_EXCESS, ...PACKS_EXCESS, ...AUCTIONS_EXCESS, ...NOTIFICATIONS_EXCESS, ...ALERTS_EXCESS]))]
+  const excess = [...(await store.excessPrivileges()), ...(await store.grantedOf([...POINTS_EXCESS, ...PACKS_EXCESS, ...AUCTIONS_EXCESS, ...NOTIFICATIONS_EXCESS, ...ALERTS_EXCESS, ...MODERATION_EXCESS]))]
   if (excess.length) console.warn(`database grants wider than needed: ${excess.join(', ')}`)
 }
 
@@ -64,5 +66,15 @@ if (auctions) {
   setInterval(() => void settle(), 10 * 60 * 1000).unref()
 }
 
-const app = await createApp(config, { store, data, points, packs, auctions, notifications, alerts, testProvider })
+// Report notes go 90 days after the report is resolved (Security AD-3); daily is plenty
+if (moderation) {
+  const clear = () =>
+    moderation.clearOldNotes().catch((error: unknown) => {
+      console.warn('report note cleanup failed:', error instanceof Error ? error.name : 'unknown')
+    })
+  void clear()
+  setInterval(() => void clear(), 24 * 60 * 60 * 1000).unref()
+}
+
+const app = await createApp(config, { store, data, points, packs, auctions, notifications, alerts, moderation, testProvider })
 await app.listen(config.PORT, '0.0.0.0')

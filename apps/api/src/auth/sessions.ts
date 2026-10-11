@@ -14,6 +14,8 @@ const TOKEN = /^[A-Za-z0-9_-]{43}$/
 export interface CurrentUser {
   id: string
   nickname: string
+  /** When this session signed in (admin routes want a recent one: Security AD-1) */
+  signedInAt: Date
 }
 
 export class Sessions {
@@ -51,7 +53,7 @@ export class Sessions {
       await this.store.extendSession(sha256(token), expiresAt, now)
       setCookie(res, SESSION_COOKIE, token, (expiresAt.getTime() - now.getTime()) / 1000)
     }
-    return { id: session.userId, nickname: session.nickname }
+    return { id: session.userId, nickname: session.nickname, signedInAt: session.createdAt }
   }
 
   /** Sign out this browser: the session row goes, so the token is dead even if copied */

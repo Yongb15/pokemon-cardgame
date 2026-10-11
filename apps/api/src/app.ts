@@ -13,6 +13,8 @@ import type { NotificationsStore } from './notifications/store.js'
 import { PriceAlertsController } from './alerts/alerts.controller.js'
 import { batchPrices, type PriceFetch } from './alerts/prices.js'
 import type { AlertsStore } from './alerts/store.js'
+import { AdminController, ReportsController } from './moderation/moderation.controller.js'
+import { pseudonymizer, type ModerationStore } from './moderation/store.js'
 import { PacksCatalogController, PacksController, TestPacksController } from './packs/packs.controller.js'
 import type { PacksStore } from './packs/store.js'
 import { PointsController, TestDataController } from './points/points.controller.js'
@@ -46,6 +48,8 @@ class AppModule {
         MyAuctionsController,
         NotificationsController,
         PriceAlertsController,
+        ReportsController,
+        AdminController,
         // Test-only routes exist only with the test sign-in (Security T-1)
         ...(services.testProvider ? [TestAuthController, TestDataController, TestPacksController, TestAuctionsController] : []),
       ],
@@ -64,6 +68,7 @@ export interface Dependencies {
   alerts?: AlertsStore | null
   /** Tests swap the price lookup for a fake */
   prices?: PriceFetch | null
+  moderation?: ModerationStore | null
   testProvider?: TestProvider | null
   /** Tests swap the real providers' endpoints for local fakes */
   google?: Provider | null
@@ -94,6 +99,8 @@ export function buildServices(config: Config, deps: Dependencies = {}): Services
     notifications: store ? (deps.notifications ?? null) : null,
     alerts: store ? (deps.alerts ?? null) : null,
     prices: store && deps.alerts ? (deps.prices ?? batchPrices(config.PRICES_ORIGIN ?? config.PUBLIC_ORIGIN)) : null,
+    moderation: store ? (deps.moderation ?? null) : null,
+    pseudonym: pseudonymizer(config.ADMIN_PSEUDONYM_KEY ? Buffer.from(config.ADMIN_PSEUDONYM_KEY, 'base64url') : null),
     writeLimit: new RateLimiter(60, 60_000),
   }
 }
