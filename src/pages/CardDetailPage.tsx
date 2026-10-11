@@ -201,7 +201,7 @@ export default function CardDetailPage() {
               <CardRules card={card} />
               <BattleStats card={card} />
               <CardInfo card={card} />
-              <CardPrices key={card.id} cardId={card.id} />
+              <CardPrices key={card.id} cardId={card.id} cardName={card.nameKo ?? card.name} />
             </div>
           </div>
 

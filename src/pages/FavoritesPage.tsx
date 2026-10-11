@@ -4,6 +4,7 @@ import { getCardsBatch } from '../api/cards'
 import CardGrid from '../components/CardGrid'
 import CardTile from '../components/CardTile'
 import { HeartIcon } from '../components/HeartButton'
+import PriceAlertList from '../components/PriceAlertList'
 import { loadFavorites, toggleFavorite, useFavorites } from '../hooks/useFavorites'
 import { useSession } from '../hooks/useSession'
 import type { CardListItem } from '../types/card'
@@ -156,6 +157,8 @@ export default function FavoritesPage() {
           </CardGrid>
         </>
       )}
+      {/* Below everything: it arriving later moves nothing above it */}
+      <PriceAlertList />
     </main>
   )
 }

@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import type { NotificationItem } from '../api/account'
 import { useCardInfo } from '../hooks/useDecks'
 import { ago } from '../lib/notifications'
+import { wonKrw } from '../lib/collectionValue'
 import { won } from '../lib/points'
 import CardImg from './CardImg'
 import styles from './NotificationList.module.css'
@@ -36,6 +37,12 @@ function Text({ item, name }: { item: NotificationItem; name: string }) {
           <b>{name}</b> 경매가 입찰 없이 끝났어요. 카드는 컬렉션으로 돌아왔어요
         </>
       )
+    case 'price':
+      return (
+        <>
+          <b>{name}</b> 시세가 <b>{wonKrw(amount)}</b>이 됐어요 (목표 {wonKrw(item.target ?? 0)} 이하)
+        </>
+      )
   }
 }
 
@@ -57,7 +64,7 @@ export default function NotificationList({ items, onPick }: { items: Notificatio
         const card = info.get(item.cardId)
         return (
           <li key={item.id}>
-            <Link className={item.read ? styles.item : styles.itemNew} to={`/auctions/${item.auctionId}`} onClick={onPick}>
+            <Link className={item.read ? styles.item : styles.itemNew} to={item.auctionId ? `/auctions/${item.auctionId}` : `/cards/${encodeURIComponent(item.cardId)}`} onClick={onPick}>
               <span className={styles.thumb}>{card && <CardImg src={card.images.small} fallback={card.images.fallbackSmall} alt="" width={245} height={342} loading="lazy" />}</span>
               <span className={styles.body}>
                 <span className={styles.text}>

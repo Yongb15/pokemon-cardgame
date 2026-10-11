@@ -1,0 +1,85 @@
+.section {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.section h2 {
+  margin: 0 0 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.section h2 small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.section ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.section li {
+  padding: 8px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.section li:first-child {
+  border-top: 0;
+}
+
+.section li a {
+  overflow: hidden;
+  color: var(--text-h);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+.waiting,
+.fired {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.waiting {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+.fired {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.remove {
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 12px;
+}
+
+.remove:hover {
+  background: var(--surface-muted);
+}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getCardPrices } from '../../api/cards'
 import { useApiResource } from '../../hooks/useApiResource'
+import PriceAlertButton from '../PriceAlertButton'
 import CardPsa from './CardPsa'
 import type { CardPrices as Prices, EditionView, Price, PsaView } from '../../types/prices'
 import styles from './detail.module.css'
@@ -298,7 +299,7 @@ function Body({ data, edition, rangeDays }: { data: Prices; edition: Edition; ra
 }
 
 /** Prices by edition (docs/price/design.md §5). The box keeps one height in every state (qa: CLS). */
-export default function CardPrices({ cardId }: { cardId: string }) {
+export default function CardPrices({ cardId, cardName }: { cardId: string; cardName?: string }) {
   const [range, setRange] = useState<Range>('30d')
   const [chosen, setChosen] = useState<{ card: string; edition: Edition } | null>(null)
   const resource = useApiResource(`prices:${cardId}:${range}`, (signal) => getCardPrices(cardId, range, signal))
@@ -327,9 +328,13 @@ export default function CardPrices({ cardId }: { cardId: string }) {
   return (
     <>
       <section className={styles.section} aria-labelledby="price-heading">
-        <h2 id="price-heading" className={styles.sectionTitle} ref={heading} tabIndex={-1}>
-          시세 <span className={styles.sectionNote}>참고용 · 원화 환산</span>
-        </h2>
+        {/* The heading and the alert button share one row; the button has a same-size slot from the first paint */}
+        <div className={p.titleRow}>
+          <h2 id="price-heading" className={styles.sectionTitle} ref={heading} tabIndex={-1}>
+            시세 <span className={styles.sectionNote}>참고용 · 원화 환산</span>
+          </h2>
+          {cardName && <PriceAlertButton cardId={cardId} name={cardName} />}
+        </div>
         <div className={p.box} aria-busy={resource.status === 'loading' || undefined}>
           <div className={p.controls}>
             <div className={p.segments} role="group" aria-label="판본">
