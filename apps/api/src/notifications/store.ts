@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { Tx } from '../points/store.js'
 
-export type NotificationKind = 'outbid' | 'won' | 'sold' | 'unsold' | 'price'
+export type NotificationKind = 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending'
 
 /** The newest this many come back; older ones stay but aren't listed */
 export const LIST_SIZE = 20
@@ -25,7 +25,7 @@ export const NOTIFICATIONS_EXCESS: [string, string | null, string][] = [
 ]
 
 /** One per (user, auction, kind): being outbid again brings it back as unread with the new price */
-export async function notify(tx: Tx, userId: string, kind: Exclude<NotificationKind, 'price'>, auctionId: string, cardId: string, amount: number | null) {
+export async function notify(tx: Tx, userId: string, kind: 'outbid' | 'won' | 'sold' | 'unsold', auctionId: string, cardId: string, amount: number | null) {
   await tx.execute(sql`
     insert into account.notifications (user_id, kind, auction_id, card_id, amount)
     values (${userId}, ${kind}, ${auctionId}, ${cardId}, ${amount})

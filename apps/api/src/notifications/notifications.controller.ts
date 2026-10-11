@@ -30,6 +30,10 @@ export class NotificationsController extends UserRoutes {
     await this.services.auctions?.settleExpired(20, user.id)
     // Then this user's price alerts, at most once an hour, in their own transaction (Security PA-2)
     await checkAlerts(this.services, user.id)
+    // And their watched auctions: new bids, ending soon (§12, worked out here, never in a bid: W-1)
+    await this.services.auctions?.watchNotices(user.id).catch((error: unknown) => {
+      console.warn('watch notices failed:', error instanceof Error ? error.name : 'unknown')
+    })
     return this.notifications.list(user.id)
   }
 
