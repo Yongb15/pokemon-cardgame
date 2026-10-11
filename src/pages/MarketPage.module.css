@@ -18,9 +18,32 @@
   gap: 12px;
 }
 
+.headText {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
 .headActions {
   display: flex;
   gap: 8px;
+}
+
+/* Beside the title from 641px: two reserved lines of subtitle, so a font swap can't move the buttons or tabs (qa) */
+@media (min-width: 641px) {
+  .head {
+    flex-wrap: nowrap;
+  }
+
+  .headText .small {
+    min-height: 3em;
+    line-height: 1.5;
+  }
+}
+
+@media (min-width: 1001px) {
+  .headText .small {
+    min-height: 0;
+  }
 }
 
 .title {

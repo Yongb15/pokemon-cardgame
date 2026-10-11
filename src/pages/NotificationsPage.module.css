@@ -1,0 +1,35 @@
+.main {
+  width: 100%;
+  max-width: calc(640px + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 24px var(--gutter) 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  color: var(--text-h);
+}
+
+.box {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.note {
+  margin: 0;
+  padding: 24px 16px;
+  font-size: 14px;
+  color: var(--warn-text);
+  text-align: center;
+}
+
+.skeleton {
+  height: 240px;
+  background: var(--skeleton);
+}

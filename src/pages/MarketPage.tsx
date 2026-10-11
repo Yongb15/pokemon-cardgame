@@ -97,7 +97,7 @@ export default function MarketPage() {
   return (
     <main className={styles.main}>
       <div className={styles.head}>
-        <div>
+        <div className={styles.headText}>
           <h1 className={styles.title}>경매</h1>
           <p className={styles.small}>가상 카드를 포인트로 사고팔아요 · 포인트는 현금 가치가 없고, 사거나 바꿀 수 없어요</p>
         </div>

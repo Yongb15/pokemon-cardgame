@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import pg from 'pg'
 import { fee, PgAuctionsStore } from '../src/auctions/store.js'
+import { PgNotificationsStore } from '../src/notifications/store.js'
 import { PgPacksStore } from '../src/packs/store.js'
 import { PgPointsStore } from '../src/points/store.js'
 
@@ -23,6 +24,7 @@ if (!isDev) throw new Error('refusing: not the dev branch (no dev_marker)')
 const points = new PgPointsStore(db)
 const packs = new PgPacksStore(db)
 const auctions = new PgAuctionsStore(db)
+const notes = new PgNotificationsStore(db)
 const users: string[] = []
 let failures = 0
 const check = (label: string, ok: boolean, detail = '') => {
@@ -78,6 +80,11 @@ try {
     check('aliases per auction', state!.bids.map((x) => x.alias).join(',') === '입찰자 B,입찰자 B,입찰자 A', state!.bids.map((x) => x.alias).join(','))
     check('no user ids in the public state', !JSON.stringify(state).includes(seller) && !JSON.stringify(state).includes(b))
     await invariants('after bids')
+    // 7d: A was passed once (one row), B raising their own bid notified no one
+    const na = await notes.list(a)
+    check('outbid: one unread row for A at the new price', na.unread === 1 && na.items.length === 1 && na.items[0]!.kind === 'outbid' && na.items[0]!.amount === 1_500, JSON.stringify(na.items.map((x) => [x.kind, x.amount])))
+    check('outbid: nothing for B or the seller yet', (await notes.list(b)).items.length === 0 && (await notes.list(seller)).items.length === 0)
+    check('notification has no user ids', !JSON.stringify(na).includes(b) && !JSON.stringify(na).includes(seller))
     await db.execute(sql`update account.auctions set ends_at = now() - interval '1 second' where id = ${id}`)
     check('settled once', (await auctions.settleExpired(10, b)) === 1 && (await auctions.settleExpired(10, b)) === 0)
     const sum = await points.summary(seller)
@@ -85,6 +92,27 @@ try {
     const card = await db.execute<{ user_id: string; auction_id: string | null }>(sql`select o.user_id, o.auction_id from account.owned_cards o join account.auctions x on x.owned_card_id = o.id where x.id = ${id}`)
     check('card moved to the winner and freed', card.rows[0]!.user_id === b && card.rows[0]!.auction_id === null)
     await invariants('after settlement')
+    const nb = await notes.list(b)
+    const ns = await notes.list(seller)
+    check('won for B, sold for the seller', nb.items[0]?.kind === 'won' && nb.items[0]?.amount === 2_000 && ns.items[0]?.kind === 'sold' && ns.items[0]?.amount === 2_000)
+    check('mark read', (await notes.markRead(b)) === 1 && (await notes.list(b)).unread === 0 && (await notes.list(a)).unread === 1)
+    // Outbid again later on the same auction: the same row comes back unread (checked on a fresh auction)
+    const id2 = await listing(seller, 60, 100)
+    await auctions.bid(a, id2, 100, key('b'))
+    await auctions.bid(b, id2, 200, key('b'))
+    await notes.markRead(a)
+    await auctions.bid(a, id2, 300, key('b'))
+    await auctions.bid(b, id2, 400, key('b'))
+    const again = (await notes.list(a)).items.filter((x) => x.auctionId === id2)
+    check('outbid twice: one row, unread, latest price', again.length === 1 && !again[0]!.read && again[0]!.amount === 400)
+    await db.execute(sql`update account.auctions set status = 'cancelled', closed_at = now() where id = ${id2}`)
+    await db.execute(sql`update account.point_accounts set held = 0, version = version + 1 where user_id = ${b}`)
+    // Unsold: the seller hears, with no amount
+    const id3 = await listing(seller, 60, 100)
+    await db.execute(sql`update account.auctions set starts_at = now() - interval '2 seconds', ends_at = now() - interval '1 second' where id = ${id3}`)
+    await auctions.settleExpired(10, seller)
+    const unsold = (await notes.list(seller)).items.find((x) => x.auctionId === id3)
+    check('unsold for the seller, no amount', unsold?.kind === 'unsold' && unsold.amount === null)
   }
 
   // 2. Bid racing the lazy settlement at ends_at: one outcome, no deadlock
@@ -137,6 +165,7 @@ try {
 } finally {
   if (users.length) {
     // Owner cleanup of the throwaway data (api_rw never deletes these rows)
+    await db.execute(sql`delete from account.notifications where auction_id in (select id from account.auctions where seller_id = any(${`{${users.join(',')}}`}::uuid[]))`)
     await db.execute(sql`delete from account.bids where auction_id in (select id from account.auctions where seller_id = any(${`{${users.join(',')}}`}::uuid[]))`)
     await db.execute(sql`update account.owned_cards set auction_id = null where user_id = any(${`{${users.join(',')}}`}::uuid[])`)
     await db.execute(sql`delete from account.auctions where seller_id = any(${`{${users.join(',')}}`}::uuid[])`)

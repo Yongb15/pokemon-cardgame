@@ -11,6 +11,7 @@ import type { Request, Response } from 'express'
 import type { Config } from '../config.js'
 import type { UserDataStore } from '../data/store.js'
 import type { AuctionsStore } from '../auctions/store.js'
+import type { NotificationsStore } from '../notifications/store.js'
 import type { PacksStore } from '../packs/store.js'
 import type { PointsStore } from '../points/store.js'
 import type { RateLimiter } from './guards.js'
@@ -40,6 +41,7 @@ export interface Services {
   packs: PacksStore | null
   /** Auctions (M7 7c) */
   auctions: AuctionsStore | null
+  notifications: NotificationsStore | null
   /** Writes per signed-in user */
   writeLimit: RateLimiter
 }

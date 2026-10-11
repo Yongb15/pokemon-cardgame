@@ -333,3 +333,33 @@ export const bids = account.table(
     check('bids_idem_check', sql`idem_key ~ '^[A-Za-z0-9_-]{8,64}$'`),
   ],
 )
+
+/**
+ * Auction notifications for one user (docs/auction/design.md §7d): who was outbid, who won, the
+ * seller's sold / unsold. One row per (user, auction, kind): being outbid again updates it and makes it
+ * unread again. Rows hold no other user's id or name (A-3); they go with the account.
+ */
+export const notifications = account.table(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    kind: text('kind', { enum: ['outbid', 'won', 'sold', 'unsold'] }).notNull(),
+    auctionId: uuid('auction_id')
+      .notNull()
+      .references(() => auctions.id),
+    cardId: text('card_id').notNull(),
+    amount: bigint('amount', { mode: 'number' }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+    readAt: timestamp('read_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('notifications_once_idx').on(t.userId, t.auctionId, t.kind),
+    index('notifications_user_idx').on(t.userId, t.createdAt),
+    check('notifications_kind_check', sql`kind in ('outbid', 'won', 'sold', 'unsold')`),
+    check('notifications_amount_check', sql`amount is null or amount between 1 and 100000000`),
+    check('notifications_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
+  ],
+)

@@ -243,3 +243,16 @@ export const placeBid = (id: string, amount: number, idemKey: string) =>
     body: { amount, idemKey },
   })
 export const cancelAuction = (id: string) => accountFetch<{ result: 'ok' }>(`/me/auctions/${encodeURIComponent(id)}/cancel`, { method: 'POST' })
+
+/** Auction notifications (docs/auction/design.md §7d): the newest 20 and how many are unread */
+export interface NotificationItem {
+  id: string
+  kind: 'outbid' | 'won' | 'sold' | 'unsold'
+  auctionId: string
+  cardId: string
+  amount: number | null
+  at: string
+  read: boolean
+}
+export const getNotifications = () => accountFetch<{ unread: number; items: NotificationItem[] }>('/me/notifications')
+export const markNotificationsRead = () => accountFetch<{ unread: 0 }>('/me/notifications/read', { method: 'POST' })

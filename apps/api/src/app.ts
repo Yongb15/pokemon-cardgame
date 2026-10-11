@@ -8,6 +8,8 @@ import { originCheck, RateLimiter, requireSessionCookie } from './auth/guards.js
 import { DecksController, FavoritesController, MeController } from './data/data.controller.js'
 import { AuctionsPublicController, MyAuctionsController, TestAuctionsController } from './auctions/auctions.controller.js'
 import type { AuctionsStore } from './auctions/store.js'
+import { NotificationsController } from './notifications/notifications.controller.js'
+import type { NotificationsStore } from './notifications/store.js'
 import { PacksCatalogController, PacksController, TestPacksController } from './packs/packs.controller.js'
 import type { PacksStore } from './packs/store.js'
 import { PointsController, TestDataController } from './points/points.controller.js'
@@ -39,6 +41,7 @@ class AppModule {
         PacksController,
         AuctionsPublicController,
         MyAuctionsController,
+        NotificationsController,
         // Test-only routes exist only with the test sign-in (Security T-1)
         ...(services.testProvider ? [TestAuthController, TestDataController, TestPacksController, TestAuctionsController] : []),
       ],
@@ -53,6 +56,7 @@ export interface Dependencies {
   points?: PointsStore | null
   packs?: PacksStore | null
   auctions?: AuctionsStore | null
+  notifications?: NotificationsStore | null
   testProvider?: TestProvider | null
   /** Tests swap the real providers' endpoints for local fakes */
   google?: Provider | null
@@ -80,6 +84,7 @@ export function buildServices(config: Config, deps: Dependencies = {}): Services
     points: store ? (deps.points ?? null) : null,
     packs: store ? (deps.packs ?? null) : null,
     auctions: store ? (deps.auctions ?? null) : null,
+    notifications: store ? (deps.notifications ?? null) : null,
     writeLimit: new RateLimiter(60, 60_000),
   }
 }

@@ -1,6 +1,6 @@
 # Pokémon Card Dex
 
-포켓몬 트레이딩 카드 게임(TCG)의 카드 **20,635장**을 한국어·영어로 검색하고, 시세를 보고, 60장 덱을 짜 볼 수 있는 웹 카드 도감입니다. 구글·카카오로 로그인하면 덱과 관심 카드를 어느 기기에서나 씁니다.
+포켓몬 트레이딩 카드 게임(TCG)의 카드 **20,635장**을 한국어·영어로 검색하고, 시세를 보고, 60장 덱을 짜 볼 수 있는 웹 카드 도감입니다. 구글·카카오로 로그인하면 덱과 관심 카드를 어느 기기에서나 쓰고, 가상 포인트로 카드팩을 열어 모은 카드를 다른 사용자와 경매로 사고팝니다.
 
 **🔗 https://pokemon-card-dex-green.vercel.app**  ·  개발 버전(develop): [pokemon-card-dex-git-develop-dydqls-projects.vercel.app](https://pokemon-card-dex-git-develop-dydqls-projects.vercel.app)
 
@@ -37,6 +37,8 @@
 - **로그인·계정** — 구글·카카오 로그인(OIDC, 사용자 고유번호만 저장, 이메일·프로필 없음), 마이페이지(닉네임, 모든 기기에서 로그아웃, 닉네임 입력으로 확인하는 탈퇴), 개인정보처리방침·이용약관
 - **관심 카드** — 카드 상세의 하트(누르는 즉시 반영, 실패하면 되돌림, 연타해도 마지막 상태로 저장), 관심 카드 페이지, 로그인 전에 누른 하트는 로그인 뒤 자동 저장
 - **덱 동기화** — 로그인하면 계정에 저장(최대 100개), 브라우저 덱을 계정으로 가져오기(같은 덱은 한 번만), 0.8초 뒤 자동 저장과 저장 상태 표시, 다른 기기에서 먼저 바꾸면 덮어쓰지 않고 "최신 불러오기 / 내 변경을 사본으로" 선택
+- **가상 포인트·카드팩·경매** — 현금 가치 없는 포인트(가입 10,000P, 매일 출석 500P, 경매 판매)와 포인트 내역. 최신 6개 세트 카드팩(희귀 슬롯 확률 공개, 10만 분율 정수), 내 컬렉션. 내 카드를 경매에 올리고(1·24·72시간, 시작가 100P 단위) 입찰, 마감 2분 전 입찰이면 2분 연장(최대 10번), 낙찰 시 포인트·카드 이동과 수수료 5%. 판매자·입찰자는 경매마다 "판매자", "입찰자 A/B"로만 표시(닉네임·사용자 id 없음)
+- **경매 알림** — 다른 사람이 더 높게 입찰했을 때, 낙찰·판매·유찰됐을 때. 데스크톱은 헤더의 종(안 읽은 수), 모바일은 계정 메뉴와 알림 페이지. 보이는 탭에서만 1분마다 확인
 - **탐색 흐름 유지** — 상세에서 돌아오면 필터·페이지·스크롤 위치(모바일 "더 보기"로 쌓은 목록 포함) 복원
 - **반응형·접근성** — 6열 → 2열 그리드, 다크 모드, 키보드 조작, 스크린 리더 레이블, 강조색 글자·버튼 WCAG AA 대비, Lighthouse(모바일, 정식 주소) 접근성·권장사항·SEO 100점
 - **보안** — CSP·X-Frame-Options 등 보안 헤더, API 파라미터 화이트리스트와 길이·개수·중복 제한, 프로토타입 키(`constructor`, `__proto__`) 방어, 붙여넣은 덱 목록·공유 링크·저장소 값을 한 곳에서 검증. 로그인은 state·nonce·PKCE, `__Host-` 쿠키에 해시로 저장하는 세션, Origin 검사(CSRF), 사용자별 쓰기 제한, 컬럼 단위 최소 권한 DB 계정, 로그인 콜백 주소를 로그에서 제외
@@ -131,6 +133,11 @@ TCGplayer·Cardmarket 공식 API는 신규 발급이 막혔고, 쓰던 API는 20
 → 로그에는 주소·메시지를 남기지 않는다는 원칙(Security)을 지키면서, **오류 이름 + 상수 코드만** 남기는 라벨(`DbError 57014`, `NeonDbError HTTP 500 53300`, `source HTTP 429`)을 만들었습니다. 공용 러너 IP는 시세 API의 요청 제한도 함께 받아서, 수집기를 **Cloud Run Job**(DB와 같은 동남아 지역, 전용 이미지·전용 계정)으로 옮겼습니다.
 → 옮긴 뒤 첫 실행도 2,740장 중 1,459장이 실패했는데, 새 라벨로 `HTTP 500`까지 좁힌 뒤 응답 본문을 **로컬에서만 가려서** 확인해 `too many connections for role`(53300)을 찾았습니다. Neon의 HTTP 프록시가 노드마다 연결을 5분씩 잡고 있어 전용 계정의 연결 한도 5개를 채운 것이었습니다. 접속 주소를 **풀러(PgBouncer)**로 바꾸고 한도를 8로 올려 이후 887장 연속 실패 0건(최대 연결 4개)입니다.
 
+### 12. 동시에 들어오는 입찰과 마감 정산
+경매는 같은 순간에 여러 사람이 입찰하고, 마감 시각에는 입찰·정산·탈퇴가 겹칩니다. 포인트가 두 번 빠지거나, 이미 끝난 경매에 입찰이 들어가거나, 교착(deadlock)이 나면 안 됩니다.
+→ 포인트는 **추가만 하는 장부**(`point_entries`)와 잔액·묶인 금액(`point_accounts`, CHECK로 음수 금지)으로 나누고, 모든 쓰기에 멱등 키를 둬 같은 요청을 두 번 보내도 한 번만 반영됩니다. 모든 경로가 **같은 잠금 순서**(경매 행 → 포인트 계정(id 순) → 카드 → 알림)를 지키고, "끝났나"는 항상 DB 시각(`now()`)으로 판단합니다. 정산은 경매 하나당 트랜잭션 하나, 백그라운드 정산은 입찰이 잡고 있는 경매를 `SKIP LOCKED`로 건너뜁니다. 탈퇴는 자기 포인트 계정을 먼저 잠그고 "진행 중 경매의 판매자·최고 입찰자가 아님"을 확인해, 최고 입찰자인 채로 탈퇴하는 경우가 끼어들 수 없습니다.
+→ 실제 Postgres에서 **경매 2개에 겹치는 입찰자 50명 동시 입찰 → 교착 0건**, 마감 순간 입찰 + 정산 동시 → 결과 하나, 장부 합계 = 잔액 불변식을 매번 점검합니다(`apps/api/scripts/db-check-auctions.ts`). 화면은 엣지 캐시(2초)에 ETag를 붙인 폴링이라 보는 사람이 늘어도 DB 읽기는 경매당 2초에 한 번입니다.
+
 ## 개발 방식
 
 [Claude Code](https://claude.com/claude-code) 세션 세 개로 역할을 나눠 개발했습니다. qa와 Security는 코드를 수정하지 않고, 찾은 문제를 code 세션에 리포트합니다.
@@ -184,12 +191,17 @@ node scripts/build-images.mjs <출력 폴더>   # 카드 이미지 WebP 생성 (
 | `GET /api/cron/prices` | 매일 시세 수집 (Vercel Cron 전용, `Authorization: Bearer $CRON_SECRET`) |
 | `/api/v1/auth/{google\|kakao}/start`, `/callback`, `POST /api/v1/auth/logout`, `GET /api/v1/me` | 로그인·세션 (Cloud Run, [설계](docs/auth/design.md)) |
 | `/api/v1/decks` (CRUD, `/import`), `/api/v1/favorites/:cardId`, `PATCH·DELETE /api/v1/me`, `/api/v1/me/logout-all` | 계정 덱·관심 카드·계정 관리 (로그인 필요, 쓰기는 Origin 검사·사용자별 분당 60회) |
+| `GET /api/v1/me/points`, `/me/points/entries`, `POST /me/points/daily` | 포인트 잔액·내역·출석 ([설계](docs/auction/design.md)) |
+| `GET /api/v1/packs`, `POST /api/v1/me/packs`, `/me/collection` | 카드팩 목록·확률, 팩 열기, 내 컬렉션 ([확률](docs/auction/packs.md)) |
+| `GET /api/v1/auctions`, `/auctions/:id` (ETag, 2초 캐시), `POST /api/v1/me/auctions`, `/me/auctions/:id/bids`, `/cancel` | 경매 목록·상세, 등록·입찰·취소 |
+| `GET /api/v1/me/notifications`, `POST /me/notifications/read` | 경매 알림, 모두 읽음 |
 
 ## 폴더 구조
 
 ```
 api/                 Vercel Function 진입점 (cards.ts, prices.ts, price-top.ts, cron/prices.ts)
-apps/api/            계정 API 서버 (NestJS): auth(OIDC·세션·가드) · data(덱·관심 카드·계정) · db(스키마)
+apps/api/            계정 API 서버 (NestJS): auth(OIDC·세션·가드) · data(덱·관심 카드·계정) · points(장부) ·
+                     packs(카드팩·컬렉션) · auctions(경매·정산) · notifications(알림) · db(스키마)
 packages/shared/     웹과 서버가 함께 쓰는 덱·닉네임 규칙
 middleware.ts        /api/v1 → Cloud Run 프록시 (비밀 헤더)
 infra/               요금 차단 장치(billing-guard), 로그 제외 설정 기록, 시세 수집기 이미지·구성 기록(collector)
@@ -200,6 +212,7 @@ db/migrations/       SQL 마이그레이션 (앱 계정 권한 포함)
 docs/adr/            설계 결정 기록 (시세 출처, DB, 로그인·배포, 세션)
 docs/price/          시세 설계 문서
 docs/auth/           로그인·계정 설계 (qa·Security 검토 반영)
+docs/auction/        포인트·카드팩·경매·알림 설계
 docs/release/        출시 체크리스트
 scripts/             build-data.mjs(카드 데이터·한국어 이름·포맷), build-images.mjs(이미지),
                      trainer-names-ko.json(트레이너스 이름 사전), card-names-ko.json(공식 확인 이름·비공식 번역),
@@ -234,7 +247,7 @@ src/
 - [ ] 시세가 2주 쌓이면: 시세 탭을 전체 카드 기준으로, 7일 상승·하락 순위, 180일 지난 이력 압축
 - [x] v1.4.0 덱에 담기·덱 구성, PSA 등급 시세(M5.3)
 - [ ] 시세 확장 — 트레이너스 카드 일본판 연결, 한글판 낙찰가·사용자 제보
-- [ ] 가상 포인트 경매 — 실시간 입찰, 포인트 장부, 동시 입찰 처리
+- [x] v1.5.0 가상 포인트 경매 (M7) — 포인트 장부, 카드팩·컬렉션, 경매(동시 입찰·연장·정산), 알림
 - [ ] 새 세트 데이터 추가 (원본 데이터 저장소가 2026-09 이후 갱신되지 않음)
 
 ## 출처

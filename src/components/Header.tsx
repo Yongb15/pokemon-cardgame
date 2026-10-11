@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router'
 import AccountMenu from './AccountMenu'
+import NotificationBell from './NotificationBell'
 import PointsBar, { PointsNotice } from './PointsBar'
 import styles from './Header.module.css'
 
@@ -46,6 +47,7 @@ export default function Header() {
         </nav>
         <div className={styles.right}>
           <PointsBar />
+          <NotificationBell />
           <AccountMenu />
         </div>
       </div>
