@@ -39,9 +39,12 @@ function fakeStore(calls: string[]): AuctionsStore {
     bid: async (_u, _id, amount) => (calls.push(`bid ${amount}`), { kind: 'ok', version: 4 }),
     cancel: async () => 'has_bids',
     get: async (id) => (id === AID ? state : null),
-    mine: async () => ({ isSeller: false, isTop: true, myAlias: '입찰자 A', held: 100 }),
+    mine: async () => ({ isSeller: false, isTop: true, myAlias: '입찰자 A', held: 100, watching: false }),
     market: async () => ({ items: [{ id: AID, cardId: 'me5-1', price: 100, hasBids: true, bidCount: 1, endsAt: state.endsAt, status: 'open' }], more: false }),
-    myAuctions: async () => ({ selling: [], bidding: [] }),
+    myAuctions: async () => ({ selling: [], bidding: [], watching: [] }),
+    watch: async (_u, id) => (calls.push('watch'), id === AID ? 'ok' : 'not_found'),
+    unwatch: async () => void calls.push('unwatch'),
+    watchNotices: async () => (calls.push('watch-notices'), 0),
     settleExpired: async () => (calls.push('settle'), 0),
     leave: async () => ({ kind: 'blocked', auctions: [AID] }),
     endsIn: async () => (calls.push('ends-in'), true),
@@ -50,7 +53,7 @@ function fakeStore(calls: string[]): AuctionsStore {
 
 function fakeNotifications(calls: string[]): NotificationsStore {
   return {
-    list: async () => (calls.push('notes'), { unread: 1, items: [{ id: AID, kind: 'outbid', auctionId: AID, cardId: 'me5-1', amount: 300, at: new Date().toISOString(), read: false }] }),
+    list: async () => (calls.push('notes'), { unread: 1, items: [{ id: AID, kind: 'outbid', auctionId: AID, cardId: 'me5-1', amount: 300, target: null, at: new Date().toISOString(), read: false }] }),
     markRead: async () => (calls.push('read'), 1),
   }
 }
@@ -149,7 +152,7 @@ describe('auction routes (preview)', () => {
     const list = await t.call('/api/v1/me/notifications', { session })
     expect(list.status).toBe(200)
     expect(list.headers.get('cache-control')).toBe('no-store')
-    expect(calls).toEqual(['settle', 'notes'])
+    expect(calls).toEqual(['settle', 'watch-notices', 'notes'])
     expect(list.body.unread).toBe(1)
     expect((await t.call('/api/v1/me/notifications?x=1', { session })).status).toBe(400)
     const read = await t.call('/api/v1/me/notifications/read', { method: 'POST', session })
@@ -157,6 +160,17 @@ describe('auction routes (preview)', () => {
     expect(read.body).toEqual({ unread: 0 })
     expect((await t.call('/api/v1/me/notifications/read', { method: 'POST', session, body: { x: 1 } })).status).toBe(400)
     expect((await t.call('/api/v1/me/notifications/read', { method: 'POST', session, body: {} })).status).toBe(200)
+  })
+
+  it('watch: own setting, writes only, unknown ids 404', async () => {
+    const session = await t.signIn('watcher')
+    expect((await t.call(`/api/v1/me/auctions/${AID}/watch`, { method: 'PUT' })).status).toBe(401)
+    expect((await t.call(`/api/v1/me/auctions/${AID}/watch`, { method: 'PUT', session })).status).toBe(204)
+    expect((await t.call('/api/v1/me/auctions/22222222-2222-4222-8222-222222222222/watch', { method: 'PUT', session })).status).toBe(404)
+    expect((await t.call('/api/v1/me/auctions/not-a-uuid/watch', { method: 'PUT', session })).status).toBe(404)
+    expect((await t.call(`/api/v1/me/auctions/${AID}/watch`, { method: 'DELETE', session })).status).toBe(204)
+    const pub = await t.call(`/api/v1/auctions/${AID}`)
+    expect(JSON.stringify(pub.body)).not.toMatch(/watch/i)
   })
 
   it('test hooks: test accounts only', async () => {

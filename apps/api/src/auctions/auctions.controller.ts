@@ -8,9 +8,10 @@
 //   POST /api/v1/me/auctions { cardId, startPrice, duration, idemKey }   → { auctionId }
 //   POST /api/v1/me/auctions/:id/bids { amount, idemKey }               → { result, state, mine, serverNow }
 //   POST /api/v1/me/auctions/:id/cancel                                 → { result }
+//   PUT|DELETE /api/v1/me/auctions/:id/watch                            → 204 (§12: 404 unknown, 409 not open, 422 over 100)
 // Preview only, test accounts only: POST /api/v1/test/auctions/:id/ends-in { seconds }, POST /api/v1/test/auctions/settle
 
-import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query, Req, Res } from '@nestjs/common'
+import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Put, Query, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
 import { z } from 'zod'
 import { SERVICES, type Services } from '../auth/auth.controller.js'
@@ -18,7 +19,7 @@ import { RateLimiter } from '../auth/guards.js'
 import { UserRoutes } from '../data/data.controller.js'
 import { PublicError } from '../errors.js'
 import { PACK_SETS } from '../packs/odds.js'
-import { DURATIONS, MAX_PRICE, MIN_START, MIN_STEP, TEST_DURATIONS } from './store.js'
+import { DURATIONS, MAX_PRICE, MAX_WATCHES, MIN_START, MIN_STEP, TEST_DURATIONS } from './store.js'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const IDEM = /^[A-Za-z0-9_-]{8,64}$/
@@ -164,6 +165,24 @@ export class MyAuctionsController extends AuctionRoutes {
     if (result === 'has_bids') throw new PublicError('입찰이 있어 취소할 수 없어요.', 409)
     if (result === 'closed') throw new PublicError('이미 끝난 경매예요.', 409)
     return { result }
+  }
+
+  /** Watch: the user's own setting, counted under a lock; the count is never public (Security W-2, W-3) */
+  @Put(':id/watch')
+  @HttpCode(204)
+  async watch(@Param('id') raw: string, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const user = await this.writer(req, res)
+    const result = await this.auctions.watch(user.id, this.id(raw))
+    if (result === 'not_found') throw notFound()
+    if (result === 'closed') throw new PublicError('이미 끝난 경매예요.', 409)
+    if (result === 'limit') throw new PublicError(`찜은 ${MAX_WATCHES}개까지 할 수 있어요.`, 422)
+  }
+
+  @Delete(':id/watch')
+  @HttpCode(204)
+  async unwatch(@Param('id') raw: string, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const user = await this.writer(req, res)
+    await this.auctions.unwatch(user.id, this.id(raw))
   }
 }
 

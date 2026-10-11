@@ -174,6 +174,8 @@ export interface CollectionSummary {
   cards: number
   distinct: number
   sets: { id: string; owned: number; total: number }[]
+  /** Copies per card (test copies excluded) */
+  owned: { cardId: string; count: number }[]
 }
 
 export const getPackCatalog = () => accountFetch<PackCatalog>('/packs')
@@ -211,6 +213,8 @@ export interface AuctionMine {
   isTop: boolean
   myAlias: string | null
   held: number
+  /** I watch it (only ever shown to me) */
+  watching: boolean
 }
 
 export interface MarketItem {
@@ -234,7 +238,9 @@ export const getMarket = (sort: 'ending' | 'new' | 'price', page = 0) =>
 /** The public, briefly cached state (not for setting the clock: qa) */
 export const getAuction = (id: string, signal?: AbortSignal) => accountFetch<AuctionState>(`/auctions/${encodeURIComponent(id)}`, { signal })
 export const getMyAuction = (id: string) => accountFetch<{ mine: AuctionMine; serverNow: string }>(`/me/auctions/${encodeURIComponent(id)}`)
-export const getMyAuctions = () => accountFetch<{ selling: MarketItem[]; bidding: MarketItem[] }>('/me/auctions')
+export const getMyAuctions = () => accountFetch<{ selling: MarketItem[]; bidding: MarketItem[]; watching: MarketItem[] }>('/me/auctions')
+export const watchAuction = (id: string) => accountFetch<void>(`/me/auctions/${encodeURIComponent(id)}/watch`, { method: 'PUT' })
+export const unwatchAuction = (id: string) => accountFetch<void>(`/me/auctions/${encodeURIComponent(id)}/watch`, { method: 'DELETE' })
 export const createAuction = (cardId: string, startPrice: number, duration: string, idemKey: string) =>
   accountFetch<{ auctionId: string }>('/me/auctions', { method: 'POST', body: { cardId, startPrice, duration, idemKey } })
 export const placeBid = (id: string, amount: number, idemKey: string) =>
@@ -247,12 +253,27 @@ export const cancelAuction = (id: string) => accountFetch<{ result: 'ok' }>(`/me
 /** Auction notifications (docs/auction/design.md §7d): the newest 20 and how many are unread */
 export interface NotificationItem {
   id: string
-  kind: 'outbid' | 'won' | 'sold' | 'unsold'
-  auctionId: string
+  kind: 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending'
+  /** null for a price alert */
+  auctionId: string | null
   cardId: string
   amount: number | null
+  /** Price alerts: the target it fired for */
+  target: number | null
   at: string
   read: boolean
 }
 export const getNotifications = () => accountFetch<{ unread: number; items: NotificationItem[] }>('/me/notifications')
 export const markNotificationsRead = () => accountFetch<{ unread: 0 }>('/me/notifications/read', { method: 'POST' })
+
+/** Price alerts (docs/price/alerts.md) */
+export interface PriceAlert {
+  cardId: string
+  targetKrw: number
+  active: boolean
+  triggeredAt: string | null
+}
+export const getPriceAlerts = () => accountFetch<{ alerts: PriceAlert[] }>('/me/price-alerts')
+export const savePriceAlert = (cardId: string, targetKrw: number) =>
+  accountFetch<{ alert: PriceAlert; krw: number | null }>(`/me/price-alerts/${encodeURIComponent(cardId)}`, { method: 'PUT', body: { targetKrw } })
+export const deletePriceAlert = (cardId: string) => accountFetch<void>(`/me/price-alerts/${encodeURIComponent(cardId)}`, { method: 'DELETE' })

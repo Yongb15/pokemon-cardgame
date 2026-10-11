@@ -63,6 +63,8 @@ export interface CollectionSummary {
   distinct: number
   /** Per pack set: distinct cards owned (test copies excluded) out of what its packs can give */
   sets: { id: string; owned: number; total: number }[]
+  /** Copies per card, test copies excluded: the browser prices these for the collection's value */
+  owned: { cardId: string; count: number }[]
 }
 
 export interface PackCheck {
@@ -211,5 +213,6 @@ export function summarize(rows: { cardId: string; count: number; real: number }[
       const ids = new Set(Object.values(s.tiers).flat())
       return { id: s.id, owned: rows.filter((r) => r.real > 0 && ids.has(r.cardId)).length, total: ids.size }
     }),
+    owned: rows.filter((r) => r.real > 0).map((r) => ({ cardId: r.cardId, count: r.real })).sort((a, b) => a.cardId.localeCompare(b.cardId)),
   }
 }

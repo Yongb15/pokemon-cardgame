@@ -126,6 +126,8 @@ describe('card packs (preview)', () => {
     expect(list.body.cards.find((c: { cardId: string }) => c.cardId === cardId).test).toBe(3)
     const summary = await t.call('/api/v1/me/collection/summary', { session })
     expect(summary.body.cards).toBe(8)
+    // The value list counts real copies only: the 3 test copies are left out
+    expect(summary.body.owned.reduce((n: number, c: { count: number }) => n + c.count, 0)).toBe(5)
     const setRow = summary.body.sets.find((s: { id: string }) => s.id === SET)
     expect(setRow.total).toBe(Object.values(PACK_SETS[0]!.tiers).flat().length)
     expect(setRow.owned).toBeLessThanOrEqual(5)

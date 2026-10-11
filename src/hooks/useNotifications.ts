@@ -3,6 +3,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { getNotifications, markNotificationsRead, type NotificationItem } from '../api/account'
+import { loadPriceAlerts } from './usePriceAlerts'
 import { onSessionChange, type Session } from './useSession'
 
 export type Notifications =
@@ -14,6 +15,8 @@ const EVERY_MS = 60_000
 
 let state: Notifications = { status: 'idle' }
 let signedIn = false
+/** The newest price notification seen, so the alerts reload once per firing */
+let lastPriceAt = ''
 let timer: ReturnType<typeof setInterval> | null = null
 let loading: Promise<void> | null = null
 const listeners = new Set<() => void>()
@@ -29,6 +32,12 @@ export function loadNotifications(): Promise<void> {
     try {
       const { unread, items } = await getNotifications()
       if (signedIn) set({ status: 'ready', unread, items })
+      // A newer price notification: an alert fired on the server, so the alerts shown are stale (qa PA-1)
+      const newestPrice = items.filter((i) => i.kind === 'price').reduce((max, i) => (i.at > max ? i.at : max), '')
+      if (signedIn && newestPrice && newestPrice !== lastPriceAt) {
+        lastPriceAt = newestPrice
+        void loadPriceAlerts()
+      }
     } catch {
       // A missed poll keeps what we had; the next one tries again
       if (state.status !== 'ready') set({ status: 'error' })
@@ -65,6 +74,7 @@ onSessionChange((session: Session) => {
     document.addEventListener('visibilitychange', onVisible)
   } else if (session.status === 'out' && signedIn) {
     signedIn = false
+    lastPriceAt = ''
     if (timer) clearInterval(timer)
     timer = null
     document.removeEventListener('visibilitychange', onVisible)

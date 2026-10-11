@@ -27,6 +27,16 @@ const schema = z.object({
   /** Kakao sign-in: the REST API key is the public client id, the secret comes from the bundle */
   KAKAO_CLIENT_ID: z.string().regex(/^[0-9a-f]{32}$/).optional(),
   KAKAO_CLIENT_SECRET: z.string().regex(/^[A-Za-z0-9_-]{20,100}$/).optional(),
+  /**
+   * Where price alerts read current prices (our public /api/prices/batch). Defaults to PUBLIC_ORIGIN;
+   * a preview may point it at a feature branch's preview. Only our own Vercel hosts (Security Q1)
+   */
+  PRICES_ORIGIN: z
+    .url()
+    .refine((value) => /^https:\/\/pokemon-card-dex(-[a-z0-9-]+)?\.vercel\.app$/.test(value))
+    .optional(),
+}).refine((c) => c.APP_ENV !== 'production' || !c.PRICES_ORIGIN || c.PRICES_ORIGIN === c.PUBLIC_ORIGIN, {
+  message: 'PRICES_ORIGIN must be PUBLIC_ORIGIN in production',
 })
 
 export type Config = z.infer<typeof schema> & { proxyReady: boolean; googleReady: boolean; kakaoReady: boolean }

@@ -262,3 +262,15 @@
   color: var(--text);
   font-size: 11px;
 }
+
+/* The price heading with the alert button on the right (docs/design/price-alert.webp ①) */
+.titleRow {
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.titleRow h2 {
+  margin-bottom: 0;
+}
