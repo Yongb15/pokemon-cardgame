@@ -30,8 +30,15 @@ function WatchButton({ id, signedOut, mine, open, onChange }: { id: string; sign
     )
   }
   if (!mine) return <span className={styles.watchSlot} aria-hidden="true" />
-  // An ended auction can't be newly watched; one already watched can still be let go
-  if (!open && !mine.watching) return <span className={styles.watchSlot} aria-hidden="true" />
+  // An ended auction can't be newly watched; one already watched can still be let go. Unwatched, the
+  // button stays (aria-disabled, not removed), so the focus of the press that unwatched it isn't lost (qa W-1)
+  if (!open && !mine.watching) {
+    return (
+      <button type="button" className={styles.watch} aria-pressed={false} aria-disabled="true" title="끝난 경매는 찜할 수 없어요">
+        ☆ 찜
+      </button>
+    )
+  }
   const toggle = async () => {
     if (busy) return
     setBusy(true)
