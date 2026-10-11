@@ -5,7 +5,7 @@ import CardImg from '../components/CardImg'
 import ReportDialog from '../components/ReportDialog'
 import { useCardInfo } from '../hooks/useDecks'
 import { loadPoints, usePoints } from '../hooks/usePoints'
-import { useSession } from '../hooks/useSession'
+import { useSession, wasSignedIn } from '../hooks/useSession'
 import { learnServerTime, serverNow, timeLeft } from '../lib/auctions'
 import { newRequestId } from '../lib/packs'
 import { won } from '../lib/points'
@@ -296,7 +296,7 @@ export default function AuctionPage() {
             </h2>
             {/* Until the auction and who's looking are both known: one step from skeleton to the final box (qa MOD-1) */}
             {!state || (session.status === 'unknown' && !(state.status !== 'open' || timeUp)) ? (
-              <div className={session.status === 'in' ? `${styles.boxSkeleton} ${styles.boxSkeletonIn}` : styles.boxSkeleton} aria-busy="true" />
+              <div className={session.status === 'in' || (session.status === 'unknown' && wasSignedIn()) ? `${styles.boxSkeleton} ${styles.boxSkeletonIn}` : styles.boxSkeleton} aria-busy="true" />
             ) : finished ? (
               <p className={styles.result} role="status">
                 {result()}
