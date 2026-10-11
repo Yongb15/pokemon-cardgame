@@ -83,7 +83,7 @@ describe('report and admin routes', () => {
     const ok = await call(`/api/v1/me/auctions/${AID}/report`, { method: 'POST', session: u.token, body: { reason: 'rmt', note: ' 연락처‮ 남김 \u0007' } })
     expect(ok.status).toBe(201)
     expect(calls.at(-1)).toBe('report rmt "연락처 남김"')
-    for (const body of [{ reason: 'spam' }, { reason: 'rmt', x: 1 }, { reason: 'rmt', note: 5 }, {}]) {
+    for (const body of [{ reason: 'spam' }, { reason: 'rmt', x: 1 }, { reason: 'rmt', note: 5 }, { reason: 'rmt', note: 'x'.repeat(201) }, {}]) {
       expect((await call(`/api/v1/me/auctions/${AID}/report`, { method: 'POST', session: u.token, body })).status, JSON.stringify(body)).toBe(400)
     }
     expect((await call('/api/v1/me/auctions/not-a-uuid/report', { method: 'POST', session: u.token, body: { reason: 'rmt' } })).status).toBe(404)

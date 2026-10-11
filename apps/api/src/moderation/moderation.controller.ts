@@ -24,10 +24,10 @@ const notFound = () => new PublicError('찾을 수 없습니다.', 404)
 export const ADMIN_FRESH_MS = 12 * 60 * 60 * 1000
 const adminWrites = new RateLimiter(20, 60_000)
 
-/** Control and direction characters out, ≤ 200 (AD-3); empty → null */
+/** Over 200 is refused (Security I-1); control and direction characters out (AD-3); empty → null */
 const text200 = z
   .string()
-  .max(1000)
+  .max(200)
   .transform((value) => cleanText(value, 200))
 
 const Report = z.strictObject({
