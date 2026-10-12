@@ -96,6 +96,8 @@ export type CardListItem = Pick<
   images: Pick<CardImages, 'small' | 'fallbackSmall'>
   /** Formats besides Unlimited the card is legal in ("standard", "expanded") */
   formats?: string[]
+  /** In a move search: the attack/Ability whose name matched */
+  matchedMove?: { name: string; nameKo?: string }
 }
 
 /** Previous/next card in a set */
