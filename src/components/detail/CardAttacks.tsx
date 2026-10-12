@@ -16,14 +16,14 @@ export default function CardAttacks({ card }: { card: Card }) {
   return (
     <section className={styles.section} aria-labelledby="moves-heading">
       <h2 id="moves-heading" className={styles.sectionTitle}>
-        {abilities.length > 0 ? '특성 · 기술' : '기술'}
+        {abilities.length > 0 ? `${headingLabel(abilities)} · 기술` : '기술'}
         {translated && <TextToggle original={original} />}
       </h2>
 
       {abilities.map((ability) => (
         <div key={ability.name} className={`${styles.move} ${styles.ability}`}>
           <span className={styles.abilityTag} title={ability.type}>
-            특성
+            {abilityLabel(ability.type)}
           </span>
           <MoveName move={ability} shown={name(ability)} />
           <p className={styles.moveText}>{text(ability)}</p>
@@ -67,4 +67,19 @@ export function TextToggle({ original }: { original: boolean }) {
       </button>
     </span>
   )
+}
+
+/** Older cards name their Abilities differently: 포켓파워 (Poké-Power), 포켓바디 (Poké-Body), 포켓몬파워 */
+function abilityLabel(type: string) {
+  const t = type.toLowerCase()
+  if (t === 'poké-power') return '포켓파워'
+  if (t === 'poké-body') return '포켓바디'
+  if (t === 'pokémon power') return '포켓몬파워'
+  return '특성'
+}
+
+/** The section title names the Ability kind when every one on the card is the same (포켓파워 · 기술) */
+function headingLabel(abilities: { type: string }[]) {
+  const labels = new Set(abilities.map((a) => abilityLabel(a.type)))
+  return labels.size === 1 ? [...labels][0] : '특성'
 }
