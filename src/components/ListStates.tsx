@@ -27,7 +27,18 @@ export function SlowNotice() {
   )
 }
 
-export function EmptyState({ query, byMove = false, onReset }: { query: string; byMove?: boolean; onReset: () => void }) {
+export function EmptyState({
+  query,
+  byMove = false,
+  onReset,
+  onSearchMoves,
+}: {
+  query: string
+  byMove?: boolean
+  onReset: () => void
+  /** No card is named like this: offer the same term as an attack/Ability search */
+  onSearchMoves?: () => void
+}) {
   return (
     <div className={styles.center}>
       <div className={styles.icon} aria-hidden="true">
@@ -46,6 +57,11 @@ export function EmptyState({ query, byMove = false, onReset }: { query: string; 
           ? '한국어(화염방사)와 영어(Flamethrower) 기술 이름 모두 검색됩니다.'
           : '한국어(리자몽)와 영어(Charizard) 이름 모두 검색됩니다.'}
       </p>
+      {onSearchMoves && (
+        <button type="button" className={styles.ghost} onClick={onSearchMoves}>
+          기술·특성에서 찾아보기
+        </button>
+      )}
       <button type="button" className={styles.ghost} onClick={onReset}>
         필터 초기화
       </button>

@@ -41,7 +41,10 @@ export default function CardTile({ card, priority = false }: { card: CardListIte
           {card.nameKo ?? card.name}
         </h3>
         {card.matchedMove ? (
-          <p className={`${styles.nameEn} ${styles.move}`} title={card.matchedMove.name}>
+          <p className={`${styles.nameEn} ${styles.move}`} title={
+              card.matchedMove.nameKo ? `${card.matchedMove.nameKo} (${card.matchedMove.name})` : card.matchedMove.name
+            }
+          >
             기술 · {card.matchedMove.nameKo ?? card.matchedMove.name}
           </p>
         ) : (

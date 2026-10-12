@@ -282,7 +282,12 @@ export default function CardListPage() {
           />
         )}
         {status === 'success' && search.cards.length === 0 && (
-          <EmptyState query={filters.name} byMove={filters.scope === 'move'} onReset={resetFilters} />
+          <EmptyState
+            query={filters.name}
+            byMove={filters.scope === 'move'}
+            onReset={resetFilters}
+            onSearchMoves={filters.scope === 'name' && filters.name ? () => updateFilters({ scope: 'move' }) : undefined}
+          />
         )}
         {status === 'success' && search.cards.length > 0 && (
           <CardGrid>
