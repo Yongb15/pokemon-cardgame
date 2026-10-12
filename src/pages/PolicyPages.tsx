@@ -2,9 +2,9 @@ import { useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import styles from './AccountPages.module.css'
 
-const EFFECTIVE = '2026년 10월 11일'
+const EFFECTIVE = '2026년 10월 12일'
 /** What changed last (shown under the date) */
-const CHANGES = '포인트·카드팩·경매·알림, 가격 알림·경매 찜 추가(이전 시행일 2026년 10월 9일)'
+const CHANGES = '브라우저에만 두는 화면 설정 안내 추가(이전 시행일 2026년 10월 11일)'
 
 function Policy({ title, children }: { title: string; children: ReactNode }) {
   useEffect(() => {
@@ -97,6 +97,9 @@ export function PrivacyPage() {
         </li>
         <li>
           화면 배치를 위해 이 브라우저가 지난번에 로그인 상태였는지(예/아니오 하나)를 저장소에 둡니다. 서버로 보내지 않고 다른 용도로 쓰지 않습니다.
+        </li>
+        <li>
+          화면 설정(카드 텍스트 언어, 펼침 상태 등)과 일시적인 화면 상태는 이 브라우저 저장소에만 두고 서버로 보내지 않습니다.
         </li>
       </ul>
 

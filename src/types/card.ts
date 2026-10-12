@@ -37,12 +37,18 @@ export interface Attack {
   convertedEnergyCost: number
   damage: string
   text: string
+  /** Our Korean translation (unofficial) */
+  nameKo?: string
+  textKo?: string
 }
 
 export interface Ability {
   name: string
   text: string
   type: string
+  /** Our Korean translation (unofficial) */
+  nameKo?: string
+  textKo?: string
 }
 
 export interface TypeModifier {
@@ -69,6 +75,8 @@ export interface Card {
   resistances?: TypeModifier[]
   retreatCost?: string[]
   rules?: string[]
+  /** `rules` in our Korean translation, same order (unofficial) */
+  rulesKo?: string[]
   number: string
   artist?: string
   rarity?: string

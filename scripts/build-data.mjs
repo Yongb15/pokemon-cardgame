@@ -411,6 +411,8 @@ console.log(`Done: ${index.length} cards in ${sets.length} sets`)
 console.log(`Korean names: ${pokemonTranslated}/${pokemonCards} Pokémon cards (${pct}%)`)
 console.log(`Korean names: ${trainerTranslated}/${trainerCards} Trainer and Energy cards`)
 console.log(`Our own translations (card-names-ko.json): ${unofficialCards} cards`)
+// Our Korean attack/Ability names and card texts (scripts/card-text-ko.json), added to the files just written
+await import('./apply-text-ko.mjs')
 if (untranslated.size) {
   console.log(`Untranslated Pokémon names (${untranslated.size} distinct), e.g.:`)
   console.log([...untranslated].slice(0, 25).map(([n, id]) => `  ${n} (${id})`).join('\n'))
