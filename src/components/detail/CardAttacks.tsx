@@ -23,7 +23,7 @@ export default function CardAttacks({ card }: { card: Card }) {
       {abilities.map((ability) => (
         <div key={ability.name} className={`${styles.move} ${styles.ability}`}>
           <span className={styles.abilityTag} title={ability.type}>
-            특성
+            {abilityLabel(ability.type)}
           </span>
           <MoveName move={ability} shown={name(ability)} />
           <p className={styles.moveText}>{text(ability)}</p>
@@ -67,4 +67,13 @@ export function TextToggle({ original }: { original: boolean }) {
       </button>
     </span>
   )
+}
+
+/** Older cards name their Abilities differently: 포켓파워 (Poké-Power), 포켓바디 (Poké-Body), 포켓몬파워 */
+function abilityLabel(type: string) {
+  const t = type.toLowerCase()
+  if (t === 'poké-power') return '포켓파워'
+  if (t === 'poké-body') return '포켓바디'
+  if (t === 'pokémon power') return '포켓몬파워'
+  return '특성'
 }
