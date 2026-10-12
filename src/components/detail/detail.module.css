@@ -163,6 +163,33 @@
   color: var(--text-muted);
 }
 
+/* "비공식 번역 · 원문 보기" on the right of the section title */
+.textToggle {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+
+.textToggle button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.moveNameEn {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 .moveName {
   font-size: 17px;
   overflow-wrap: anywhere;
@@ -619,7 +646,34 @@
     grid-column: auto;
   }
 
-  .moveName {
+  /* "비공식 번역 · 원문 보기" on the right of the section title */
+.textToggle {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-muted);
+}
+
+.textToggle button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.moveNameEn {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.moveName {
     font-size: 15px;
   }
 
