@@ -6,13 +6,15 @@ interface Props {
   value: string
   onChange: (value: string) => void
   placeholder: string
+  /** Screen-reader label (the placeholder is not one) */
+  label?: string
 }
 
 function isTypingTarget(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))
 }
 
-export default function SearchBar({ value, onChange, placeholder }: Props) {
+export default function SearchBar({ value, onChange, placeholder, label = '카드 이름 검색' }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   // "/" focuses the search box, like GitHub and MDN
@@ -33,7 +35,7 @@ export default function SearchBar({ value, onChange, placeholder }: Props) {
         <path d="m20 20-3.5-3.5" />
       </svg>
       <label htmlFor="card-search" className="visually-hidden">
-        카드 이름 검색
+        {label}
       </label>
       <input
         ref={inputRef}

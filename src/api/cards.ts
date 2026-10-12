@@ -155,6 +155,8 @@ export interface CardSearchParams {
   supertype?: string
   /** Only cards legal in this format ("standard", "expanded") */
   format?: string
+  /** "move": `name` matches attack/Ability names instead of card names */
+  in?: string
   sort?: string
   page?: number
   pageSize?: number

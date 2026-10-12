@@ -10,15 +10,19 @@ export const SORT_OPTIONS = {
 
 export type SortKey = keyof typeof SORT_OPTIONS
 
+/** What the search box looks in: card names, or attack/Ability names */
+export type SearchScope = 'name' | 'move'
+
 export interface CardFilters {
   name: string
+  scope: SearchScope
   type: PokemonType | ''
   set: string
   rarity: string
   sort: SortKey
 }
 
-export const DEFAULT_FILTERS: CardFilters = { name: '', type: '', set: '', rarity: '', sort: 'newest' }
+export const DEFAULT_FILTERS: CardFilters = { name: '', scope: 'name', type: '', set: '', rarity: '', sort: 'newest' }
 
 export const PAGE_SIZE = 24
 
@@ -42,6 +46,7 @@ export function filtersFromParams(params: URLSearchParams): CardFilters {
   return {
     // A shared link may carry a longer term than the search box allows: trim it rather than fail
     name: cleanName(params.get('q') ?? '').slice(0, MAX_NAME_LENGTH),
+    scope: params.get('in') === 'move' ? 'move' : 'name',
     type,
     set: params.get('set') ?? '',
     rarity: params.get('rarity') ?? '',
@@ -58,6 +63,7 @@ export function filtersToParams(filters: CardFilters, page = 1) {
   const params = new URLSearchParams()
   const name = cleanName(filters.name)
   if (name) params.set('q', name)
+  if (filters.scope === 'move') params.set('in', 'move')
   if (filters.type) params.set('type', filters.type)
   if (filters.set) params.set('set', filters.set)
   if (filters.rarity) params.set('rarity', filters.rarity)
@@ -70,6 +76,8 @@ export function filtersToParams(filters: CardFilters, page = 1) {
 export function toSearchParams(filters: CardFilters): CardSearchParams {
   return {
     name: cleanName(filters.name) || undefined,
+    // Only with a term: an empty move search is the plain list, and shares its cache
+    in: filters.scope === 'move' && cleanName(filters.name) ? 'move' : undefined,
     type: filters.type || undefined,
     set: filters.set || undefined,
     rarity: filters.rarity || undefined,

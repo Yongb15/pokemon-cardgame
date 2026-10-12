@@ -27,7 +27,7 @@ export function SlowNotice() {
   )
 }
 
-export function EmptyState({ query, onReset }: { query: string; onReset: () => void }) {
+export function EmptyState({ query, byMove = false, onReset }: { query: string; byMove?: boolean; onReset: () => void }) {
   return (
     <div className={styles.center}>
       <div className={styles.icon} aria-hidden="true">
@@ -36,11 +36,15 @@ export function EmptyState({ query, onReset }: { query: string; onReset: () => v
           <path d="m20 20-3.5-3.5" />
         </svg>
       </div>
-      <h2 className={styles.title}>{query ? `“${query}”에 맞는 카드가 없어요` : '조건에 맞는 카드가 없어요'}</h2>
+      <h2 className={styles.title}>
+        {query ? `“${query}”${byMove ? ' 기술·특성을 가진' : '에 맞는'} 카드가 없어요` : '조건에 맞는 카드가 없어요'}
+      </h2>
       <p className={styles.desc}>
         철자를 확인하거나 필터를 줄여 보세요.
         <br />
-        한국어(리자몽)와 영어(Charizard) 이름 모두 검색됩니다.
+        {byMove
+          ? '한국어(화염방사)와 영어(Flamethrower) 기술 이름 모두 검색됩니다.'
+          : '한국어(리자몽)와 영어(Charizard) 이름 모두 검색됩니다.'}
       </p>
       <button type="button" className={styles.ghost} onClick={onReset}>
         필터 초기화

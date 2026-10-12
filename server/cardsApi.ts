@@ -2,6 +2,7 @@
 // Shared by the Vercel Function (api/cards.ts) and the Vite dev server (vite.config.ts).
 //
 //   GET /api/cards?name=&type=&set=&rarity=&supertype=&format=&sort=&page=&pageSize=   search
+//       &in=move: `name` matches attack/Ability names (English or our Korean) instead of card names
 //   GET /api/cards/batch?ids=a,b,c                                  several cards at once (deck builder)
 //   GET /api/cards/:id                                              one card, full details
 //   GET /api/cards/:id/neighbors                                    previous/next card in its set
@@ -27,6 +28,8 @@ interface IndexEntry {
   image: string
   /** "s" legal in Standard, "e" in Expanded */
   legal?: string
+  /** Attack/Ability names: [English, Korean?] (scripts/apply-text-ko.mjs) */
+  moves?: [string, string?][]
 }
 
 interface SetInfo {
@@ -44,7 +47,7 @@ interface SetInfo {
 type RawCard = { id: string; nationalPokedexNumbers?: number[] } & Record<string, unknown>
 
 interface Store {
-  cards: (IndexEntry & { search: string })[]
+  cards: (IndexEntry & { search: string; moveSearch: string[] })[]
   byId: Map<string, IndexEntry>
   sets: Map<string, SetInfo>
   /** Card ids per set, in set-number order */
@@ -108,7 +111,12 @@ function loadStore() {
       setOrder.set(card.set, [...(setOrder.get(card.set) ?? []), card.id])
     }
     return {
-      cards: index.map((c) => ({ ...c, search: normalize(c.name) + ' ' + normalize(c.nameKo ?? '') })),
+      cards: index.map((c) => ({
+        ...c,
+        search: normalize(c.name) + ' ' + normalize(c.nameKo ?? ''),
+        // One string per move, so a match can say which move it was
+        moveSearch: (c.moves ?? []).map(([en, ko]) => normalize(en) + ' ' + normalize(ko ?? '')),
+      })),
       byId: new Map(index.map((c) => [c.id, c])),
       sets: setMap,
       setOrder,
@@ -149,8 +157,8 @@ function setSummary(set: SetInfo) {
   }
 }
 
-/** The shape the list page renders (a subset of the full card) */
-function listItem(store: Store, c: IndexEntry) {
+/** The shape the list page renders (a subset of the full card). `move`: the move a move search matched */
+function listItem(store: Store, c: IndexEntry, move?: [string, string?]) {
   const set = store.sets.get(c.set)!
   return {
     id: c.id,
@@ -166,6 +174,7 @@ function listItem(store: Store, c: IndexEntry) {
     set: setSummary(set),
     images: images(store, c.set, c.id, { small: c.image }),
     formats: formats(c),
+    ...(move && { matchedMove: { name: move[0], ...(move[1] && { nameKo: move[1] }) } }),
   }
 }
 
@@ -250,11 +259,14 @@ async function search(params: URLSearchParams) {
   const format = params.get('format')
   if (format && !Object.hasOwn(FORMAT_FLAG, format)) return badRequest('알 수 없는 포맷입니다.')
   const formatFlag = format ? FORMAT_FLAG[format] : null
+  const scope = params.get('in') ?? 'name'
+  if (scope !== 'name' && scope !== 'move') return badRequest('알 수 없는 검색 범위입니다.')
+  const byMove = scope === 'move' && !!name
 
   // Filtering a pre-sorted list keeps its order
   const matches = sortedCards(store, sortKey as SortKey).filter(
     (c) =>
-      (!name || c.search.includes(name)) &&
+      (!name || (byMove ? c.moveSearch.some((m) => m.includes(name)) : c.search.includes(name))) &&
       (!type || c.types?.includes(type)) &&
       (!set || c.set === set) &&
       (!rarity || c.rarity === rarity) &&
@@ -262,7 +274,9 @@ async function search(params: URLSearchParams) {
       (!formatFlag || !!c.legal?.includes(formatFlag)),
   )
   const start = (page - 1) * pageSize
-  const data = matches.slice(start, start + pageSize).map((c) => listItem(store, c))
+  const data = matches
+    .slice(start, start + pageSize)
+    .map((c) => listItem(store, c, byMove ? c.moves![c.moveSearch.findIndex((m) => m.includes(name))] : undefined))
   return json({ data, page, pageSize, count: data.length, totalCount: matches.length })
 }
 

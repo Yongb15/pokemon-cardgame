@@ -20,6 +20,34 @@
   margin-top: 24px;
 }
 
+/* "카드 이름 | 기술·특성" above the search box */
+.scope {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--chip-bg, var(--skeleton));
+}
+
+.scope button {
+  min-height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.scope button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text-h);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+}
+
 .filterRow {
   margin-top: 16px;
   display: flex;
