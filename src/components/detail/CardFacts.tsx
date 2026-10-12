@@ -14,13 +14,14 @@ export function CardRules({ card }: { card: Card }) {
   const isPokemon = card.supertype === 'Pokémon'
   const translated = card.rulesKo?.length === card.rules.length
   const rules = !original && translated ? card.rulesKo! : card.rules
-  // Trainers and Energy have no moves section, so the unofficial label and the switch go here
-  const hasMoves = Boolean(card.abilities?.length || card.attacks?.length)
+  // The unofficial label and the switch go here when the moves heading doesn't have them
+  // (Trainers and Energy have no moves; some older Pokémon have only their rules translated)
+  const movesTranslated = [...(card.abilities ?? []), ...(card.attacks ?? [])].some((m) => m.nameKo)
   return (
     <div className={styles.rules}>
       <div className={styles.rulesHead}>
         <b>{isPokemon ? '특수 룰' : '카드 효과'}</b>
-        {translated && !hasMoves && <TextToggle original={original} />}
+        {translated && !movesTranslated && <TextToggle original={original} />}
       </div>
       {rules.map((rule, i) => (
         <p key={i}>{rule}</p>
