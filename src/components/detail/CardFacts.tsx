@@ -1,5 +1,7 @@
 import { Link } from 'react-router'
 import { formatDate, LEGALITY_FORMAT_LABEL, rarityLabel } from '../../lib/cardText'
+import { useOriginalText } from '../../hooks/useCardText'
+import { TextToggle } from './CardAttacks'
 import type { Card } from '../../types/card'
 import CardImg from '../CardImg'
 import EnergyIcon from '../EnergyIcon'
@@ -7,13 +9,22 @@ import styles from './detail.module.css'
 
 /** Rules box (ex rule, or the effect text of a Trainer/Energy) */
 export function CardRules({ card }: { card: Card }) {
+  const original = useOriginalText()
   if (!card.rules?.length) return null
   const isPokemon = card.supertype === 'Pokémon'
+  const translated = card.rulesKo?.length === card.rules.length
+  const rules = !original && translated ? card.rulesKo! : card.rules
+  // The unofficial label and the switch go here when the moves heading doesn't have them
+  // (Trainers and Energy have no moves; some older Pokémon have only their rules translated)
+  const movesTranslated = [...(card.abilities ?? []), ...(card.attacks ?? [])].some((m) => m.nameKo)
   return (
     <div className={styles.rules}>
-      <b>{isPokemon ? '특수 룰' : '카드 효과'}</b>
-      {card.rules.map((rule) => (
-        <p key={rule}>{rule}</p>
+      <div className={styles.rulesHead}>
+        <b>{isPokemon ? '특수 룰' : '카드 효과'}</b>
+        {translated && !movesTranslated && <TextToggle original={original} />}
+      </div>
+      {rules.map((rule, i) => (
+        <p key={i}>{rule}</p>
       ))}
     </div>
   )
