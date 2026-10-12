@@ -57,13 +57,13 @@ function MoveName({ move, shown }: { move: { name: string; nameKo?: string }; sh
   )
 }
 
-/** "비공식 번역 · 원문 보기" — one switch for every card, remembered */
+/** "비공식 번역 · 원문 보기" — one switch for every card, remembered (pressed: English shown) */
 export function TextToggle({ original }: { original: boolean }) {
   return (
     <span className={styles.textToggle}>
       {original ? '영어 원문' : '비공식 번역'} ·{' '}
       <button type="button" aria-pressed={original} onClick={() => setOriginalText(!original)}>
-        {original ? '한국어로 보기' : '원문 보기'}
+        원문 보기
       </button>
     </span>
   )

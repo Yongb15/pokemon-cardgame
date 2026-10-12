@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { formatDate, LEGALITY_FORMAT_LABEL, rarityLabel } from '../../lib/cardText'
 import { useOriginalText } from '../../hooks/useCardText'
+import { TextToggle } from './CardAttacks'
 import type { Card } from '../../types/card'
 import CardImg from '../CardImg'
 import EnergyIcon from '../EnergyIcon'
@@ -11,10 +12,16 @@ export function CardRules({ card }: { card: Card }) {
   const original = useOriginalText()
   if (!card.rules?.length) return null
   const isPokemon = card.supertype === 'Pokémon'
-  const rules = !original && card.rulesKo?.length === card.rules.length ? card.rulesKo : card.rules
+  const translated = card.rulesKo?.length === card.rules.length
+  const rules = !original && translated ? card.rulesKo! : card.rules
+  // Trainers and Energy have no moves section, so the unofficial label and the switch go here
+  const hasMoves = Boolean(card.abilities?.length || card.attacks?.length)
   return (
     <div className={styles.rules}>
-      <b>{isPokemon ? '특수 룰' : '카드 효과'}</b>
+      <div className={styles.rulesHead}>
+        <b>{isPokemon ? '특수 룰' : '카드 효과'}</b>
+        {translated && !hasMoves && <TextToggle original={original} />}
+      </div>
       {rules.map((rule, i) => (
         <p key={i}>{rule}</p>
       ))}

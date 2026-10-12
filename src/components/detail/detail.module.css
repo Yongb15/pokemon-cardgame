@@ -172,8 +172,11 @@
   color: var(--text-muted);
 }
 
+/* 24px tall to tap, without making the title line taller */
 .textToggle button {
-  padding: 0;
+  padding: 3px 0;
+  margin: -3px 0;
+  line-height: 18px;
   border: 0;
   background: none;
   color: var(--accent-text);
@@ -231,9 +234,15 @@
   line-height: 1.6;
 }
 
+.rulesHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
 .rules b {
   display: block;
-  margin-bottom: 2px;
   color: var(--accent-text);
 }
 
@@ -646,34 +655,7 @@
     grid-column: auto;
   }
 
-  /* "비공식 번역 · 원문 보기" on the right of the section title */
-.textToggle {
-  margin-left: auto;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--text-muted);
-}
-
-.textToggle button {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--accent-text);
-  font: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.moveNameEn {
-  display: block;
-  margin-top: 2px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.moveName {
+  .moveName {
     font-size: 15px;
   }
 

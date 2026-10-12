@@ -21,15 +21,19 @@ for (const file of await readdir(path.join(root, 'data/cards'))) {
   for (const card of list) {
     cards++
     let changed = false
-    for (const move of [...(card.abilities ?? []), ...(card.attacks ?? [])]) {
+    // A card's moves are shown in Korean all together or not at all: a half-Korean card reads worse
+    // than English. A move is translated when its name is, and its text too if it has one.
+    const cardMoves = [...(card.abilities ?? []), ...(card.attacks ?? [])]
+    const whole = cardMoves.every((move) => own(names, move.name) && (!move.text || own(texts, move.text)))
+    for (const move of cardMoves) {
       moves++
-      const nameKo = own(names, move.name)
-      const textKo = own(texts, move.text)
-      if (nameKo) move.nameKo = nameKo
-      if (textKo) move.textKo = textKo
-      if (nameKo || textKo) changed = true
-      // A move counts as Korean when everything it says is (no text, or its text translated)
-      if (nameKo && (!move.text || textKo)) movesKo++
+      delete move.nameKo
+      delete move.textKo
+      if (!whole) continue
+      move.nameKo = own(names, move.name)
+      if (move.text) move.textKo = own(texts, move.text)
+      movesKo++
+      changed = true
     }
     if (card.rules?.length) {
       const rulesKo = card.rules.map((rule) => own(texts, rule))
