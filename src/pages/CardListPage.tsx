@@ -286,7 +286,14 @@ export default function CardListPage() {
             query={filters.name}
             byMove={filters.scope === 'move'}
             onReset={resetFilters}
-            onSearchMoves={filters.scope === 'name' && filters.name ? () => updateFilters({ scope: 'move' }) : undefined}
+            onSearchMoves={
+              filters.scope === 'name' && filters.name
+                ? () => {
+                    updateFilters({ scope: 'move' })
+                    focusResults() // the button goes away with the empty state
+                  }
+                : undefined
+            }
           />
         )}
         {status === 'success' && search.cards.length > 0 && (
