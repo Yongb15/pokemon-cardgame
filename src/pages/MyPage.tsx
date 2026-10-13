@@ -175,8 +175,11 @@ export default function MyPage() {
                       .catch(() => setCopied(false))
                   }}
                 >
-                  {copied ? '복사했어요' : '복사'}
+                  복사
                 </button>
+                <span className="visually-hidden" role="status">
+                  {copied ? '회원 코드를 복사했어요' : ''}
+                </span>
               </span>
             </div>
           </section>

@@ -237,7 +237,11 @@
 
 /* The member code on /me: monospaced, fixed width (8 hex + hyphen) */
 .memberCode {
-  min-width: 9ch;
+  /* Exactly "XXXX-XXXX" wide whether it shows "…" or the code: a min-width let the real code grow the
+     box and re-wrap the row (qa M-1: /me 1280 CLS 0.12) */
+  display: inline-block;
+  box-sizing: content-box;
+  width: calc(9ch + 0.36em);
   padding: 3px 10px;
   border-radius: 8px;
   background: var(--surface-muted);

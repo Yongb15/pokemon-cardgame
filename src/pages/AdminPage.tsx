@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import {
   AccountApiError,
@@ -230,6 +230,9 @@ export function AdminAuctionPage() {
 
 const GRANT_MAX = 100_000
 const GRANT_DAILY_MAX = 500_000
+// Same shapes the API refuses in a reason (Security R-3), said before sending
+const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/
+const PHONE = /\d{2,4}[\s.-]?\d{3,4}[\s.-]?\d{4}/
 /** "7F3A9C21" → "7F3A-9C21" */
 const showCode = (code: string) => `${code.slice(0, 4)}-${code.slice(4)}`
 
@@ -247,24 +250,60 @@ export function AdminPointsPage() {
   const [confirming, setConfirming] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+  const [problem, setProblem] = useState<'amount' | 'reason' | null>(null)
+  const sending = useRef(false)
+  const openButton = useRef<HTMLButtonElement>(null)
+  const confirmButton = useRef<HTMLButtonElement>(null)
+  const messageRef = useRef<HTMLParagraphElement>(null)
 
   const loadGrants = () =>
     adminGrants()
-      .then((r) => setGrants(r.grants))
+      .then((r) => {
+        // Only an admin learns what this page is: the 404 view keeps the neutral title (qa L-3)
+        document.title = '포인트 지급 · Pokémon Card Dex'
+        setGrants(r.grants)
+      })
       .catch(() => setGrants('none'))
   useEffect(() => {
-    document.title = '포인트 지급 · Pokémon Card Dex'
     void loadGrants()
     return () => {
       document.title = 'Pokémon Card Dex'
     }
   }, [])
 
+  // Keyboard and screen-reader users keep their place as the buttons swap (qa M-2)
+  useEffect(() => {
+    if (confirming) confirmButton.current?.focus()
+  }, [confirming])
+
   if (grants === 'none') return <NotAvailable />
 
   const points = Number(amount)
-  const amountOk = /^\d+$/.test(amount) && points >= 1 && points <= GRANT_MAX
-  const ready = !!member && amountOk && reason.trim().length > 0 && !busy
+  // Digits only, refused rather than reinterpreted ("1.5" is not 15): qa L-2
+  const amountOk = /^\d+$/.test(amount.trim()) && points >= 1 && points <= GRANT_MAX
+  const reasonText = reason.trim()
+  const reasonOk = reasonText.length > 0 && !EMAIL.test(reasonText) && !PHONE.test(reasonText)
+
+  const openConfirm = () => {
+    if (busy || !member) return
+    if (!amountOk) {
+      setProblem('amount')
+      setMessage({ ok: false, text: `포인트는 1~${GRANT_MAX.toLocaleString('ko-KR')} 사이의 정수로 입력해 주세요.` })
+      return
+    }
+    if (!reasonOk) {
+      setProblem('reason')
+      setMessage({ ok: false, text: reasonText ? '이유에 이메일·전화번호는 쓸 수 없어요.' : '지급 이유를 입력해 주세요.' })
+      return
+    }
+    setProblem(null)
+    setMessage(null)
+    setConfirming(crypto.randomUUID())
+  }
+  const cancelConfirm = () => {
+    setConfirming(null)
+    requestAnimationFrame(() => openButton.current?.focus())
+  }
 
   const lookUp = async () => {
     if (busy) return
@@ -279,7 +318,9 @@ export function AdminPointsPage() {
   }
 
   const send = async () => {
-    if (!member || !confirming || busy) return
+    // A ref, not state: a fast second click lands before the re-render (qa: two requests)
+    if (!member || !confirming || sending.current) return
+    sending.current = true
     setBusy(true)
     setMessage(null)
     try {
@@ -292,7 +333,9 @@ export function AdminPointsPage() {
     } catch (e) {
       setMessage({ ok: false, text: e instanceof AccountApiError ? e.message : '지급하지 못했어요.' })
     } finally {
+      sending.current = false
       setBusy(false)
+      requestAnimationFrame(() => messageRef.current?.focus())
     }
   }
 
@@ -365,9 +408,11 @@ export function AdminPointsPage() {
               className={styles.input}
               inputMode="numeric"
               value={amount}
+              aria-invalid={problem === 'amount' || undefined}
               onChange={(e) => {
-                setAmount(e.target.value.replace(/[^\d]/g, ''))
+                setAmount(e.target.value)
                 setConfirming(null)
+                if (problem === 'amount') setProblem(null)
               }}
             />
           </label>
@@ -377,9 +422,11 @@ export function AdminPointsPage() {
               className={styles.input}
               maxLength={200}
               value={reason}
+              aria-invalid={problem === 'reason' || undefined}
               onChange={(e) => {
                 setReason(e.target.value)
                 setConfirming(null)
+                if (problem === 'reason') setProblem(null)
               }}
             />
           </label>
@@ -389,22 +436,17 @@ export function AdminPointsPage() {
                 <b>{member.nickname}</b>({showCode(member.code)})에게 <b>{won(points)}</b>를 지급할까요?
               </p>
               <div className={styles.actions}>
-                <button type="button" className={styles.primary} aria-disabled={busy || undefined} onClick={() => void send()}>
+                <button ref={confirmButton} type="button" className={styles.primary} aria-disabled={busy || undefined} onClick={() => void send()}>
                   {busy ? '지급하는 중…' : '지급'}
                 </button>
-                <button type="button" className={styles.button} onClick={() => setConfirming(null)}>
+                <button type="button" className={styles.button} onClick={cancelConfirm}>
                   취소
                 </button>
               </div>
             </div>
           ) : (
             <div className={styles.actions}>
-              <button
-                type="button"
-                className={styles.primary}
-                aria-disabled={!ready || undefined}
-                onClick={() => ready && setConfirming(crypto.randomUUID())}
-              >
+              <button ref={openButton} type="button" className={styles.primary} aria-disabled={busy || undefined} onClick={openConfirm}>
                 지급하기…
               </button>
             </div>
@@ -413,7 +455,11 @@ export function AdminPointsPage() {
       )}
 
       <div className={styles.feedback} aria-live="polite">
-        {message && <p className={message.ok ? styles.ok : styles.alert}>{message.text}</p>}
+        {message && (
+          <p ref={messageRef} tabIndex={-1} className={message.ok ? styles.ok : styles.alert}>
+            {message.text}
+          </p>
+        )}
       </div>
 
       <section className={styles.box} aria-labelledby="recent-title">
