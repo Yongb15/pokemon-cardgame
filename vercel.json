@@ -82,6 +82,45 @@
       ]
     },
     {
+      "source": "/",
+      "missing": [
+        {
+          "type": "query",
+          "key": "q"
+        },
+        {
+          "type": "query",
+          "key": "in"
+        },
+        {
+          "type": "query",
+          "key": "type"
+        },
+        {
+          "type": "query",
+          "key": "set"
+        },
+        {
+          "type": "query",
+          "key": "rarity"
+        },
+        {
+          "type": "query",
+          "key": "sort"
+        },
+        {
+          "type": "query",
+          "key": "page"
+        }
+      ],
+      "headers": [
+        {
+          "key": "Link",
+          "value": "</api/cards?sort=newest&page=1&pageSize=24>; rel=preload; as=fetch; crossorigin"
+        }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [
         {
