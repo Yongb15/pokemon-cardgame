@@ -6,8 +6,10 @@ import CardImg from '../CardImg'
 import styles from './detail.module.css'
 
 interface Props {
-  prev: CardSummary | null
-  next: CardSummary | null
+  prev?: CardSummary | null
+  next?: CardSummary | null
+  /** Still loading: two empty boxes the same size as the real links */
+  loading?: boolean
   /** Carried along unchanged (these links replace the entry) so "카드 목록" still goes back in history */
   trail: DetailTrail
 }
@@ -16,7 +18,20 @@ interface Props {
  * Previous / next card in the same set. These replace the history entry, so the browser's back
  * button (and "카드 목록") returns to the list instead of stepping through every card viewed.
  */
-export default function CardNeighbors({ prev, next, trail }: Props) {
+export default function CardNeighbors({ prev = null, next = null, loading = false, trail }: Props) {
+  if (loading) {
+    const box = (
+      <span className={styles.neighbor}>
+        <span className={styles.neighborThumb} />
+      </span>
+    )
+    return (
+      <div className={styles.neighbors} aria-hidden="true">
+        {box}
+        {box}
+      </div>
+    )
+  }
   if (!prev && !next) return null
   const link = (card: CardSummary, dir: 'prev' | 'next') => (
     <Link

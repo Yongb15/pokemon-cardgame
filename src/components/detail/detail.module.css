@@ -494,6 +494,15 @@
   border-color: var(--border-strong);
 }
 
+/* Placeholder while loading: the thumbnail's size (44 wide at 245:342) */
+.neighborThumb {
+  width: 44px;
+  aspect-ratio: 245 / 342;
+  flex: none;
+  border-radius: 4px;
+  background: var(--skeleton);
+}
+
 .neighbor img {
   width: 44px;
   height: auto;

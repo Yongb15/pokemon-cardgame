@@ -203,10 +203,16 @@ export default function CardDetailPage() {
               <CardRules card={card} />
               <BattleStats card={card} />
               <CardInfo card={card} />
-              <CardPrices key={card.id} cardId={card.id} cardName={card.nameKo ?? card.name} />
+              {/* Basic Energy has no prices (the API answers `hidden` for them, server/prices/api.ts):
+                  don't draw the price box's skeleton only to remove it, which moved everything below */}
+              {!(card.supertype === 'Energy' && card.subtypes?.includes('Basic')) && (
+                <CardPrices key={card.id} cardId={card.id} cardName={card.nameKo ?? card.name} />
+              )}
             </div>
           </div>
 
+          {/* Its place is kept while it loads, so the related cards below don't jump down */}
+          {neighbors.status === 'loading' && <CardNeighbors loading trail={trail} />}
           {neighbors.status === 'success' && neighbors.data && (
             <CardNeighbors prev={neighbors.data.prev} next={neighbors.data.next} trail={trail} />
           )}
