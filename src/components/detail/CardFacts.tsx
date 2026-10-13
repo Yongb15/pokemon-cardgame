@@ -2,6 +2,7 @@ import { Link } from 'react-router'
 import { formatDate, LEGALITY_FORMAT_LABEL, rarityLabel } from '../../lib/cardText'
 import { useOriginalText } from '../../hooks/useCardText'
 import { TextToggle } from './CardAttacks'
+import EnergyText from './EnergyText'
 import type { Card } from '../../types/card'
 import CardImg from '../CardImg'
 import EnergyIcon from '../EnergyIcon'
@@ -24,7 +25,9 @@ export function CardRules({ card }: { card: Card }) {
         {translated && !movesTranslated && <TextToggle original={original} />}
       </div>
       {rules.map((rule, i) => (
-        <p key={i}>{rule}</p>
+        <p key={i}>
+          <EnergyText text={rule} />
+        </p>
       ))}
     </div>
   )

@@ -185,6 +185,13 @@
   cursor: pointer;
 }
 
+.inlineEnergy {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0 2px;
+  vertical-align: -3px;
+}
+
 .moveNameEn {
   display: block;
   margin-top: 2px;
