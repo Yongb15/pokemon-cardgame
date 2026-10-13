@@ -5,6 +5,11 @@
 //   GET  /api/v1/admin/auctions/:id            → { auction } (bids with an admin-only pseudonym, reports, actions)
 //   POST /api/v1/admin/auctions/:id/dismiss    { reason } → { result }
 //   POST /api/v1/admin/auctions/:id/remove     { reason } → { result }  (open auctions; 409 conflicted or closed)
+// Point grants (docs/auction/admin-points.md):
+//   GET  /api/v1/admin/members/:code           → { member: { code, nickname, joinedAt, pseudonym } } (30/min)
+//   POST /api/v1/admin/points/grant            { code, amount, reason, idemKey } → { result, grantId }
+//        (403 an admin, 404 no such member, 409 over the daily limit or a reused key)
+//   GET  /api/v1/admin/points/grants           → { grants } (last 30 days)
 
 import { Body, Controller, Get, HttpCode, Inject, Param, Post, Query, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
@@ -15,6 +20,7 @@ import { RateLimiter } from '../auth/guards.js'
 import type { CurrentUser } from '../auth/sessions.js'
 import { UserRoutes } from '../data/data.controller.js'
 import { PublicError } from '../errors.js'
+import { GRANT_DAILY_MAX, GRANT_IDEM, GRANT_MAX, MEMBER_CODE } from './grants.js'
 import { REPORT_REASONS } from './store.js'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
@@ -23,6 +29,16 @@ const notFound = () => new PublicError('찾을 수 없습니다.', 404)
 /** Admin powers need a sign-in from the last 12 hours, not a month-old sliding cookie (AD-1) */
 export const ADMIN_FRESH_MS = 12 * 60 * 60 * 1000
 const adminWrites = new RateLimiter(20, 60_000)
+const memberLookups = new RateLimiter(30, 60_000)
+
+/** "7f3a-9c21", " 7F3A9C21 " → "7F3A9C21"; anything else null */
+const memberCode = (raw: unknown) => {
+  const code = typeof raw === 'string' ? raw.replace(/[\s-]/g, '').toUpperCase() : ''
+  return MEMBER_CODE.test(code) ? code : null
+}
+// A grant reason is the admin's note, not a place for anyone's contact details (R-3)
+const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/
+const PHONE = /\d{2,4}[\s.-]?\d{3,4}[\s.-]?\d{4}/
 
 /** Over 200 is refused (Security I-1); control and direction characters out (AD-3); empty → null */
 const text200 = z
@@ -35,6 +51,12 @@ const Report = z.strictObject({
   note: text200.optional(),
 })
 const Reason = z.strictObject({ reason: text200.refine((value) => value.length > 0) })
+const Grant = z.strictObject({
+  code: z.string().max(20),
+  amount: z.number().int().min(1).max(GRANT_MAX),
+  reason: text200.refine((value) => value.length > 0 && !EMAIL.test(value) && !PHONE.test(value)),
+  idemKey: z.string().regex(GRANT_IDEM),
+})
 
 abstract class ModerationRoutes extends UserRoutes {
   protected get moderation() {
@@ -129,6 +151,57 @@ export class AdminController extends ModerationRoutes {
     if (!parsed.success) throw badRequest()
     const result = await this.moderation.remove(admin.id, this.id(raw), parsed.data.reason)
     return this.answer(result)
+  }
+
+  private get grants() {
+    if (!this.services.grants) throw notFound()
+    return this.services.grants
+  }
+
+  @Get('members/:code')
+  async member(@Param('code') raw: string, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const admin = await this.admin(req, res, false)
+    if (!memberLookups.allow(admin.id)) {
+      res.setHeader('Retry-After', '60')
+      throw new PublicError('잠시 후 다시 시도해 주세요.', 429)
+    }
+    const code = memberCode(raw)
+    // Malformed, unknown and deleted codes all get the same answer
+    const member = code ? await this.grants.member(code) : null
+    if (!code || !member) throw new PublicError('회원을 찾을 수 없어요.', 404)
+    return { member: { code, nickname: member.nickname, joinedAt: member.joinedAt, pseudonym: this.services.pseudonym(member.userId) } }
+  }
+
+  @Post('points/grant')
+  @HttpCode(200)
+  async grant(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const admin = await this.admin(req, res, true)
+    const parsed = Grant.safeParse(body)
+    const code = parsed.success ? memberCode(parsed.data.code) : null
+    if (!parsed.success || !code) throw badRequest()
+    const { amount, reason, idemKey } = parsed.data
+    const result = await this.grants.grant(admin.id, code, amount, reason, idemKey)
+    if (result.kind === 'not_found') throw new PublicError('회원을 찾을 수 없어요.', 404)
+    if (result.kind === 'admin_target') throw new PublicError('관리자 계정에는 지급할 수 없어요.', 403)
+    if (result.kind === 'idem_conflict') throw new PublicError('같은 요청이 다른 내용으로 이미 처리됐어요. 새로 시도해 주세요.', 409)
+    if (result.kind === 'limit') {
+      const left = Math.max(0, GRANT_DAILY_MAX - result.usedToday)
+      throw new PublicError(`오늘 지급 한도(${GRANT_DAILY_MAX.toLocaleString('ko-KR')}P)를 넘어요. 오늘 남은 한도는 ${left.toLocaleString('ko-KR')}P예요.`, 409)
+    }
+    // Ids and amounts only in logs: never a nickname or member code (Security)
+    if (!result.replay) console.log(`admin grant ${result.grantId} amount=${amount}`)
+    return { result: 'ok', grantId: result.grantId }
+  }
+
+  @Get('points/grants')
+  async recentGrants(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Query() query: Record<string, unknown>) {
+    await this.admin(req, res, false)
+    if (Object.keys(query).length) throw badRequest()
+    const grants = await this.grants.recent()
+    // The pseudonym is worked out here, never stored (R-5); no user id leaves the server
+    return {
+      grants: grants.map(({ userId, ...g }) => ({ ...g, pseudonym: userId ? this.services.pseudonym(userId) : null })),
+    }
   }
 
   private answer(result: string) {

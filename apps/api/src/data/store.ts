@@ -57,7 +57,8 @@ export interface UserDataStore {
   /** false when the account already has MAX_FAVORITES (adding one it has is fine) */
   addFavorite(userId: string, cardId: string): Promise<boolean>
   removeFavorite(userId: string, cardId: string): Promise<void>
-  counts(userId: string): Promise<{ decks: number; favorites: number }>
+  /** Counts for /me, and the member code shown only there (docs/auction/admin-points.md) */
+  counts(userId: string): Promise<{ decks: number; favorites: number; memberCode: string | null }>
   setNickname(userId: string, nickname: string): Promise<void>
   /** Signs the user out everywhere */
   deleteSessions(userId: string): Promise<void>
@@ -198,11 +199,13 @@ export class PgDataStore implements UserDataStore {
   }
 
   async counts(userId: string) {
-    const { rows } = await this.db.execute<{ decks: number; favorites: number }>(
+    const { rows } = await this.db.execute<{ decks: number; favorites: number; member_code: string | null }>(
       sql`select (select count(*)::int from ${decks} where user_id = ${userId}) as decks,
-                 (select count(*)::int from ${favorites} where user_id = ${userId}) as favorites`,
+                 (select count(*)::int from ${favorites} where user_id = ${userId}) as favorites,
+                 (select member_code from account.users where id = ${userId}) as member_code`,
     )
-    return rows[0] ?? { decks: 0, favorites: 0 }
+    const r = rows[0]
+    return { decks: r?.decks ?? 0, favorites: r?.favorites ?? 0, memberCode: r?.member_code ?? null }
   }
 
   async setNickname(userId: string, nickname: string) {

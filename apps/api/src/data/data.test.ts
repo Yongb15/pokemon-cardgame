@@ -259,7 +259,7 @@ describe('user data routes (test sign-in, in-memory store)', () => {
 
     await call('/api/v1/decks', { method: 'POST', session: phone, body: deck() })
     await call('/api/v1/favorites/sv1-1', { method: 'PUT', session: phone })
-    expect((await call('/api/v1/me/summary', { session: laptop })).body).toEqual({ decks: 1, favorites: 1 })
+    expect((await call('/api/v1/me/summary', { session: laptop })).body).toEqual({ decks: 1, favorites: 1, memberCode: 'ABCD1234' })
 
     const out = await call('/api/v1/me/logout-all', { method: 'POST', session: laptop })
     expect(out.status).toBe(204)
@@ -279,6 +279,6 @@ describe('user data routes (test sign-in, in-memory store)', () => {
     expect(data.decks.some((d) => d.userId === me) || data.favorites.some((f) => f.userId === me)).toBe(false)
     // Signing in again starts a new, empty account
     const fresh = await signIn('leaver')
-    expect((await call('/api/v1/me/summary', { session: fresh })).body).toEqual({ decks: 0, favorites: 0 })
+    expect((await call('/api/v1/me/summary', { session: fresh })).body).toEqual({ decks: 0, favorites: 0, memberCode: 'ABCD1234' })
   })
 })
