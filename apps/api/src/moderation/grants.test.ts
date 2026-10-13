@@ -153,7 +153,8 @@ describe('admin point grant routes', () => {
 // columns by name, and only the admin lookup, the grants store and /me/summary may read it
 describe('member_code stays out of other queries', () => {
   const src = join(import.meta.dirname, '..')
-  const allowed = new Set(['moderation/grants.ts', 'data/store.ts', 'db/schema.ts', 'test/memory-store.ts'])
+  // auth/store.ts only names the unique index, to retry a signup on a code collision (I-g1)
+  const allowed = new Set(['moderation/grants.ts', 'data/store.ts', 'db/schema.ts', 'test/memory-store.ts', 'auth/store.ts'])
   const files = (dir: string): string[] =>
     readdirSync(join(src, dir), { withFileTypes: true }).flatMap((e) =>
       e.isDirectory() ? files(join(dir, e.name)) : e.name.endsWith('.ts') && !e.name.endsWith('.test.ts') ? [join(dir, e.name).replaceAll('\\', '/')] : [],
