@@ -3,25 +3,20 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import './index.css'
 import App from './App.tsx'
+import RouteError from './components/RouteError.tsx'
 import { prefetchSearchCards } from './api/cards.ts'
 import { filtersFromParams, PAGE_SIZE, pageFromParams, toSearchParams } from './lib/cardFilters.ts'
 import CardDetailPage from './pages/CardDetailPage.tsx'
 import CardListPage from './pages/CardListPage.tsx'
-import DeckEditorPage from './pages/DeckEditorPage.tsx'
-import DeckListPage from './pages/DeckListPage.tsx'
-import FavoritesPage from './pages/FavoritesPage.tsx'
-import AuctionPage from './pages/AuctionPage'
-import CollectionPage from './pages/CollectionPage'
-import MarketPage from './pages/MarketPage'
-import NotificationsPage from './pages/NotificationsPage'
-import { AdminAuctionPage, AdminReportsPage } from './pages/AdminPage'
-import PacksPage from './pages/PacksPage'
-import LoginPage from './pages/LoginPage.tsx'
-import MyPage from './pages/MyPage.tsx'
-import PricesPage from './pages/PricesPage.tsx'
-import { PrivacyPage, TermsPage } from './pages/PolicyPages.tsx'
-import SharedDeckPage from './pages/SharedDeckPage.tsx'
-import NotFoundPage from './pages/NotFoundPage.tsx'
+
+// The list and the card page are in the main bundle: they are where visits land (home, shared
+// links, search engines), and a separate chunk would only start downloading after this one.
+// Every other page is its own chunk, loaded on first visit; React Router waits for it before
+// switching pages, so nothing flashes in between.
+type PageModule = Record<string, React.ComponentType>
+const lazyPage = (load: () => Promise<PageModule>, name = 'default') => ({
+  lazy: async () => ({ Component: (await load())[name] }),
+})
 
 // The list is the usual landing page: ask for its first page now rather than after React has
 // rendered, so the cards (and their images) show up sooner
@@ -32,29 +27,57 @@ if (window.location.pathname === '/') {
   prefetchSearchCards({ ...toSearchParams(filtersFromParams(params)), page, pageSize: PAGE_SIZE })
 }
 
+// A tab opened before a deploy asks for page chunks that no longer exist (each deploy serves only
+// its own /assets). Load the page being opened afresh, which picks up the new version; if that
+// already happened just now, let the error through to RouteError, which offers a reload button.
+window.addEventListener('vite:preloadError', (event) => {
+  const KEY = 'card-dex:reloaded-for-new-version'
+  try {
+    const last = Number(sessionStorage.getItem(KEY))
+    if (Date.now() - last < 30_000) return
+    sessionStorage.setItem(KEY, String(Date.now()))
+  } catch {
+    return // storage blocked: no loop guard, so no automatic reload
+  }
+  event.preventDefault()
+  // Mid-navigation the URL still shows the page being left: go where the user was going
+  const next = router.state.navigation.location
+  if (next) window.location.assign(next.pathname + next.search + next.hash)
+  else window.location.reload()
+})
+
 const router = createBrowserRouter([
   {
     element: <App />,
+    errorElement: <RouteError />,
+    // First load of a page chunk: nothing yet (the page appears whole, so nothing shifts)
+    HydrateFallback: () => null,
     children: [
-      { index: true, element: <CardListPage /> },
-      { path: 'cards/:id', element: <CardDetailPage /> },
-      { path: 'prices', element: <PricesPage /> },
-      { path: 'decks', element: <DeckListPage /> },
-      { path: 'decks/shared', element: <SharedDeckPage /> },
-      { path: 'decks/:deckId', element: <DeckEditorPage /> },
-      { path: 'login', element: <LoginPage /> },
-      { path: 'me', element: <MyPage /> },
-      { path: 'favorites', element: <FavoritesPage /> },
-      { path: 'packs', element: <PacksPage /> },
-      { path: 'collection', element: <CollectionPage /> },
-      { path: 'market', element: <MarketPage /> },
-      { path: 'auctions/:id', element: <AuctionPage /> },
-      { path: 'notifications', element: <NotificationsPage /> },
-      { path: 'admin', element: <AdminReportsPage /> },
-      { path: 'admin/auctions/:id', element: <AdminAuctionPage /> },
-      { path: 'privacy', element: <PrivacyPage /> },
-      { path: 'terms', element: <TermsPage /> },
-      { path: '*', element: <NotFoundPage /> },
+      {
+        // A page that fails to load or crashes shows RouteError inside the app, header included
+        errorElement: <RouteError />,
+        children: [
+          { index: true, element: <CardListPage /> },
+          { path: 'cards/:id', element: <CardDetailPage /> },
+          { path: 'prices', ...lazyPage(() => import('./pages/PricesPage.tsx')) },
+          { path: 'decks', ...lazyPage(() => import('./pages/DeckListPage.tsx')) },
+          { path: 'decks/shared', ...lazyPage(() => import('./pages/SharedDeckPage.tsx')) },
+          { path: 'decks/:deckId', ...lazyPage(() => import('./pages/DeckEditorPage.tsx')) },
+          { path: 'login', ...lazyPage(() => import('./pages/LoginPage.tsx')) },
+          { path: 'me', ...lazyPage(() => import('./pages/MyPage.tsx')) },
+          { path: 'favorites', ...lazyPage(() => import('./pages/FavoritesPage.tsx')) },
+          { path: 'packs', ...lazyPage(() => import('./pages/PacksPage.tsx')) },
+          { path: 'collection', ...lazyPage(() => import('./pages/CollectionPage.tsx')) },
+          { path: 'market', ...lazyPage(() => import('./pages/MarketPage.tsx')) },
+          { path: 'auctions/:id', ...lazyPage(() => import('./pages/AuctionPage.tsx')) },
+          { path: 'notifications', ...lazyPage(() => import('./pages/NotificationsPage.tsx')) },
+          { path: 'admin', ...lazyPage(() => import('./pages/AdminPage.tsx'), 'AdminReportsPage') },
+          { path: 'admin/auctions/:id', ...lazyPage(() => import('./pages/AdminPage.tsx'), 'AdminAuctionPage') },
+          { path: 'privacy', ...lazyPage(() => import('./pages/PolicyPages.tsx'), 'PrivacyPage') },
+          { path: 'terms', ...lazyPage(() => import('./pages/PolicyPages.tsx'), 'TermsPage') },
+          { path: '*', ...lazyPage(() => import('./pages/NotFoundPage.tsx')) },
+        ],
+      },
     ],
   },
 ])
