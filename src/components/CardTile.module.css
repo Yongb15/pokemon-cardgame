@@ -57,6 +57,12 @@
   text-overflow: ellipsis;
 }
 
+/* In a move search, the move that matched (in place of the English name) */
+.move {
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
 .sub {
   margin-top: 2px;
   font-size: 12px;

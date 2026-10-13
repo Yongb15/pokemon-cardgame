@@ -18,6 +18,7 @@ import {
   pageFromParams,
   SORT_OPTIONS,
   type CardFilters,
+  type SearchScope,
   type SortKey,
 } from '../lib/cardFilters'
 import { rarityLabel } from '../lib/cardText'
@@ -169,7 +170,7 @@ export default function CardListPage() {
   )
 
   const activeChips = [
-    filters.name && { key: 'name', label: `검색: ${filters.name}`, clear: clearName },
+    filters.name && { key: 'name', label: `${filters.scope === 'move' ? '기술' : '검색'}: ${filters.name}`, clear: clearName },
     filters.type && { key: 'type', label: `타입: ${TYPE_LABEL[filters.type]}`, clear: () => updateFilters({ type: '' }) },
     filters.set && { key: 'set', label: `세트: ${selectedSet?.nameKo ?? filters.set}`, clear: () => updateFilters({ set: '' }) },
     filters.rarity && { key: 'rarity', label: `희귀도: ${rarityLabel(filters.rarity)}`, clear: () => updateFilters({ rarity: '' }) },
@@ -182,10 +183,20 @@ export default function CardListPage() {
       <p className={styles.subtitle}>포켓몬 TCG의 모든 카드를 검색하고 살펴보세요.</p>
 
       <div className={styles.searchRow}>
+        <ScopeSwitch value={filters.scope} onChange={(scope) => updateFilters({ scope })} />
         <SearchBar
           value={nameInput}
           onChange={setNameInput}
-          placeholder={isMobile ? '카드 이름 검색' : '카드 이름으로 검색 (예: 리자몽, 피카츄, Charizard)'}
+          label={filters.scope === 'move' ? '기술·특성 이름 검색' : '카드 이름 검색'}
+          placeholder={
+            filters.scope === 'move'
+              ? isMobile
+                ? '기술·특성 이름 검색'
+                : '기술·특성 이름으로 검색 (예: 화염방사, 10만볼트, Flamethrower)'
+              : isMobile
+                ? '카드 이름 검색'
+                : '카드 이름으로 검색 (예: 리자몽, 피카츄, Charizard)'
+          }
         />
       </div>
 
@@ -271,7 +282,19 @@ export default function CardListPage() {
           />
         )}
         {status === 'success' && search.cards.length === 0 && (
-          <EmptyState query={filters.name} onReset={resetFilters} />
+          <EmptyState
+            query={filters.name}
+            byMove={filters.scope === 'move'}
+            onReset={resetFilters}
+            onSearchMoves={
+              filters.scope === 'name' && filters.name
+                ? () => {
+                    updateFilters({ scope: 'move' })
+                    focusResults() // the button goes away with the empty state
+                  }
+                : undefined
+            }
+          />
         )}
         {status === 'success' && search.cards.length > 0 && (
           <CardGrid>
@@ -298,5 +321,22 @@ export default function CardListPage() {
         )}
       </section>
     </main>
+  )
+}
+
+/** "카드 이름 | 기술·특성": what the search box looks in (kept in the URL as ?in=move) */
+function ScopeSwitch({ value, onChange }: { value: SearchScope; onChange: (scope: SearchScope) => void }) {
+  const options: [SearchScope, string][] = [
+    ['name', '카드 이름'],
+    ['move', '기술·특성'],
+  ]
+  return (
+    <div className={styles.scope} role="group" aria-label="검색 대상">
+      {options.map(([scope, label]) => (
+        <button key={scope} type="button" aria-pressed={value === scope} onClick={() => onChange(scope)}>
+          {label}
+        </button>
+      ))}
+    </div>
   )
 }
