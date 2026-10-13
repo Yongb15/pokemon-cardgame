@@ -717,7 +717,7 @@
   }
 
   .neighbor img,
-  .neighborThumb,
+  .neighbor .neighborThumb, /* beats `.neighbor > span` */
   .neighborNumber {
     display: none;
   }
