@@ -255,6 +255,8 @@ export function AdminPointsPage() {
   const openButton = useRef<HTMLButtonElement>(null)
   const confirmButton = useRef<HTMLButtonElement>(null)
   const messageRef = useRef<HTMLParagraphElement>(null)
+  const amountInput = useRef<HTMLInputElement>(null)
+  const reasonInput = useRef<HTMLInputElement>(null)
 
   const loadGrants = () =>
     adminGrants()
@@ -289,11 +291,14 @@ export function AdminPointsPage() {
     if (!amountOk) {
       setProblem('amount')
       setMessage({ ok: false, text: `포인트는 1~${GRANT_MAX.toLocaleString('ko-KR')} 사이의 정수로 입력해 주세요.` })
+      // The field, described by the message: a screen reader hears both (qa nit)
+      amountInput.current?.focus()
       return
     }
     if (!reasonOk) {
       setProblem('reason')
       setMessage({ ok: false, text: reasonText ? '이유에 이메일·전화번호는 쓸 수 없어요.' : '지급 이유를 입력해 주세요.' })
+      reasonInput.current?.focus()
       return
     }
     setProblem(null)
@@ -406,9 +411,11 @@ export function AdminPointsPage() {
             포인트 (1~{GRANT_MAX.toLocaleString('ko-KR')})
             <input
               className={styles.input}
+              ref={amountInput}
               inputMode="numeric"
               value={amount}
               aria-invalid={problem === 'amount' || undefined}
+              aria-describedby={problem === 'amount' ? 'grant-message' : undefined}
               onChange={(e) => {
                 setAmount(e.target.value)
                 setConfirming(null)
@@ -420,9 +427,11 @@ export function AdminPointsPage() {
             이유 (관리자 기록용, 사용자에게 보이지 않아요. 이메일·전화번호 등 개인정보는 쓰지 마세요)
             <input
               className={styles.input}
+              ref={reasonInput}
               maxLength={200}
               value={reason}
               aria-invalid={problem === 'reason' || undefined}
+              aria-describedby={problem === 'reason' ? 'grant-message' : undefined}
               onChange={(e) => {
                 setReason(e.target.value)
                 setConfirming(null)
@@ -456,7 +465,7 @@ export function AdminPointsPage() {
 
       <div className={styles.feedback} aria-live="polite">
         {message && (
-          <p ref={messageRef} tabIndex={-1} className={message.ok ? styles.ok : styles.alert}>
+          <p ref={messageRef} id="grant-message" tabIndex={-1} className={message.ok ? styles.ok : styles.alert}>
             {message.text}
           </p>
         )}
