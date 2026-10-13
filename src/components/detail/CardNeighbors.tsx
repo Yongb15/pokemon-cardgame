@@ -20,9 +20,15 @@ interface Props {
  */
 export default function CardNeighbors({ prev = null, next = null, loading = false, trail }: Props) {
   if (loading) {
+    // Built like a real link (thumb + two text lines, hidden text), so it is the same height at
+    // every width; phones hide the thumb and show only the lines (qa)
     const box = (
-      <span className={styles.neighbor}>
+      <span className={`${styles.neighbor} ${styles.neighborPlaceholder}`}>
         <span className={styles.neighborThumb} />
+        <span>
+          <span className={styles.neighborLabel}>‹ 이전 카드</span>
+          <span className={styles.neighborName}>#000 카드</span>
+        </span>
       </span>
     )
     return (

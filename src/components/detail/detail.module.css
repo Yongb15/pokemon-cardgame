@@ -494,7 +494,12 @@
   border-color: var(--border-strong);
 }
 
-/* Placeholder while loading: the thumbnail's size (44 wide at 245:342) */
+/* Placeholder while loading: hidden text, and the thumbnail's size (44 wide at 245:342) */
+.neighborPlaceholder,
+.neighborPlaceholder * {
+  color: transparent;
+}
+
 .neighborThumb {
   width: 44px;
   aspect-ratio: 245 / 342;
@@ -712,6 +717,7 @@
   }
 
   .neighbor img,
+  .neighborThumb,
   .neighborNumber {
     display: none;
   }
