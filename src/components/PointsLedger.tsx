@@ -14,7 +14,7 @@ const KIND_LABEL: Record<PointKind, string> = {
   sale_income: '판매 수입',
   sale_fee: '판매 수수료',
   purchase: '낙찰',
-  admin_adjust: '포인트 조정',
+  admin_adjust: '운영자 지급',
 }
 
 /** "10.11" in Korea time */

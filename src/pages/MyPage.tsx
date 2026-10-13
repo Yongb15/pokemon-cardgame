@@ -17,7 +17,8 @@ export default function MyPage() {
   const session = useSession()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const [summary, setSummary] = useState<{ decks: number; favorites: number } | null>(null)
+  const [summary, setSummary] = useState<{ decks: number; favorites: number; memberCode: string | null } | null>(null)
+  const [copied, setCopied] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
   const [busy, setBusy] = useState<'rename' | 'all' | 'leave' | null>(null)
@@ -153,6 +154,30 @@ export default function MyPage() {
                 <p className={styles.small}>구글과 카카오는 서로 다른 계정이에요.</p>
               </div>
               <span className={styles.chip}>{session.user.providers.map((p) => PROVIDER_LABEL[p] ?? p).join(' · ')}</span>
+            </div>
+            <div className={styles.row}>
+              <div>
+                <p className={styles.rowTitle}>회원 코드</p>
+                <p className={styles.small}>운영자에게 포인트 지급이나 문의를 할 때 알려 주세요. 다른 사람에게는 보이지 않아요.</p>
+              </div>
+              <span className={styles.inline}>
+                {/* Fixed width while loading, so nothing moves when the code arrives */}
+                <code className={styles.memberCode}>{summary?.memberCode ? `${summary.memberCode.slice(0, 4)}-${summary.memberCode.slice(4)}` : '…'}</code>
+                <button
+                  type="button"
+                  className={styles.button}
+                  disabled={!summary?.memberCode}
+                  onClick={() => {
+                    if (!summary?.memberCode) return
+                    navigator.clipboard
+                      ?.writeText(summary.memberCode)
+                      .then(() => setCopied(true))
+                      .catch(() => setCopied(false))
+                  }}
+                >
+                  {copied ? '복사했어요' : '복사'}
+                </button>
+              </span>
             </div>
           </section>
 

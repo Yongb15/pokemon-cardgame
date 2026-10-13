@@ -235,6 +235,19 @@
   cursor: not-allowed;
 }
 
+/* The member code on /me: monospaced, fixed width (8 hex + hyphen) */
+.memberCode {
+  min-width: 9ch;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: var(--surface-muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
 .chip {
   padding: 3px 10px;
   border-radius: 999px;

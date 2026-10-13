@@ -58,7 +58,8 @@ export async function accountFetch<T>(path: string, init: { method?: string; bod
 
 export const getMe = (signal?: AbortSignal) => accountFetch<{ user: AccountUser | null }>('/me', { signal })
 export const logout = () => accountFetch<void>('/auth/logout', { method: 'POST' })
-export const getSummary = () => accountFetch<{ decks: number; favorites: number }>('/me/summary')
+/** Counts for /me, and the member code shown only there (docs/auction/admin-points.md) */
+export const getSummary = () => accountFetch<{ decks: number; favorites: number; memberCode: string | null }>('/me/summary')
 export const renameMe = (nickname: string) => accountFetch<{ user: AccountUser }>('/me', { method: 'PATCH', body: { nickname } })
 export const logoutEverywhere = () => accountFetch<void>('/me/logout-all', { method: 'POST' })
 export const leave = (confirm: string) => accountFetch<void>('/me', { method: 'DELETE', body: { confirm } })
@@ -269,6 +270,28 @@ export const adminReports = () => accountFetch<{ auctions: ReportedAuction[] }>(
 export const adminAuction = (id: string) => accountFetch<{ auction: AdminAuction }>(`/admin/auctions/${encodeURIComponent(id)}`)
 export const adminModerate = (id: string, action: 'dismiss' | 'remove', reason: string) =>
   accountFetch<{ result: 'ok' }>(`/admin/auctions/${encodeURIComponent(id)}/${action}`, { method: 'POST', body: { reason } })
+
+/** Admin point grants (docs/auction/admin-points.md) */
+export interface AdminMember {
+  code: string
+  nickname: string
+  joinedAt: string
+  pseudonym: string | null
+}
+export interface AdminGrant {
+  id: string
+  at: string
+  /** null once the user has left */
+  memberCode: string | null
+  amount: number
+  /** null after a year */
+  reason: string | null
+  pseudonym: string | null
+}
+export const adminMember = (code: string) => accountFetch<{ member: AdminMember }>(`/admin/members/${encodeURIComponent(code)}`)
+export const adminGrant = (body: { code: string; amount: number; reason: string; idemKey: string }) =>
+  accountFetch<{ result: 'ok'; grantId: string }>('/admin/points/grant', { method: 'POST', body })
+export const adminGrants = () => accountFetch<{ grants: AdminGrant[] }>('/admin/points/grants')
 
 export const watchAuction = (id: string) => accountFetch<void>(`/me/auctions/${encodeURIComponent(id)}/watch`, { method: 'PUT' })
 export const unwatchAuction = (id: string) => accountFetch<void>(`/me/auctions/${encodeURIComponent(id)}/watch`, { method: 'DELETE' })
