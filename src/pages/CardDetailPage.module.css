@@ -142,8 +142,11 @@
   font-weight: 500;
 }
 
-/* 관심 카드 · 덱에 담기 */
+/* 관심 카드 · 덱에 담기, always on their own line: whether they fit after the badges depended on
+   the text width, which changes when the web font replaces the fallback, so they jumped a line
+   (qa: CLS 0.06 at 375, 0.09–0.21 at 641–1000) */
 .actions {
+  flex-basis: 100%;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -218,12 +221,6 @@
 }
 
 @media (max-width: 640px) {
-  /* Their own line on phones: whether they fit after the badges depended on the text width,
-     which changes when the web font arrives, so 덱에 담기 jumped a line (qa, 375 CLS ~0.06) */
-  .actions {
-    flex-basis: 100%;
-  }
-
   .main {
     padding-top: 16px;
     padding-bottom: 40px;
