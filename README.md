@@ -26,6 +26,7 @@
 ## 주요 기능
 
 - **한국어·영어 검색** — "리자몽", "메가 리자몽", "Charizard" 모두 검색. 띄어쓰기·대소문자·악센트(Flabébé) 무시
+- **기술·특성 이름으로 검색** — "카드 이름 | 기술·특성" 전환으로 "화염방사", "10만볼트", "Flamethrower"를 가진 카드 찾기. 결과마다 맞은 기술을 표시하고 다른 필터와 함께 사용(`?in=move`)
 - **모든 카드·세트·희귀도를 한국어로** — 20,635장 전부 한국어 이름으로 표시. 공식 이름 18,725장(포켓몬 17,342 · 트레이너스·에너지 1,383), 공식명을 확인하지 못한 1,910장은 직접 번역하고 상세 화면에 "비공식 번역"으로 표시. 세트 176개·희귀도 45종도 한국어(영어 세트명은 상세에 함께 표기)
 - **한국어 카드 이름** — 포켓몬 카드는 공식 한국어 포켓몬 이름으로 번역(99.5%). 예) Charizard ex → 리자몽 ex, Misty's Gyarados → 이슬의 갸라도스, Teal Mask Ogerpon ex → 오거폰 벽록의 가면 ex
 - **트레이너스 카드 한국어 이름** — 게임 공식 아이템·장소명(Rare Candy → 이상한사탕, Prism Tower → 프리즘타워)과, 한국 공식 카드 검색에서 한 장씩 대조한 이름 사전(Arven → 페퍼, Professor's Research (Professor Sada) → 박사의 연구(올림박사))으로 1,383장 번역
@@ -228,7 +229,7 @@ node scripts/build-images.mjs <출력 폴더>   # 카드 이미지 WebP 생성 (
 
 | 요청 | 설명 |
 |---|---|
-| `GET /api/cards?name=&type=&set=&rarity=&supertype=&format=&sort=&page=&pageSize=` | 검색 (`sort`: newest, oldest, name, number / `supertype`: Pokémon, Trainer, Energy / `format`: standard, expanded / `pageSize` 최대 250) |
+| `GET /api/cards?name=&in=&type=&set=&rarity=&supertype=&format=&sort=&page=&pageSize=` | 검색 (`in`: name(기본), move(기술·특성 이름) / `sort`: newest, oldest, name, number / `supertype`: Pokémon, Trainer, Energy / `format`: standard, expanded / `pageSize` 최대 250) |
 | `GET /api/cards/batch?ids=a,b,c` | 여러 카드를 한 번에 (최대 60개, 덱 빌더용) |
 | `GET /api/cards/:id` | 카드 상세 |
 | `GET /api/cards/:id/neighbors` | 같은 세트의 이전/다음 카드 |
@@ -304,6 +305,7 @@ src/
 - [x] v1.7.0 경매 신고·관리자 화면 (M8), llms.txt
 - [x] v1.8.0 카드 문장 한국어 번역 (최신 26세트, 비공식 표시·원문 전환)
 - [x] v1.8.1 옛 세트 카드 문장 번역 (모든 기술·특성 32,376개)
+- [x] v1.9.0 기술·특성 이름으로 카드 검색
 - [ ] 거래자 평가 — 경매마다 익명인 지금 원칙을 바꿔야 해서 보류
 - [ ] 새 세트 데이터 추가 (원본 데이터 저장소가 2026-09 이후 갱신되지 않음)
 
