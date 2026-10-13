@@ -1,0 +1,7 @@
+/* Same frame as the pages it stands in for */
+.main {
+  width: 100%;
+  max-width: calc(var(--page-width) + var(--gutter) * 2);
+  margin: 0 auto;
+  padding: 40px var(--gutter) 64px;
+}

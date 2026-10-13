@@ -35,7 +35,8 @@
   border: 0;
   border-radius: 8px;
   background: none;
-  color: var(--text-muted);
+  /* --text, not --text-muted: muted is 4.1:1 on this track (qa CS-2) */
+  color: var(--text);
   font: inherit;
   font-size: 13px;
   font-weight: 600;

@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import './index.css'
 import App from './App.tsx'
+import RouteError from './components/RouteError.tsx'
 import { prefetchSearchCards } from './api/cards.ts'
 import { filtersFromParams, PAGE_SIZE, pageFromParams, toSearchParams } from './lib/cardFilters.ts'
 import CardDetailPage from './pages/CardDetailPage.tsx'
@@ -26,31 +27,57 @@ if (window.location.pathname === '/') {
   prefetchSearchCards({ ...toSearchParams(filtersFromParams(params)), page, pageSize: PAGE_SIZE })
 }
 
+// A tab opened before a deploy asks for page chunks that no longer exist (each deploy serves only
+// its own /assets). Load the page being opened afresh, which picks up the new version; if that
+// already happened just now, let the error through to RouteError, which offers a reload button.
+window.addEventListener('vite:preloadError', (event) => {
+  const KEY = 'card-dex:reloaded-for-new-version'
+  try {
+    const last = Number(sessionStorage.getItem(KEY))
+    if (Date.now() - last < 30_000) return
+    sessionStorage.setItem(KEY, String(Date.now()))
+  } catch {
+    return // storage blocked: no loop guard, so no automatic reload
+  }
+  event.preventDefault()
+  // Mid-navigation the URL still shows the page being left: go where the user was going
+  const next = router.state.navigation.location
+  if (next) window.location.assign(next.pathname + next.search + next.hash)
+  else window.location.reload()
+})
+
 const router = createBrowserRouter([
   {
     element: <App />,
+    errorElement: <RouteError />,
     // First load of a page chunk: nothing yet (the page appears whole, so nothing shifts)
     HydrateFallback: () => null,
     children: [
-      { index: true, element: <CardListPage /> },
-      { path: 'cards/:id', element: <CardDetailPage /> },
-      { path: 'prices', ...lazyPage(() => import('./pages/PricesPage.tsx')) },
-      { path: 'decks', ...lazyPage(() => import('./pages/DeckListPage.tsx')) },
-      { path: 'decks/shared', ...lazyPage(() => import('./pages/SharedDeckPage.tsx')) },
-      { path: 'decks/:deckId', ...lazyPage(() => import('./pages/DeckEditorPage.tsx')) },
-      { path: 'login', ...lazyPage(() => import('./pages/LoginPage.tsx')) },
-      { path: 'me', ...lazyPage(() => import('./pages/MyPage.tsx')) },
-      { path: 'favorites', ...lazyPage(() => import('./pages/FavoritesPage.tsx')) },
-      { path: 'packs', ...lazyPage(() => import('./pages/PacksPage.tsx')) },
-      { path: 'collection', ...lazyPage(() => import('./pages/CollectionPage.tsx')) },
-      { path: 'market', ...lazyPage(() => import('./pages/MarketPage.tsx')) },
-      { path: 'auctions/:id', ...lazyPage(() => import('./pages/AuctionPage.tsx')) },
-      { path: 'notifications', ...lazyPage(() => import('./pages/NotificationsPage.tsx')) },
-      { path: 'admin', ...lazyPage(() => import('./pages/AdminPage.tsx'), 'AdminReportsPage') },
-      { path: 'admin/auctions/:id', ...lazyPage(() => import('./pages/AdminPage.tsx'), 'AdminAuctionPage') },
-      { path: 'privacy', ...lazyPage(() => import('./pages/PolicyPages.tsx'), 'PrivacyPage') },
-      { path: 'terms', ...lazyPage(() => import('./pages/PolicyPages.tsx'), 'TermsPage') },
-      { path: '*', ...lazyPage(() => import('./pages/NotFoundPage.tsx')) },
+      {
+        // A page that fails to load or crashes shows RouteError inside the app, header included
+        errorElement: <RouteError />,
+        children: [
+          { index: true, element: <CardListPage /> },
+          { path: 'cards/:id', element: <CardDetailPage /> },
+          { path: 'prices', ...lazyPage(() => import('./pages/PricesPage.tsx')) },
+          { path: 'decks', ...lazyPage(() => import('./pages/DeckListPage.tsx')) },
+          { path: 'decks/shared', ...lazyPage(() => import('./pages/SharedDeckPage.tsx')) },
+          { path: 'decks/:deckId', ...lazyPage(() => import('./pages/DeckEditorPage.tsx')) },
+          { path: 'login', ...lazyPage(() => import('./pages/LoginPage.tsx')) },
+          { path: 'me', ...lazyPage(() => import('./pages/MyPage.tsx')) },
+          { path: 'favorites', ...lazyPage(() => import('./pages/FavoritesPage.tsx')) },
+          { path: 'packs', ...lazyPage(() => import('./pages/PacksPage.tsx')) },
+          { path: 'collection', ...lazyPage(() => import('./pages/CollectionPage.tsx')) },
+          { path: 'market', ...lazyPage(() => import('./pages/MarketPage.tsx')) },
+          { path: 'auctions/:id', ...lazyPage(() => import('./pages/AuctionPage.tsx')) },
+          { path: 'notifications', ...lazyPage(() => import('./pages/NotificationsPage.tsx')) },
+          { path: 'admin', ...lazyPage(() => import('./pages/AdminPage.tsx'), 'AdminReportsPage') },
+          { path: 'admin/auctions/:id', ...lazyPage(() => import('./pages/AdminPage.tsx'), 'AdminAuctionPage') },
+          { path: 'privacy', ...lazyPage(() => import('./pages/PolicyPages.tsx'), 'PrivacyPage') },
+          { path: 'terms', ...lazyPage(() => import('./pages/PolicyPages.tsx'), 'TermsPage') },
+          { path: '*', ...lazyPage(() => import('./pages/NotFoundPage.tsx')) },
+        ],
+      },
     ],
   },
 ])
