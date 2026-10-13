@@ -6,6 +6,7 @@ import ImportDialog from '../components/deck/ImportDialog'
 import { errorMessage, importBrowserDecks, loadAccountDecks, refreshAccountDecks } from '../hooks/useAccountDecks'
 import { createInLibrary, useDeckLibrary } from '../hooks/useDeckLibrary'
 import { useDecks } from '../hooks/useDecks'
+import { wasSignedIn } from '../hooks/useSession'
 import { DECK_SIZE, deckSize, FORMATS, smallImageUrl, type Deck, type DeckCard } from '../lib/deck'
 import styles from './DeckPages.module.css'
 
@@ -27,6 +28,9 @@ const updatedLabel = (time: number) => (time ? dateFormat.format(time) : '날짜
 // Asking to move this browser's decks into the account: "later" lasts for this tab, "never" for
 // this browser (then a quiet link stays instead) (docs/design/deck-sync.webp)
 const LATER_KEY = 'card-dex:import-later'
+// Whether the account had no decks last time ('0') or some ('1'): a layout hint only, like
+// card-dex:signed-in, so the placeholder while loading is the size of what usually comes
+const ACCOUNT_DECKS_KEY = 'card-dex:account-decks'
 const NEVER_KEY = 'card-dex:import-never'
 const readFlag = (storage: () => Storage, key: string) => {
   try {
@@ -49,6 +53,14 @@ function importSummary(r: ImportResult) {
   if (r.overLimit.length) parts.push(`${r.overLimit.length}개는 한도(100) 때문에 이 브라우저에 남겨 뒀어요.`)
   if (r.invalid) parts.push(`읽을 수 없는 덱 ${r.invalid}개는 그대로 뒀어요.`)
   return parts.join(' ')
+}
+
+function readAccountDecksHint() {
+  try {
+    return localStorage.getItem(ACCOUNT_DECKS_KEY)
+  } catch {
+    return null
+  }
 }
 
 export default function DeckListPage() {
@@ -79,6 +91,15 @@ export default function DeckListPage() {
 
   // Coming back to the list: pick up decks changed on another device meanwhile (qa C-2)
   const listReady = library.mode === 'account' && library.status === 'ready'
+  const accountEmpty = library.mode === 'account' && library.status === 'ready' ? library.decks.length === 0 : null
+  useEffect(() => {
+    if (accountEmpty === null) return
+    try {
+      localStorage.setItem(ACCOUNT_DECKS_KEY, accountEmpty ? '0' : '1')
+    } catch {
+      // not remembered: the placeholder falls back to the list size
+    }
+  }, [accountEmpty])
   const refreshed = useRef(false)
   useEffect(() => {
     if (!listReady || refreshed.current) return
@@ -130,6 +151,24 @@ export default function DeckListPage() {
   const signedIn = library.mode === 'account'
   const decks = library.mode === 'local' || (library.mode === 'account' && library.status === 'ready') ? library.decks : null
   const showOffer = signedIn && browserDecks.length > 0
+
+  const emptyState = (
+    <div className={styles.empty}>
+      <h2>아직 만든 덱이 없어요</h2>
+      <p>카드를 골라 60장 덱을 만들거나, Pokémon TCG Live 덱 목록을 붙여넣어 시작하세요.</p>
+      {actions}
+    </div>
+  )
+  // What will most likely show once loaded: signed out last time → this browser's decks; signed in →
+  // empty or a list, as the account was last time
+  const likely: 'empty' | 'list' | Deck[] =
+    library.mode === 'checking' && !wasSignedIn()
+      ? browserDecks.length
+        ? browserDecks
+        : 'empty'
+      : readAccountDecksHint() === '0'
+        ? 'empty'
+        : 'list'
 
   return (
     <main className={styles.main}>
@@ -215,16 +254,26 @@ export default function DeckListPage() {
           </button>
         </p>
       ) : !decks ? (
-        <div className={styles.listSkeleton} aria-busy="true" aria-label="덱을 불러오는 중" />
+        <Holding>{likely === 'list' ? null : likely === 'empty' ? emptyState : deckGrid(likely)}</Holding>
       ) : decks.length === 0 ? (
-        <div className={styles.empty}>
-          <h2>아직 만든 덱이 없어요</h2>
-          <p>카드를 골라 60장 덱을 만들거나, Pokémon TCG Live 덱 목록을 붙여넣어 시작하세요.</p>
-          {actions}
-        </div>
+        emptyState
       ) : (
+        deckGrid(decks)
+      )}
+
+      {importing && (
+        <ImportDialog
+          onClose={() => setImporting(false)}
+          onImport={(cards) => void create({ name: '가져온 덱', cards })}
+        />
+      )}
+    </main>
+  )
+
+  function deckGrid(list: Deck[]) {
+    return (
         <ul className={styles.deckGrid}>
-          {decks.map((deck) => (
+          {list.map((deck) => (
             <li key={deck.id}>
               <Link to={`/decks/${deck.id}`} className={styles.deckCard}>
                 <div className={styles.cover}>
@@ -246,14 +295,20 @@ export default function DeckListPage() {
             </li>
           ))}
         </ul>
-      )}
+    )
+  }
+}
 
-      {importing && (
-        <ImportDialog
-          onClose={() => setImporting(false)}
-          onImport={(cards) => void create({ name: '가져온 덱', cards })}
-        />
-      )}
-    </main>
+/**
+ * While the sign-in check (or the account's decks) loads: the likeliest final content, invisible and
+ * inert, so the real one replaces it at the same height (qa: the 70vh skeleton turned into a 245px
+ * empty box and everything below jumped). With nothing to predict, the screen-tall skeleton.
+ */
+function Holding({ children }: { children: React.ReactNode }) {
+  if (!children) return <div className={styles.listSkeleton} aria-busy="true" aria-label="덱을 불러오는 중" />
+  return (
+    <div className={styles.holding} aria-busy="true" aria-label="덱을 불러오는 중" inert>
+      {children}
+    </div>
   )
 }
