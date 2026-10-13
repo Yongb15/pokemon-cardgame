@@ -14,6 +14,7 @@ import { PriceAlertsController } from './alerts/alerts.controller.js'
 import { batchPrices, type PriceFetch } from './alerts/prices.js'
 import type { AlertsStore } from './alerts/store.js'
 import { AdminController, ReportsController } from './moderation/moderation.controller.js'
+import type { GrantsStore } from './moderation/grants.js'
 import { pseudonymizer, type ModerationStore } from './moderation/store.js'
 import { PacksCatalogController, PacksController, TestPacksController } from './packs/packs.controller.js'
 import type { PacksStore } from './packs/store.js'
@@ -69,6 +70,7 @@ export interface Dependencies {
   /** Tests swap the price lookup for a fake */
   prices?: PriceFetch | null
   moderation?: ModerationStore | null
+  grants?: GrantsStore | null
   testProvider?: TestProvider | null
   /** Tests swap the real providers' endpoints for local fakes */
   google?: Provider | null
@@ -100,6 +102,7 @@ export function buildServices(config: Config, deps: Dependencies = {}): Services
     alerts: store ? (deps.alerts ?? null) : null,
     prices: store && deps.alerts ? (deps.prices ?? batchPrices(config.PRICES_ORIGIN ?? config.PUBLIC_ORIGIN)) : null,
     moderation: store ? (deps.moderation ?? null) : null,
+    grants: store ? (deps.grants ?? null) : null,
     pseudonym: pseudonymizer(config.ADMIN_PSEUDONYM_KEY ? Buffer.from(config.ADMIN_PSEUDONYM_KEY, 'base64url') : null),
     writeLimit: new RateLimiter(60, 60_000),
   }

@@ -2,9 +2,9 @@ import { useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import styles from './AccountPages.module.css'
 
-const EFFECTIVE = '2026년 10월 12일'
+const EFFECTIVE = '2026년 10월 14일'
 /** What changed last (shown under the date) */
-const CHANGES = '브라우저에만 두는 화면 설정 안내 추가(이전 시행일 2026년 10월 11일)'
+const CHANGES = '회원 코드와 운영자 포인트 지급 기록 추가(이전 시행일 2026년 10월 12일)'
 
 function Policy({ title, children }: { title: string; children: ReactNode }) {
   useEffect(() => {
@@ -41,6 +41,14 @@ export function PrivacyPage() {
         </li>
         <li>
           <b>닉네임</b>: 처음 로그인할 때 "트레이너0000" 형식으로 만들어지고, 마이페이지에서 바꿀 수 있습니다.
+        </li>
+        <li>
+          <b>회원 코드</b>: 가입할 때 무작위로 만드는 8자리 코드. 본인 마이페이지에만 보이며, 운영자에게 포인트 지급이나
+          문의를 할 때 본인을 확인하는 데 씁니다. 경매·알림 등 다른 사람에게는 보이지 않습니다.
+        </li>
+        <li>
+          <b>운영자 포인트 지급 기록</b>: 지급받은 계정, 금액, 시각, 운영자가 적은 이유(개인정보를 적지 않음). 이유는 1년 뒤
+          지우고, 탈퇴하면 금액·시각은 남되 계정과의 연결을 끊습니다.
         </li>
         <li>
           <b>이용 기록</b>: 계정에 저장한 덱, 관심 카드, 로그인 세션(쿠키 값의 해시와 만료 시각).
@@ -177,7 +185,8 @@ export function TermsPage() {
           팔거나 환불·현금으로 바꿀 수 없으며, 포인트를 파는 일도 없습니다.
         </li>
         <li>
-          포인트는 가입 보너스, 매일 출석, 경매 판매로 얻습니다. 오류나 금지된 행위를 바로잡을 때 운영자가 포인트를 조정할 수
+          포인트는 가입 보너스, 매일 출석, 경매 판매로 얻습니다. 운영자는 보상·이벤트·오류 보정을 위해 회원 코드로 포인트를
+          지급할 수 있고(한 번에 10만P, 하루 50만P 이내, 차감 없음), 오류나 금지된 행위를 바로잡을 때 포인트를 조정할 수
           있습니다. 카드팩 확률은 카드팩 화면에 공개합니다.
         </li>
         <li>

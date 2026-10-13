@@ -166,3 +166,55 @@
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* /admin/points */
+.primary {
+  height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--accent-strong);
+  border-radius: 8px;
+  background: var(--accent-strong);
+  color: var(--on-accent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.primary[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.member {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px 20px;
+}
+
+.member dt {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.member dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--text-h);
+  overflow-wrap: anywhere;
+}
+
+.confirm {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.confirm p {
+  margin: 0;
+}
+

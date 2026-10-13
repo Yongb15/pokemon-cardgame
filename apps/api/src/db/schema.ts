@@ -37,8 +37,19 @@ export const users = account.table(
     /** Display only, cleaned like deck names (2–20 characters) */
     nickname: text('nickname').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    /**
+     * Shown only on the user's own /me; an admin types it to grant points (docs/auction/admin-points.md).
+     * 8 hex from core functions (no pgcrypto: Security G-4); a rare collision fails the insert, retried
+     */
+    memberCode: text('member_code')
+      .notNull()
+      .default(sql`upper(substr(md5(gen_random_uuid()::text), 1, 8))`),
   },
-  () => [check('users_nickname_check', sql`char_length(nickname) between 2 and 20`)],
+  (t) => [
+    check('users_nickname_check', sql`char_length(nickname) between 2 and 20`),
+    uniqueIndex('users_member_code_idx').on(t.memberCode),
+    check('users_member_code_check', sql`member_code ~ '^[0-9A-F]{8}$'`),
+  ],
 )
 
 /** One row per sign-in method; the provider's `sub` is the only thing we keep from it */
@@ -475,5 +486,31 @@ export const adminActions = account.table(
     index('admin_actions_auction_idx').on(t.auctionId, t.createdAt),
     check('admin_actions_action_check', sql`action in ('dismiss', 'remove')`),
     check('admin_actions_reason_check', sql`char_length(reason) between 1 and 200`),
+  ],
+)
+
+/**
+ * Points an admin granted (docs/auction/admin-points.md). Append-only for the API; every reference is
+ * SET NULL so a granted user can still leave (G-1) and the record stays, unlinked. Idempotent per admin
+ * (G-2); the reason is cleared after a year (R-3), the amount and time stay.
+ */
+export const adminPointGrants = account.table(
+  'admin_point_grants',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    adminId: uuid('admin_id').references(() => users.id, { onDelete: 'set null' }),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+    amount: integer('amount').notNull(),
+    reason: text('reason'),
+    entryId: uuid('entry_id').references(() => pointEntries.id, { onDelete: 'set null' }),
+    idemKey: text('idem_key').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
+  },
+  (t) => [
+    uniqueIndex('admin_point_grants_idem_idx').on(t.adminId, t.idemKey),
+    index('admin_point_grants_admin_day_idx').on(t.adminId, t.createdAt),
+    check('admin_point_grants_amount_check', sql`amount between 1 and 100000`),
+    check('admin_point_grants_reason_check', sql`reason is null or char_length(reason) between 1 and 200`),
+    check('admin_point_grants_idem_check', sql`idem_key ~ '^[A-Za-z0-9_-]{8,64}$'`),
   ],
 )
