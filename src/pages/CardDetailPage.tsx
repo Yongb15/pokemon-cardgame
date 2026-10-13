@@ -187,8 +187,10 @@ export default function CardDetailPage() {
                     ← {card.evolvesFromKo ?? card.evolvesFrom}에서 진화
                   </Link>
                 )}
-                <HeartButton cardId={card.id} cardName={card.nameKo ?? card.name} />
-                <AddToDeck key={card.id} card={card} />
+                <div className={styles.actions}>
+                  <HeartButton cardId={card.id} cardName={card.nameKo ?? card.name} />
+                  <AddToDeck key={card.id} card={card} />
+                </div>
               </div>
               {card.nameKoUnofficial && (
                 <p className={styles.unofficial}>
