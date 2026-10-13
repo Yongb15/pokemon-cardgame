@@ -338,6 +338,23 @@ async function batch(params: URLSearchParams) {
   return json({ data: found.map((c) => listItem(store, c)), missing: ids.filter((id) => !store.byId.has(id)) })
 }
 
+const SEARCH_KEYS = ['name', 'in', 'type', 'set', 'rarity', 'supertype', 'format', 'sort', 'page', 'pageSize']
+
+/**
+ * One URL per answer, as on the price endpoints (Security T-1, cards I-1): a parameter the route
+ * doesn't read, the same one twice, or an empty value would each make a new edge-cache entry
+ * (and a function call) for the same response, so they are refused.
+ */
+function strictParams(params: URLSearchParams, allowed: string[]) {
+  const keys = [...params.keys()]
+  return (
+    keys.every((key) => allowed.includes(key)) &&
+    keys.length === new Set(keys).size &&
+    [...params.values()].every((value) => value !== '')
+  )
+}
+const badParams = () => badRequest('알 수 없거나 중복된 파라미터가 있습니다.')
+
 /** Routes a request under /api/cards. `rest` is the path after /api/cards ('' for the search). */
 export async function handleCards(rest: string, params: URLSearchParams): Promise<Response> {
   try {
@@ -348,15 +365,15 @@ export async function handleCards(rest: string, params: URLSearchParams): Promis
     } catch {
       // already decoded and contains a literal "%": use as is
     }
-    if (segments.length === 0) return await search(params)
-    if (segments.length === 1 && segments[0] === 'batch') return await batch(params)
+    if (segments.length === 0) return strictParams(params, SEARCH_KEYS) ? await search(params) : badParams()
+    if (segments.length === 1 && segments[0] === 'batch') return strictParams(params, ['ids']) ? await batch(params) : badParams()
     const [id, sub, ...extra] = segments
     // The byId lookup is what guards file access (paths come only from trusted data); this check
     // just rejects obvious junk early.
     if (extra.length || !ID_PATTERN.test(id)) return notFound()
-    if (!sub) return await card(id)
-    if (sub === 'neighbors') return await neighbors(id)
-    if (sub === 'related') return await related(id, params)
+    if (!sub) return strictParams(params, []) ? await card(id) : badParams()
+    if (sub === 'neighbors') return strictParams(params, []) ? await neighbors(id) : badParams()
+    if (sub === 'related') return strictParams(params, ['limit']) ? await related(id, params) : badParams()
     return notFound()
   } catch (error) {
     console.error(error)

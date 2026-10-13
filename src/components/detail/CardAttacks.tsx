@@ -1,6 +1,7 @@
 import { setOriginalText, useOriginalText } from '../../hooks/useCardText'
 import type { Card } from '../../types/card'
 import EnergyIcon from '../EnergyIcon'
+import EnergyText from './EnergyText'
 import styles from './detail.module.css'
 
 /** Abilities and attacks, in card order (abilities sit above attacks on the card). */
@@ -26,7 +27,9 @@ export default function CardAttacks({ card }: { card: Card }) {
             {abilityLabel(ability.type)}
           </span>
           <MoveName move={ability} shown={name(ability)} />
-          <p className={styles.moveText}>{text(ability)}</p>
+          <p className={styles.moveText}>
+            <EnergyText text={text(ability) ?? ''} />
+          </p>
         </div>
       ))}
 
@@ -39,7 +42,11 @@ export default function CardAttacks({ card }: { card: Card }) {
             </div>
             <MoveName move={attack} shown={name(attack)} />
             {attack.damage && <span className={styles.damage}>{attack.damage}</span>}
-            {attack.text && <p className={styles.moveText}>{text(attack)}</p>}
+            {attack.text && (
+              <p className={styles.moveText}>
+                <EnergyText text={text(attack) ?? ''} />
+              </p>
+            )}
           </div>
         )
       })}
