@@ -322,7 +322,11 @@
 .setLogo {
   width: 100%;
   max-width: 180px;
-  height: auto;
+  /* A fixed box (logos vary in ratio): with height:auto it was 0px until the image loaded and
+     everything beside and below it moved (qa: up to 72px) */
+  height: 72px;
+  object-fit: contain;
+  object-position: left center;
 }
 
 .facts {
@@ -632,6 +636,7 @@
 
   .setLogo {
     max-width: 140px;
+    height: 56px;
   }
 }
 
