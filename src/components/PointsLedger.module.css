@@ -18,10 +18,12 @@
   color: var(--text-h);
 }
 
+/* Columns follow the width, not the numbers: with flex-wrap the "…" placeholders fit on one line
+   and the real amounts wrapped to a second, pushing everything below down 59px (qa, /me 375) */
 .sum {
   margin: 0;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 8px 28px;
 }
 
@@ -32,6 +34,7 @@
 
 .sum dd {
   margin: 0;
+  overflow-wrap: anywhere;
   font-size: 22px;
   font-weight: 700;
   color: var(--text-h);
