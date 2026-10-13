@@ -185,6 +185,13 @@
   cursor: pointer;
 }
 
+.inlineEnergy {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0 2px;
+  vertical-align: -3px;
+}
+
 .moveNameEn {
   display: block;
   margin-top: 2px;
@@ -315,7 +322,11 @@
 .setLogo {
   width: 100%;
   max-width: 180px;
-  height: auto;
+  /* A fixed box (logos vary in ratio): with height:auto it was 0px until the image loaded and
+     everything beside and below it moved (qa: up to 72px) */
+  height: 72px;
+  object-fit: contain;
+  object-position: left center;
 }
 
 .facts {
@@ -483,6 +494,20 @@
   border-color: var(--border-strong);
 }
 
+/* Placeholder while loading: hidden text, and the thumbnail's size (44 wide at 245:342) */
+.neighborPlaceholder,
+.neighborPlaceholder * {
+  color: transparent;
+}
+
+.neighborThumb {
+  width: 44px;
+  aspect-ratio: 245 / 342;
+  flex: none;
+  border-radius: 4px;
+  background: var(--skeleton);
+}
+
 .neighbor img {
   width: 44px;
   height: auto;
@@ -625,6 +650,7 @@
 
   .setLogo {
     max-width: 140px;
+    height: 56px;
   }
 }
 
@@ -691,6 +717,7 @@
   }
 
   .neighbor img,
+  .neighbor .neighborThumb, /* beats `.neighbor > span` */
   .neighborNumber {
     display: none;
   }

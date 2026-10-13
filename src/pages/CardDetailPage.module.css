@@ -142,6 +142,17 @@
   font-weight: 500;
 }
 
+/* 관심 카드 · 덱에 담기, always on their own line: whether they fit after the badges depended on
+   the text width, which changes when the web font replaces the fallback, so they jumped a line
+   (qa: CLS 0.06 at 375, 0.09–0.21 at 641–1000) */
+.actions {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
 .evolves {
   color: var(--text-muted);
 }

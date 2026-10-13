@@ -51,3 +51,35 @@ describe('card search by attack/Ability name (?in=move)', () => {
     expect(scoped.body.totalCount).toBe(plain.body.totalCount)
   })
 })
+
+describe('one URL per answer (Security T-1 / cards I-1)', () => {
+  const status = async (rest: string, query: string) => (await handleCards(rest, new URLSearchParams(query))).status
+
+  it('accepts what the app sends', async () => {
+    expect(await status('', 'sort=newest&page=1&pageSize=24')).toBe(200)
+    expect(await status('', 'name=리자몽&in=move&type=Fire&set=sv1&rarity=Common&supertype=Pokémon&format=standard')).toBe(200)
+    expect(await status('batch', 'ids=sv1-1,sv1-2')).toBe(200)
+    expect(await status('sv1-1', '')).toBe(200)
+    expect(await status('sv1-1/neighbors', '')).toBe(200)
+    expect(await status('sv1-1/related', 'limit=6')).toBe(200)
+  })
+
+  it('refuses unknown, repeated and empty parameters, with no-store', async () => {
+    for (const [rest, query] of [
+      ['', 'foo=1'],
+      ['', 'utm_source=x'],
+      ['', 'name=a&name=b'],
+      ['', 'in=move&in=name'],
+      ['', 'name='],
+      ['', 'sort='],
+      ['batch', 'ids=sv1-1&limit=2'],
+      ['sv1-1', 'x=1'],
+      ['sv1-1/neighbors', 'limit=2'],
+      ['sv1-1/related', 'limit=6&limit=7'],
+    ]) {
+      const res = await handleCards(rest, new URLSearchParams(query))
+      expect(res.status, `${rest}?${query}`).toBe(400)
+      expect(res.headers.get('Cache-Control')).toBe('no-store')
+    }
+  })
+})

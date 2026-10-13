@@ -43,12 +43,12 @@
       "destination": "/api/price-packs"
     },
     {
-      "source": "/api/cards/:id/prices",
-      "destination": "/api/prices?id=:id"
+      "source": "/api/cards/([^/]+)/prices",
+      "destination": "/api/prices"
     },
     {
-      "source": "/api/cards/:path*",
-      "destination": "/api/cards?path=:path*"
+      "source": "/api/cards/(.+)",
+      "destination": "/api/cards"
     },
     {
       "source": "/((?!assets/|api/).*)",
