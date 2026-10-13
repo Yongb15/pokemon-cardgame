@@ -1,26 +1,15 @@
-// Shared by the Vercel Functions under api/cards*: route from the real path, never from a query
-// parameter a client could also send (Security C-1).
+// The Vercel Function api/cards.ts serves /api/cards and, through the rewrite
+// "/api/cards/(.+)" → "/api/cards" in vercel.json, every /api/cards/… path. The rewrite uses an
+// unnamed group on purpose: Vercel adds named rewrite parameters to the query (overwriting a
+// client's value of the same name), so routing from one would let clients forge or vary it
+// (Security C-1). The request keeps its original path, so routing reads url.pathname instead,
+// and any query parameter is the client's own, checked by handleCards.
 import { handleCards } from './cardsApi.js'
 
 const PREFIX = '/api/cards'
-const bad = () =>
-  new Response(JSON.stringify({ error: { message: '알 수 없거나 중복된 파라미터가 있습니다.', code: 400 } }), {
-    status: 400,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' },
-  })
 
-/**
- * `injected`: the path parameter Vercel adds to the query of a `[name].ts` function (e.g. cardId).
- * It must be there exactly once (a client sending the same key makes two, which is refused) and
- * is removed; everything left is checked by handleCards like any other parameter.
- */
-export function cardsRoute(request: Request, injected?: string) {
+export function cardsRoute(request: Request) {
   const url = new URL(request.url)
-  if (!url.pathname.startsWith(PREFIX)) return bad()
-  const params = url.searchParams
-  if (injected) {
-    if (params.getAll(injected).length !== 1) return bad()
-    params.delete(injected)
-  }
-  return handleCards(url.pathname.slice(PREFIX.length), params)
+  const rest = url.pathname.startsWith(PREFIX) ? url.pathname.slice(PREFIX.length) : ''
+  return handleCards(rest, url.searchParams)
 }

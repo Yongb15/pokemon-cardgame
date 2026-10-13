@@ -27,10 +27,6 @@
     "api/price-packs.ts": {
       "includeFiles": "{data/index.json,data/tcgdex-map.json,apps/api/src/packs/pool.json}",
       "maxDuration": 15
-    },
-    "api/cards/**": {
-      "includeFiles": "{data/index.json,data/sets.json,data/missing-images.json,data/cards/**}",
-      "maxDuration": 10
     }
   },
   "rewrites": [
@@ -47,8 +43,12 @@
       "destination": "/api/price-packs"
     },
     {
-      "source": "/api/cards/:id/prices",
-      "destination": "/api/prices?id=:id"
+      "source": "/api/cards/([^/]+)/prices",
+      "destination": "/api/prices"
+    },
+    {
+      "source": "/api/cards/(.+)",
+      "destination": "/api/cards"
     },
     {
       "source": "/((?!assets/|api/).*)",
