@@ -15,6 +15,7 @@ import type { NotificationsStore } from '../notifications/store.js'
 import type { PriceFetch } from '../alerts/prices.js'
 import type { AlertsStore } from '../alerts/store.js'
 import type { ModerationStore } from '../moderation/store.js'
+import type { GrantsStore } from '../moderation/grants.js'
 import type { PacksStore } from '../packs/store.js'
 import type { PointsStore } from '../points/store.js'
 import type { RateLimiter } from './guards.js'
@@ -49,6 +50,8 @@ export interface Services {
   /** Current prices from the public batch function (price alerts) */
   prices: PriceFetch | null
   moderation: ModerationStore | null
+  /** Admin point grants (docs/auction/admin-points.md) */
+  grants: GrantsStore | null
   /** Admin-only stable pseudonym of a user id (null without ADMIN_PSEUDONYM_KEY) */
   pseudonym: (userId: string) => string | null
   /** Writes per signed-in user */

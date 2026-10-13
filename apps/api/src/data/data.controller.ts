@@ -9,7 +9,7 @@
 //   GET    /api/v1/favorites              → { cards }
 //   PUT    /api/v1/favorites/:cardId      → 204                 422 at the 500-card limit
 //   DELETE /api/v1/favorites/:cardId      → 204
-//   GET    /api/v1/me/summary             → { decks, favorites } (counts for the leave dialog)
+//   GET    /api/v1/me/summary             → { decks, favorites, memberCode } (counts; the code only ever here)
 //   PATCH  /api/v1/me  { nickname }       → { user }
 //   POST   /api/v1/me/logout-all          → 204 (every device)
 //   DELETE /api/v1/me  { confirm }        → 204 (the account and everything in it; confirm = nickname)

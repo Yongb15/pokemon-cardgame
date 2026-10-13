@@ -171,7 +171,7 @@ export class MemoryDataStore implements UserDataStore {
   }
 
   async counts(userId: string) {
-    return { decks: this.mine(userId).length, favorites: this.favorites.filter((f) => f.userId === userId).length }
+    return { decks: this.mine(userId).length, favorites: this.favorites.filter((f) => f.userId === userId).length, memberCode: 'ABCD1234' }
   }
 
   async setNickname(userId: string, nickname: string) {

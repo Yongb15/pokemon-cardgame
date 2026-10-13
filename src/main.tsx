@@ -73,6 +73,7 @@ const router = createBrowserRouter([
           { path: 'notifications', ...lazyPage(() => import('./pages/NotificationsPage.tsx')) },
           { path: 'admin', ...lazyPage(() => import('./pages/AdminPage.tsx'), 'AdminReportsPage') },
           { path: 'admin/auctions/:id', ...lazyPage(() => import('./pages/AdminPage.tsx'), 'AdminAuctionPage') },
+          { path: 'admin/points', ...lazyPage(() => import('./pages/AdminPage.tsx'), 'AdminPointsPage') },
           { path: 'privacy', ...lazyPage(() => import('./pages/PolicyPages.tsx'), 'PrivacyPage') },
           { path: 'terms', ...lazyPage(() => import('./pages/PolicyPages.tsx'), 'TermsPage') },
           { path: '*', ...lazyPage(() => import('./pages/NotFoundPage.tsx')) },

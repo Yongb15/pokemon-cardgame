@@ -52,6 +52,18 @@ export class PgStore implements AccountStore {
   constructor(private readonly db: NodePgDatabase) {}
 
   async signIn(provider: Provider, subject: string, nickname: string) {
+    try {
+      return await this.signInOnce(provider, subject, nickname)
+    } catch (error) {
+      // The new user's random member code (8 hex) hit an existing one: a fresh insert draws another
+      // (docs/auction/admin-points.md, Security I-g1). Once is enough at 1 in 4 billion per user
+      const e = (error as { cause?: { code?: string; constraint?: string } }).cause ?? (error as { code?: string; constraint?: string })
+      if (e.code === '23505' && e.constraint === 'users_member_code_idx') return this.signInOnce(provider, subject, nickname)
+      throw error
+    }
+  }
+
+  private signInOnce(provider: Provider, subject: string, nickname: string) {
     return this.db.transaction(async (tx) => {
       const found = await tx
         .select({ userId: oauthAccounts.userId })

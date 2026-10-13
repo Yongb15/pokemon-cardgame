@@ -420,6 +420,11 @@
 }
 
 /* Account decks: the list while it loads (same spot, no shift) */
+/* The likeliest final content, held invisibly at its real size while loading */
+.holding {
+  visibility: hidden;
+}
+
 .listSkeleton {
   /* About a screen of deck cards: the real list doesn't push the footer down when it arrives (qa C-6) */
   height: max(240px, 70vh);
