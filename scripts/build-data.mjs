@@ -306,9 +306,14 @@ const setNamesKo = await readJson('scripts/set-names-ko.json')
 const ownKey = (dict, key) => (key && Object.hasOwn(dict, key) ? dict[key] : undefined)
 
 console.log('Downloading sets…')
-const sets = (await fetchJson(`${TCG_RAW}/sets/en.json`)).sort((a, b) =>
-  a.releaseDate === b.releaseDate ? a.id.localeCompare(b.id) : a.releaseDate < b.releaseDate ? 1 : -1,
-)
+const sets = await fetchJson(`${TCG_RAW}/sets/en.json`)
+// Promos, energies and sets the snapshot doesn't have, from TCGdex (scripts/fetch-tcgdex-extra.mjs)
+const extra = await readJson('scripts/extra-cards.json')
+const extraOnly = new Set(extra.sets.filter((s) => !sets.some((x) => x.id === s.id)).map((s) => s.id))
+sets.push(...extra.sets.filter((s) => extraOnly.has(s.id)))
+sets.sort((a, b) => (a.releaseDate === b.releaseDate ? a.id.localeCompare(b.id) : a.releaseDate < b.releaseDate ? 1 : -1))
+const byNumber = new Intl.Collator('en', { numeric: true })
+let extraCards = 0
 
 // Only the per-set files: data/missing-images.json comes from build-images.mjs
 await rm(path.join(root, 'data/cards'), { recursive: true, force: true })
@@ -325,7 +330,12 @@ const untranslated = new Map()
 
 for (const [i, set] of sets.entries()) {
   process.stdout.write(`\r  cards ${i + 1}/${sets.length} ${set.id.padEnd(12)}`)
-  const cards = await fetchJson(`${TCG_RAW}/cards/en/${set.id}.json`)
+  const source = extraOnly.has(set.id) ? [] : await fetchJson(`${TCG_RAW}/cards/en/${set.id}.json`)
+  const have = new Set(source.map((c) => c.id))
+  const added = (extra.cards[set.id] ?? []).filter((c) => !have.has(c.id))
+  const cards = added.length ? [...source, ...added].sort((a, b) => byNumber.compare(a.number, b.number)) : source
+  if (added.length) set.total = cards.length
+  extraCards += added.length
   for (const card of cards) {
     if (Object.hasOwn(DATA_FIXES, card.id)) Object.assign(card, DATA_FIXES[card.id])
     // `official`: full names checked against the official Korean card search, for names the rules
@@ -407,7 +417,7 @@ await writeFile(
 await writeFile(path.join(root, 'src/data/rarities.json'), JSON.stringify([...rarities].sort(), null, 2) + '\n')
 
 const pct = ((pokemonTranslated / pokemonCards) * 100).toFixed(1)
-console.log(`Done: ${index.length} cards in ${sets.length} sets`)
+console.log(`Done: ${index.length} cards in ${sets.length} sets (${extraCards} from TCGdex)`)
 console.log(`Korean names: ${pokemonTranslated}/${pokemonCards} Pokémon cards (${pct}%)`)
 console.log(`Korean names: ${trainerTranslated}/${trainerCards} Trainer and Energy cards`)
 console.log(`Our own translations (card-names-ko.json): ${unofficialCards} cards`)
