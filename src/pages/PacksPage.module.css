@@ -292,7 +292,7 @@
   gap: 4px;
   font-size: 12px;
   text-align: center;
-  color: var(--text-muted);
+  color: var(--text);
 }
 
 .newBadge {
