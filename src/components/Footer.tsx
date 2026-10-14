@@ -8,6 +8,10 @@ export default function Footer() {
         카드 데이터:{' '}
         <a href="https://github.com/PokemonTCG/pokemon-tcg-data" target="_blank" rel="noreferrer">
           pokemon-tcg-data
+        </a>
+        ·
+        <a href="https://tcgdex.dev" target="_blank" rel="noreferrer">
+          TCGdex
         </a>{' '}
         · 한국어 이름:{' '}
         <a href="https://pokeapi.co" target="_blank" rel="noreferrer">
