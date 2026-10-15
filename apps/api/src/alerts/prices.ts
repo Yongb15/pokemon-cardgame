@@ -26,6 +26,12 @@ async function readCapped(res: Response): Promise<string | null> {
   return new TextDecoder().decode(Buffer.concat(chunks))
 }
 
+/** Why a batch failed, for the log: a fixed label, the HTTP status or an error name only (no URL, ids or body) */
+function failed(reason: string): null {
+  console.warn('price batch failed:', reason)
+  return null
+}
+
 export type PriceFetch =(ids: string[]) => Promise<Map<string, number> | 'unknown' | null>
 
 /**
@@ -46,21 +52,22 @@ export function batchPrices(origin: string, fetchImpl: typeof fetch = fetch): Pr
       })
       if (res.status === 400) return 'unknown'
       // A challenge page or anything not JSON is a failure, not data (previews get bot-checked)
-      if (!res.ok || !(res.headers.get('content-type') ?? '').startsWith('application/json')) return null
+      if (!res.ok) return failed(`status ${res.status}`)
+      if (!(res.headers.get('content-type') ?? '').startsWith('application/json')) return failed('not json')
       const text = await readCapped(res)
-      if (text === null) return null
+      if (text === null) return failed('too large')
       const body = JSON.parse(text) as unknown
-      if (!body || typeof body !== 'object') return null
+      if (!body || typeof body !== 'object') return failed('shape')
       const { today, prices } = body as { today?: unknown; prices?: unknown }
-      if (typeof today !== 'string' || !ISO_DAY.test(today) || !prices || typeof prices !== 'object' || Array.isArray(prices)) return null
+      if (typeof today !== 'string' || !ISO_DAY.test(today) || !prices || typeof prices !== 'object' || Array.isArray(prices)) return failed('shape')
       const wanted = new Set(sorted)
       const out = new Map<string, number>()
       for (const [id, krw] of Object.entries(prices)) {
         if (wanted.has(id) && Number.isInteger(krw) && (krw as number) > 0 && (krw as number) <= 100_000_000) out.set(id, krw as number)
       }
       return out
-    } catch {
-      return null
+    } catch (error) {
+      return failed(error instanceof Error ? error.name : 'unknown')
     }
   }
 }

@@ -5,6 +5,7 @@
   justify-content: center;
   aspect-ratio: 245 / 342;
   background: var(--skeleton);
-  color: var(--text-muted);
+  /* --text-muted on --skeleton is 4.09:1, under AA for 12px text (qa) */
+  color: var(--text);
   font-size: 12px;
 }
