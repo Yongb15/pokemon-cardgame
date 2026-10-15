@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { Tx } from '../points/store.js'
 
-export type NotificationKind = 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending' | 'removed'
+export type NotificationKind = 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending' | 'removed' | 'grant'
 
 /** The newest this many come back; older ones stay but aren't listed */
 export const LIST_SIZE = 20
@@ -35,9 +35,10 @@ export async function notify(tx: Tx, userId: string, kind: 'outbid' | 'won' | 's
 export interface NotificationItem {
   id: string
   kind: NotificationKind
-  /** null for a price alert */
+  /** null for a price alert and a point grant */
   auctionId: string | null
-  cardId: string
+  /** null for a point grant */
+  cardId: string | null
   amount: number | null
   /** Price alerts: the target it fired for */
   target: number | null
@@ -55,7 +56,7 @@ export class PgNotificationsStore implements NotificationsStore {
   constructor(private readonly db: NodePgDatabase) {}
 
   async list(userId: string) {
-    const { rows } = await this.db.execute<{ id: string; kind: NotificationKind; auction_id: string | null; card_id: string; amount: string | null; target: number | null; created_at: Date; read_at: Date | null }>(sql`
+    const { rows } = await this.db.execute<{ id: string; kind: NotificationKind; auction_id: string | null; card_id: string | null; amount: string | null; target: number | null; created_at: Date; read_at: Date | null }>(sql`
       select id, kind, auction_id, card_id, amount, target, created_at, read_at from account.notifications
       where user_id = ${userId} order by created_at desc, id limit ${LIST_SIZE}`)
     const unread = await this.db.execute<{ n: number }>(sql`

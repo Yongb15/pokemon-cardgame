@@ -58,3 +58,30 @@
 - 조회 분당 30회(관리자별), 없는 코드와 탈퇴한 코드는 같은 404. `member_code`는 api_rw가 users를 표 단위로 읽을 수 있으므로 공개·경매·알림 쿼리는 열 이름을 명시하고, 응답에 회원 코드가 없음을 시험으로 확인(A-3). 서버 로그에 닉네임·코드 금지(지급 id·금액만)
 - **R-1** 관리자 계정에는 지급 불가(자기 자신 포함, 403) · **R-2** `/admin`에 최근 30일 지급 목록(시각·회원 코드·금액·이유·구분값) · **R-3** 이유는 정리(공백·제어문자 제거, 1~200자) + 이메일·전화번호 모양 거절, **1년 뒤 이유만 비움**(금액·시각은 남김) · **R-4** 실제 지급은 `ref = 'grant'`, 테스트 충전(`ref = 'test'`)은 지금처럼 미리보기 전용 · **R-5** 관리자 닉네임·구분값은 저장하지 않고 화면에서 계산 · **R-6** 대상의 동시 탈퇴는 포인트 계정 FOR UPDATE가 순서를 정함(뒤쪽이 깔끔히 실패 → 404)
 - 출시: 운영 DB 0022를 **main 병합 전에**(복구 브랜치 먼저)
+
+## 7. 지급 알림 (v1.12.0, 2026-10-16)
+§5의 "알림은 범위 밖"을 바꾼다. 지급받은 사람의 알림에 "운영자가 10,000P를 지급했어요"가 뜨고, 누르면 `/me#points`(포인트 내역)로 간다.
+
+- **새 알림 종류 `grant`**: `auction_id` NULL, `card_id` NULL, `amount` = 지급액, `target` NULL. **이유·관리자 정보는 넣지 않음**(이유는 관리자 기록용 §5, 다른 사용자 정보 없음 A-3)
+- **쓰는 곳**: `PgGrantsStore.grant()`의 같은 트랜잭션, `admin_point_grants` INSERT 바로 뒤. 지급이 있을 때만 알림이 있고, 같은 idemKey 재요청(replay)은 앞에서 돌아가므로 알림도 하나뿐. 지급마다 한 줄(합치지 않음 — 지급 기록과 1:1)
+- **잠금 순서**: advisory → 대상 포인트 계정 → 알림 INSERT(새 행만, 다른 행 잠금 없음). 기존 순서 그대로
+- **마이그레이션 0023** (권한 변경 없음 — `api_rw`는 이미 `notifications(user_id, kind, auction_id, card_id, amount)` INSERT 가능)
+  - `card_id` NOT NULL 해제 + CHECK `(kind = 'grant') = (card_id is null)` (기존 형식 CHECK는 그대로, NULL은 통과)
+  - kind CHECK에 `'grant'` 추가
+  - `notifications_auction_check` → `(kind in ('price', 'grant')) = (auction_id is null)`
+  - 기존 UNIQUE `(user_id, auction_id, kind)`는 auction_id가 NULL이라 지급 알림끼리 겹치지 않음(price 알림과 같음)
+  - 운영 DB에는 **main 병합 전에**(복구 브랜치 먼저). 새 코드가 없는 동안에도 기존 코드는 영향 없음(제약만 넓어짐)
+- **화면**: `NotificationItem.cardId`는 `string | null`. 지급 알림은 카드 그림 대신 포인트 표시, 링크는 `/me#points`. 카드 정보 조회에서 NULL 제외
+- **탈퇴**: 알림은 사용자와 함께 지워짐(cascade, 기존과 같음)
+- **시험**
+  - 단위: 알림 목록에 `grant`(cardId null) 표시·링크, 응답에 이유·관리자 정보 없음
+  - 실제 DB(dev): 지급 → 알림 1개(금액 일치), 같은 idemKey 재요청 → 여전히 1개, 한도 초과·없는 코드 → 알림 없음, card_id NULL인 비지급 알림 INSERT는 CHECK로 거절
+  - qa: 관리자 지급 → 받은 사람 종 아이콘 숫자·문구·`/me#points` 이동, 모바일
+
+### Security 설계 검토 반영 (2026-10-16, 승인)
+- **N-1** kind CHECK는 지금 목록(0020·0021의 watch_bid·watch_ending·removed 포함) + `grant`. dev: 기존 종류 모두 INSERT 가능 확인
+- **N-2** `(kind <> 'grant' or amount is not null)` — 지급 알림은 항상 금액이 있음(`notifications_grant_check`에 함께)
+- **N-3** 경매 알림의 `ON CONFLICT (user_id, auction_id, kind)` 갱신이 지급 알림을 건드리지 않음을 dev에서 확인(섞인 순서 뒤 금액·시각 그대로)
+- **N-4** 옛 화면(v1.11.1)이 열린 탭에 `grant`(cardId null)가 와도 깨지지 않는지 qa 확인(옛 코드: 문구 비고 링크 `/cards/null` — 오류만 없으면 됨)
+- 시험 스크립트: `apps/api/scripts/db-check-grants.ts`(지급 알림·제약·목록 모양 포함)
+- 출시: Neon `pre-v1120` 복구 브랜치 → 운영 0023 → 시작 권한 검사(목록 변경 없음) → main 병합. 복구 브랜치는 Security 운영 확인 후 삭제

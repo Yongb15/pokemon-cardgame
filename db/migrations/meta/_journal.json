@@ -162,6 +162,13 @@
       "when": 1791870484261,
       "tag": "0022_admin_points",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1792105593821,
+      "tag": "0023_grant_notifications",
+      "breakpoints": true
     }
   ]
 }

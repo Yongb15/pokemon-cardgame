@@ -7,7 +7,7 @@ import { won } from '../lib/points'
 import CardImg from './CardImg'
 import styles from './NotificationList.module.css'
 
-/** What happened, in words: the card's name and amounts only, never another user (A-3) */
+/** What happened, in words: the card's name and amounts only, never another user (A-3) or a grant's reason */
 function Text({ item, name }: { item: NotificationItem; name: string }) {
   const amount = item.amount ?? 0
   switch (item.kind) {
@@ -61,12 +61,18 @@ function Text({ item, name }: { item: NotificationItem; name: string }) {
           <b>{name}</b> 시세가 <b>{wonKrw(amount)}</b>이 됐어요 (목표 {wonKrw(item.target ?? 0)} 이하)
         </>
       )
+    case 'grant':
+      return (
+        <>
+          운영자가 <b>{won(amount)}</b>를 지급했어요
+        </>
+      )
   }
 }
 
 /** The list in the bell's popover and on /notifications (docs/design/notify-7d.webp) */
 export default function NotificationList({ items, onPick }: { items: NotificationItem[]; onPick?: () => void }) {
-  const { info } = useCardInfo(items.map((i) => i.cardId))
+  const { info } = useCardInfo(items.flatMap((i) => (i.cardId ? [i.cardId] : [])))
   if (!items.length) {
     return (
       <p className={styles.empty}>
@@ -79,15 +85,23 @@ export default function NotificationList({ items, onPick }: { items: Notificatio
   return (
     <ul className={styles.list}>
       {items.map((item) => {
-        const card = info.get(item.cardId)
+        const card = item.cardId ? info.get(item.cardId) : undefined
+        // A point grant has no card: it opens the points history (admin-points.md §7)
+        const to = item.auctionId ? `/auctions/${item.auctionId}` : item.cardId ? `/cards/${encodeURIComponent(item.cardId)}` : '/me#points'
         return (
           <li key={item.id}>
-            <Link className={item.read ? styles.item : styles.itemNew} to={item.auctionId ? `/auctions/${item.auctionId}` : `/cards/${encodeURIComponent(item.cardId)}`} onClick={onPick}>
-              <span className={styles.thumb}>{card && <CardImg src={card.images.small} fallback={card.images.fallbackSmall} alt="" width={245} height={342} loading="lazy" />}</span>
+            <Link className={item.read ? styles.item : styles.itemNew} to={to} onClick={onPick}>
+              {item.cardId ? (
+                <span className={styles.thumb}>{card && <CardImg src={card.images.small} fallback={card.images.fallbackSmall} alt="" width={245} height={342} loading="lazy" />}</span>
+              ) : (
+                <span className={styles.points} aria-hidden="true">
+                  P
+                </span>
+              )}
               <span className={styles.body}>
                 <span className={styles.text}>
                   {!item.read && <span className="visually-hidden">새 알림: </span>}
-                  <Text item={item} name={card ? (card.nameKo ?? card.name) : item.cardId} />
+                  <Text item={item} name={card ? (card.nameKo ?? card.name) : (item.cardId ?? '')} />
                 </span>
                 <small className={styles.when}>
                   {ago(item.at)}
