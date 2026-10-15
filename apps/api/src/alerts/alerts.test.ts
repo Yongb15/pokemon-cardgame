@@ -1,7 +1,7 @@
 // Price alerts: the price lookup's response checks (Security Q1), and the routes with a fake store and
 // fake prices (inputs, unknown cards, the 50 limit, the lazy check on reading notifications).
 import type { INestApplication } from '@nestjs/common'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { createApp } from '../app.js'
 import { randomToken } from '../auth/crypto.js'
 import { createTestProvider } from '../auth/test-provider.js'
@@ -35,12 +35,25 @@ describe('batch price lookup', () => {
     expect(out).toEqual(new Map([['me5-1', 120]]))
   })
   it('treats HTML, a bad date, a redirect error or a 500 as no prices, and 400 as unknown card', async () => {
-    expect(await batchPrices(ORIGIN, reply('<html>challenge</html>', { type: 'text/html' }))(['a'])).toBeNull()
-    expect(await batchPrices(ORIGIN, reply({ today: 'x', prices: {} }))(['a'])).toBeNull()
-    expect(await batchPrices(ORIGIN, reply({ error: 1 }, { status: 500 }))(['a'])).toBeNull()
-    expect(await batchPrices(ORIGIN, (async () => Promise.reject(new TypeError('redirect'))) as unknown as typeof fetch)(['a'])).toBeNull()
-    expect(await batchPrices(ORIGIN, reply({ error: 1 }, { status: 400 }))(['a'])).toBe('unknown')
-    expect(await batchPrices(ORIGIN, reply({ today: '2026-10-11', prices: {}, pad: 'x'.repeat(70_000) }))(['a'])).toBeNull()
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      expect(await batchPrices(ORIGIN, reply('<html>challenge</html>', { type: 'text/html' }))(['secret-id'])).toBeNull()
+      expect(await batchPrices(ORIGIN, reply({ today: 'x', prices: {} }))(['a'])).toBeNull()
+      expect(await batchPrices(ORIGIN, reply({ error: 1 }, { status: 500 }))(['a'])).toBeNull()
+      expect(await batchPrices(ORIGIN, (async () => Promise.reject(new TypeError('redirect'))) as unknown as typeof fetch)(['a'])).toBeNull()
+      expect(await batchPrices(ORIGIN, reply({ error: 1 }, { status: 400 }))(['a'])).toBe('unknown')
+      expect(await batchPrices(ORIGIN, reply({ today: '2026-10-11', prices: {}, pad: 'x'.repeat(70_000) }))(['a'])).toBeNull()
+      // Each failure logs a fixed label only: never the URL, ids or body (Security Info)
+      expect(warn.mock.calls.map((c) => c.join(' '))).toEqual([
+        'price batch failed: not json',
+        'price batch failed: shape',
+        'price batch failed: status 500',
+        'price batch failed: TypeError',
+        'price batch failed: too large',
+      ])
+    } finally {
+      warn.mockRestore()
+    }
   })
   it('asks the fixed host with sorted, unique ids and no cookies', async () => {
     let seen: { url: string; init: RequestInit } | null = null
