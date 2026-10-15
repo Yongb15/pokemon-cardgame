@@ -46,6 +46,19 @@
   object-fit: cover;
 }
 
+/* A point grant: no card, the same box with a points mark */
+.points {
+  width: 36px;
+  aspect-ratio: 245 / 342;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: var(--gold-soft);
+  color: var(--text-h);
+  font-weight: 700;
+  font-size: 16px;
+}
+
 .body {
   min-width: 0;
   display: flex;
