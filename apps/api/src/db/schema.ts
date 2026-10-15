@@ -347,8 +347,9 @@ export const bids = account.table(
 
 /**
  * Auction notifications for one user (docs/auction/design.md §7d): who was outbid, who won, the
- * seller's sold / unsold. One row per (user, auction, kind): being outbid again updates it and makes it
- * unread again. Rows hold no other user's id or name (A-3); they go with the account.
+ * seller's sold / unsold, price alerts, and admin point grants (docs/auction/admin-points.md §7). One row per
+ * (user, auction, kind): being outbid again updates it and makes it unread again. Rows hold no other user's
+ * id or name (A-3); they go with the account.
  */
 export const notifications = account.table(
   'notifications',
@@ -357,10 +358,11 @@ export const notifications = account.table(
     userId: uuid('user_id')
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
-    kind: text('kind', { enum: ['outbid', 'won', 'sold', 'unsold', 'price', 'watch_bid', 'watch_ending', 'removed'] }).notNull(),
-    /** Auction kinds only; a price alert (M8) has none */
+    kind: text('kind', { enum: ['outbid', 'won', 'sold', 'unsold', 'price', 'watch_bid', 'watch_ending', 'removed', 'grant'] }).notNull(),
+    /** Auction kinds only; a price alert (M8) and a point grant have none */
     auctionId: uuid('auction_id').references(() => auctions.id),
-    cardId: text('card_id').notNull(),
+    /** Every kind but a point grant */
+    cardId: text('card_id'),
     amount: bigint('amount', { mode: 'number' }),
     /** Price alerts: the target at fire time (a snapshot: the alert may change or go later, Security Q4) */
     target: integer('target'),
@@ -372,11 +374,12 @@ export const notifications = account.table(
     // One price notification per card: firing again brings the same row back unread
     uniqueIndex('notifications_price_once_idx').on(t.userId, t.cardId).where(sql`kind = 'price'`),
     index('notifications_user_idx').on(t.userId, t.createdAt),
-    check('notifications_kind_check', sql`kind in ('outbid', 'won', 'sold', 'unsold', 'price', 'watch_bid', 'watch_ending', 'removed')`),
-    check('notifications_auction_check', sql`(kind = 'price') = (auction_id is null)`),
+    check('notifications_kind_check', sql`kind in ('outbid', 'won', 'sold', 'unsold', 'price', 'watch_bid', 'watch_ending', 'removed', 'grant')`),
+    check('notifications_auction_check', sql`(kind in ('price', 'grant')) = (auction_id is null)`),
     check('notifications_target_check', sql`(kind = 'price') = (target is not null) and (target is null or target between 100 and 100000000)`),
     check('notifications_amount_check', sql`amount is null or amount between 1 and 100000000`),
     check('notifications_card_check', sql`card_id ~ '^[A-Za-z0-9_.!?-]{1,40}$'`),
+    check('notifications_grant_check', sql`(kind = 'grant') = (card_id is null) and (kind <> 'grant' or amount is not null)`),
   ],
 )
 

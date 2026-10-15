@@ -304,13 +304,14 @@ export const placeBid = (id: string, amount: number, idemKey: string) =>
   })
 export const cancelAuction = (id: string) => accountFetch<{ result: 'ok' }>(`/me/auctions/${encodeURIComponent(id)}/cancel`, { method: 'POST' })
 
-/** Auction notifications (docs/auction/design.md §7d): the newest 20 and how many are unread */
+/** Notifications (docs/auction/design.md §7d, admin-points.md §7): the newest 20 and how many are unread */
 export interface NotificationItem {
   id: string
-  kind: 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending' | 'removed'
-  /** null for a price alert */
+  kind: 'outbid' | 'won' | 'sold' | 'unsold' | 'price' | 'watch_bid' | 'watch_ending' | 'removed' | 'grant'
+  /** null for a price alert and a point grant */
   auctionId: string | null
-  cardId: string
+  /** null for a point grant */
+  cardId: string | null
   amount: number | null
   /** Price alerts: the target it fired for */
   target: number | null

@@ -77,3 +77,11 @@
   - 단위: 알림 목록에 `grant`(cardId null) 표시·링크, 응답에 이유·관리자 정보 없음
   - 실제 DB(dev): 지급 → 알림 1개(금액 일치), 같은 idemKey 재요청 → 여전히 1개, 한도 초과·없는 코드 → 알림 없음, card_id NULL인 비지급 알림 INSERT는 CHECK로 거절
   - qa: 관리자 지급 → 받은 사람 종 아이콘 숫자·문구·`/me#points` 이동, 모바일
+
+### Security 설계 검토 반영 (2026-10-16, 승인)
+- **N-1** kind CHECK는 지금 목록(0020·0021의 watch_bid·watch_ending·removed 포함) + `grant`. dev: 기존 종류 모두 INSERT 가능 확인
+- **N-2** `(kind <> 'grant' or amount is not null)` — 지급 알림은 항상 금액이 있음(`notifications_grant_check`에 함께)
+- **N-3** 경매 알림의 `ON CONFLICT (user_id, auction_id, kind)` 갱신이 지급 알림을 건드리지 않음을 dev에서 확인(섞인 순서 뒤 금액·시각 그대로)
+- **N-4** 옛 화면(v1.11.1)이 열린 탭에 `grant`(cardId null)가 와도 깨지지 않는지 qa 확인(옛 코드: 문구 비고 링크 `/cards/null` — 오류만 없으면 됨)
+- 시험 스크립트: `apps/api/scripts/db-check-grants.ts`(지급 알림·제약·목록 모양 포함)
+- 출시: Neon `pre-v1120` 복구 브랜치 → 운영 0023 → 시작 권한 검사(목록 변경 없음) → main 병합. 복구 브랜치는 Security 운영 확인 후 삭제

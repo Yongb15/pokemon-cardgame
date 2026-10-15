@@ -1,6 +1,7 @@
 // Admin point grant checks against a real Postgres (the dev branch, as the owner), Security G-1..G-4:
 // member codes, the daily limit under 20 parallel grants, idempotency per admin, admins as targets,
 // a granted user leaving (the record stays, unlinked), and the ledger invariant. Throwaway users.
+// Grant notifications (admin-points.md §7, Security N-1..N-3): one per grant, the amount only, constraints.
 //
 //   cd apps/api && node --env-file=../../.env ../../node_modules/tsx/dist/cli.mjs scripts/db-check-grants.ts
 
@@ -9,6 +10,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import pg from 'pg'
 import { PgAuctionsStore } from '../src/auctions/store.js'
 import { GRANT_DAILY_MAX, PgGrantsStore } from '../src/moderation/grants.js'
+import { notify, PgNotificationsStore } from '../src/notifications/store.js'
 import { PgPointsStore } from '../src/points/store.js'
 
 const url = process.env.DATABASE_URL_OWNER
@@ -37,6 +39,16 @@ async function user(name: string) {
   await points.summary(rows[0]!.id)
   return { id: rows[0]!.id, code: rows[0]!.member_code }
 }
+/** The user's grant notifications vs their grant records: one each, same amounts */
+async function notesMatchGrants(label: string, userId: string) {
+  const r = await db.execute<{ notes: string; grants: string }>(sql`
+    select (select string_agg(amount::text, ',' order by amount) from account.notifications where user_id = ${userId} and kind = 'grant') as notes,
+           (select string_agg(amount::text, ',' order by amount) from account.admin_point_grants where user_id = ${userId}) as grants`)
+  const row = r.rows[0]!
+  check(`${label}: one grant notification per grant, same amounts`, row.notes === row.grants, `notes ${row.notes} / grants ${row.grants}`)
+}
+const rejects = (q: ReturnType<typeof sql>) => db.transaction(async (tx) => tx.execute(q)).then(() => false, () => true)
+
 async function ledgerOk(label: string) {
   const list = `{${users.join(',')}}`
   const r = await db.execute<{ n: number }>(sql`
@@ -79,6 +91,13 @@ try {
   // Idempotency per admin (G-2)
   const replay = await grants.grant(admin, target.code, 30_000, '점검 지급', k1)
   check('same key, same grant → first result, no second credit', replay.kind === 'ok' && replay.replay && g1.kind === 'ok' && replay.grantId === g1.grantId)
+  const note = await db.execute<{ n: number; card_id: string | null; auction_id: string | null; target: number | null; amount: string }>(sql`
+    select count(*) over ()::int as n, card_id, auction_id, target, amount from account.notifications where user_id = ${target.id} and kind = 'grant'`)
+  const n0 = note.rows[0]
+  // What the user's list sends: the amount, no card, no reason or admin (A-3, §5)
+  const listed = (await new PgNotificationsStore(db).list(target.id)).items.find((i) => i.kind === 'grant')
+  check('the list shows the grant: amount only', JSON.stringify(Object.keys(listed ?? {}).sort()) === JSON.stringify(['amount', 'at', 'auctionId', 'cardId', 'id', 'kind', 'read', 'target']) && listed?.cardId === null && listed.amount === 30_000 && !listed.read && !JSON.stringify(listed).includes('점검'), JSON.stringify(listed))
+  check('grant → one notification (replay adds none), amount only', note.rows.length === 1 && n0?.card_id === null && n0.auction_id === null && n0.target === null && Number(n0.amount) === 30_000, JSON.stringify(note.rows))
   const other = await user('점검-다른대상')
   check('same key, other member → conflict', (await grants.grant(admin, other.code, 30_000, '점검', k1)).kind === 'idem_conflict')
   check('same key, other amount → conflict', (await grants.grant(admin, target.code, 1, '점검', k1)).kind === 'idem_conflict')
@@ -105,6 +124,35 @@ try {
   check('up to exactly the limit → ok', exact.kind === 'ok', JSON.stringify(exact))
   check('one more point → limit', (await grants.grant(admin, target.code, 1, '초과', key())).kind === 'limit')
   await ledgerOk('after the grants')
+  await notesMatchGrants('after the grants, limits and conflicts', target.id)
+  check('no notification for refused grants (other member, admins)', (await db.execute<{ n: number }>(sql`select count(*)::int as n from account.notifications where user_id = any(${`{${other.id},${admin},${admin2}}`}::uuid[]) and kind = 'grant'`)).rows[0]!.n === 0)
+
+  // Constraints (N-1, N-2): every older kind still inserts; a grant needs no card but an amount; others need a card
+  const anyAuction = (await db.execute<{ id: string; card_id: string }>(sql`select id, card_id from account.auctions limit 1`)).rows[0]
+  if (anyAuction) {
+    for (const kind of ['outbid', 'won', 'sold', 'unsold', 'watch_bid', 'watch_ending', 'removed']) {
+      check(`kind ${kind} still inserts`, !(await rejects(sql`insert into account.notifications (user_id, kind, auction_id, card_id, amount) values (${other.id}, ${kind}, ${anyAuction.id}, ${anyAuction.card_id}, 100)`)))
+    }
+  } else check('an auction exists on dev for the kind checks', false)
+  check('kind price still inserts', !(await rejects(sql`insert into account.notifications (user_id, kind, card_id, amount, target) values (${other.id}, 'price', 'me5-1', 100, 100)`)))
+  check('grant without amount → rejected', await rejects(sql`insert into account.notifications (user_id, kind) values (${other.id}, 'grant')`))
+  check('grant with a card → rejected', await rejects(sql`insert into account.notifications (user_id, kind, card_id, amount) values (${other.id}, 'grant', 'me5-1', 100)`))
+  check('grant with an auction → rejected', await rejects(sql`insert into account.notifications (user_id, kind, auction_id, amount) values (${other.id}, 'grant', ${anyAuction?.id ?? null}, 100)`))
+  check('auction kind without a card → rejected', await rejects(sql`insert into account.notifications (user_id, kind, auction_id, amount) values (${other.id}, 'outbid', ${anyAuction?.id ?? null}, 100)`))
+  check('unknown kind → rejected', await rejects(sql`insert into account.notifications (user_id, kind, amount) values (${other.id}, 'gift', 100)`))
+
+  // N-3: the auction upserts (on conflict user, auction, kind) never touch a grant row
+  const before = await db.execute<{ id: string; amount: string; created_at: Date }>(sql`select id, amount, created_at from account.notifications where user_id = ${target.id} and kind = 'grant' order by id`)
+  if (anyAuction) {
+    await db.transaction(async (tx) => {
+      for (const kind of ['outbid', 'won', 'sold', 'unsold'] as const) {
+        await notify(tx, target.id, kind, anyAuction.id, anyAuction.card_id, 777)
+        await notify(tx, target.id, kind, anyAuction.id, anyAuction.card_id, 888)
+      }
+    })
+  }
+  const afterUpserts = await db.execute<{ id: string; amount: string; created_at: Date }>(sql`select id, amount, created_at from account.notifications where user_id = ${target.id} and kind = 'grant' order by id`)
+  check('auction upserts leave grant rows unchanged', JSON.stringify(afterUpserts.rows) === JSON.stringify(before.rows) && before.rows.length > 0)
 
   // The granted user leaves (G-1): no error, the record stays with user_id and entry_id null
   const leaver = await user('점검-탈퇴')
@@ -112,6 +160,7 @@ try {
   check('grant before leaving', gl.kind === 'ok')
   const left = await auctions.leave(leaver.id)
   check('the granted user can leave', left.kind === 'deleted', JSON.stringify(left))
+  check('notifications of the leaver went with the account', (await db.execute<{ n: number }>(sql`select count(*)::int as n from account.notifications where user_id = ${leaver.id}`)).rows[0]!.n === 0)
   const kept = await db.execute<{ user_id: string | null; entry_id: string | null; amount: number }>(sql`
     select user_id, entry_id, amount from account.admin_point_grants where id = ${gl.kind === 'ok' ? gl.grantId : null}`)
   check('the record stays, unlinked', kept.rows[0]?.user_id === null && kept.rows[0]?.entry_id === null && kept.rows[0]?.amount === 500)

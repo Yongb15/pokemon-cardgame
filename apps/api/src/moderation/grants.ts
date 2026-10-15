@@ -1,6 +1,7 @@
 // Admin point grants (docs/auction/admin-points.md, Security G-1..G-4, R-1..R-6). An admin finds a user
 // by the member code shown on that user's /me and grants points; grants only, never deductions.
 // Lock order for a grant: the admin's advisory lock, then the target's point account (credit()).
+// The grant record and the user's notification are written in the same transaction (§7).
 
 import { createHash } from 'node:crypto'
 import { sql } from 'drizzle-orm'
@@ -119,6 +120,8 @@ export class PgGrantsStore implements GrantsStore {
         const inserted = await tx.execute<{ id: string }>(sql`
           insert into account.admin_point_grants (admin_id, user_id, amount, reason, entry_id, idem_key)
           values (${adminId}, ${t.id}, ${amount}, ${reason}, ${entry.rows[0]!.id}, ${idemKey}) returning id`)
+        // The user's notification: the amount only, never the reason or who granted it (§7, A-3)
+        await tx.execute(sql`insert into account.notifications (user_id, kind, amount) values (${t.id}, 'grant', ${amount})`)
         return { kind: 'ok', grantId: inserted.rows[0]!.id, replay: false }
       })
     } catch (error) {
