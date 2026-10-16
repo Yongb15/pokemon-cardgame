@@ -172,7 +172,7 @@ export default function DeckSimulator({ cards, info }: { cards: DeckCard[]; info
                   )}
                 </dl>
               )}
-              <p className={styles.note}>{SIM_RUNS.toLocaleString()}번 섞어 센 값이라 ±0.5%p 정도 차이가 날 수 있어요. 게임 규칙(기술·데미지)은 없고, 덱 점검용이에요.</p>
+              <p className={styles.note}>{SIM_RUNS.toLocaleString()}번 섞어 센 값이라 ±0.5%p 정도 차이가 날 수 있어요. 첫 패는 멀리건 뒤의 패(기본 포켓몬이 있는 패) 기준이라 일반 확률표보다 조금 낮게 나와요. 게임 규칙(기술·데미지)은 없고, 덱 점검용이에요.</p>
             </div>
           </>
         )}
