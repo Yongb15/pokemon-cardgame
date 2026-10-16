@@ -342,6 +342,11 @@
     justify-self: center;
   }
 
+  /* In the 240px column the card link always takes two lines: hold both before the card loads (qa: 375 CLS) */
+  .cardLink {
+    min-height: 3.2em;
+  }
+
   /* The bid box stays at hand at the bottom of the screen (qa B2) */
   .box {
     position: sticky;
