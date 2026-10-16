@@ -109,6 +109,21 @@ export interface AuctionMine {
   watching: boolean
 }
 
+/**
+ * A seller's record badge (docs/auction/seller-badge.md): sales to different buyers, bucketed (Security B-2),
+ * and whether the account is under a week old (database time: B-4). Nothing else: no number, name or id (A-3, B-3).
+ */
+export type SellerBadgeName = 'first' | 'sold1' | 'sold5' | 'sold20'
+export interface SellerBadge {
+  /** null when the seller has left */
+  badge: SellerBadgeName | null
+  newMember: boolean
+}
+export const BADGE_NEW_DAYS = 7
+/** Distinct buyers are counted up to this many: the top bucket */
+export const BADGE_TOP = 20
+export const badgeOf = (buyers: number): SellerBadgeName => (buyers >= BADGE_TOP ? 'sold20' : buyers >= 5 ? 'sold5' : buyers >= 1 ? 'sold1' : 'first')
+
 export type ListResult = { kind: 'listed' | 'repeat'; auctionId: string } | { kind: 'no_card' | 'limit' }
 export type BidResult =
   | { kind: 'ok' | 'repeat'; version: number }
@@ -147,6 +162,10 @@ export interface AuctionsStore {
   settleExpired(limit: number, userId?: string): Promise<number>
   /** Account deletion under the account lock (Security): refused while seller or top bidder of an open auction */
   leave(userId: string): Promise<LeaveResult>
+  /** The seller badge of an auction: null exactly when GET /auctions/:id is 404 (Security B-1) */
+  sellerBadge(auctionId: string): Promise<SellerBadge | null>
+  /** The user's own badge, by the same query as the public one (B-5) */
+  myBadge(userId: string): Promise<SellerBadge>
   /** Preview test hook: move an own auction's end (seller only) */
   endsIn(userId: string, auctionId: string, seconds: number): Promise<boolean>
 }
@@ -324,6 +343,30 @@ export class PgAuctionsStore implements AuctionsStore {
     if (!rows[0]) return false
     if (rows[0].expired) await this.settleOne(auctionId)
     return true
+  }
+
+  /** One query for both badges (B-5): distinct buyers of the seller's sold auctions, capped, and account age by DB time */
+  private async badgeFor(sellerId: string): Promise<SellerBadge> {
+    const { rows } = await this.db.execute<{ buyers: number; new_member: boolean }>(sql`
+      select (select count(*) from (
+                select distinct top_bidder_id from account.auctions
+                where seller_id = ${sellerId} and status = 'sold' and top_bidder_id is not null
+                limit ${BADGE_TOP}) d)::int as buyers,
+             (now() - created_at < make_interval(days => ${BADGE_NEW_DAYS})) as new_member
+      from account.users where id = ${sellerId}`)
+    const r = rows[0]
+    return r ? { badge: badgeOf(r.buyers), newMember: r.new_member } : { badge: null, newMember: false }
+  }
+
+  async sellerBadge(auctionId: string) {
+    // The same visibility as get(): every existing auction, any status. 404 returns before any counting (B-1)
+    const { rows } = await this.db.execute<{ seller_id: string | null }>(sql`select seller_id from account.auctions where id = ${auctionId}`)
+    if (!rows[0]) return null
+    return rows[0].seller_id ? this.badgeFor(rows[0].seller_id) : { badge: null, newMember: false }
+  }
+
+  myBadge(userId: string) {
+    return this.badgeFor(userId)
   }
 
   async get(auctionId: string): Promise<AuctionPublic | null> {

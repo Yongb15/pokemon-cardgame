@@ -59,7 +59,12 @@ export async function accountFetch<T>(path: string, init: { method?: string; bod
 export const getMe = (signal?: AbortSignal) => accountFetch<{ user: AccountUser | null }>('/me', { signal })
 export const logout = () => accountFetch<void>('/auth/logout', { method: 'POST' })
 /** Counts for /me, and the member code shown only there (docs/auction/admin-points.md) */
-export const getSummary = () => accountFetch<{ decks: number; favorites: number; memberCode: string | null }>('/me/summary')
+/** A seller's record badge (docs/auction/seller-badge.md): a bucket of different buyers and a new-member mark */
+export interface SellerBadge {
+  badge: 'first' | 'sold1' | 'sold5' | 'sold20' | null
+  newMember: boolean
+}
+export const getSummary = () => accountFetch<{ decks: number; favorites: number; memberCode: string | null; sellerBadge: SellerBadge | null }>('/me/summary')
 export const renameMe = (nickname: string) => accountFetch<{ user: AccountUser }>('/me', { method: 'PATCH', body: { nickname } })
 export const logoutEverywhere = () => accountFetch<void>('/me/logout-all', { method: 'POST' })
 export const leave = (confirm: string) => accountFetch<void>('/me', { method: 'DELETE', body: { confirm } })
@@ -238,6 +243,8 @@ export const getMarket = (sort: 'ending' | 'new' | 'price', page = 0) =>
   accountFetch<{ items: MarketItem[]; more: boolean }>(`/auctions?${new URLSearchParams({ sort, ...(page > 0 && { page: String(page) }) })}`)
 /** The public, briefly cached state (not for setting the clock: qa) */
 export const getAuction = (id: string, signal?: AbortSignal) => accountFetch<AuctionState>(`/auctions/${encodeURIComponent(id)}`, { signal })
+/** Cached 5 minutes at the edge, fetched once per page (not polled) */
+export const getSellerBadge = (id: string, signal?: AbortSignal) => accountFetch<SellerBadge>(`/auctions/${encodeURIComponent(id)}/seller`, { signal })
 export const getMyAuction = (id: string) => accountFetch<{ mine: AuctionMine; serverNow: string }>(`/me/auctions/${encodeURIComponent(id)}`)
 export const getMyAuctions = () => accountFetch<{ selling: MarketItem[]; bidding: MarketItem[]; watching: MarketItem[] }>('/me/auctions')
 // --- Reports and moderation (docs/auction/moderation.md) ---------------------------------------------

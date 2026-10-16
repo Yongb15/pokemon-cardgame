@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router'
-import { AccountApiError, cancelAuction, getAuction, getMyAuction, placeBid, unwatchAuction, watchAuction, type AuctionMine, type AuctionState } from '../api/account'
+import { AccountApiError, cancelAuction, getAuction, getMyAuction, getSellerBadge, placeBid, unwatchAuction, watchAuction, type AuctionMine, type AuctionState, type SellerBadge as Badge } from '../api/account'
 import CardImg from '../components/CardImg'
 import ReportDialog from '../components/ReportDialog'
+import SellerBadge from '../components/SellerBadge'
 import { useCardInfo } from '../hooks/useDecks'
 import { loadPoints, usePoints } from '../hooks/usePoints'
 import { useSession, wasSignedIn } from '../hooks/useSession'
@@ -130,6 +131,16 @@ export default function AuctionPage() {
   useEffect(() => {
     void loadMine()
   }, [loadMine])
+
+  // The seller's record badge: once per page, never polled (seller-badge.md)
+  const [badge, setBadge] = useState<Badge | null>(null)
+  useEffect(() => {
+    const controller = new AbortController()
+    getSellerBadge(id, controller.signal).then(setBadge, () => {
+      // no badge is fine: the auction works without it
+    })
+    return () => controller.abort()
+  }, [id])
 
   // Polling: every 2.5 s, every second in the last minute, paused while the tab is hidden (A-4)
   useEffect(() => {
@@ -286,7 +297,7 @@ export default function AuctionPage() {
               <WatchButton id={id} signedOut={session.status === 'out'} mine={mine} open={!!state && state.status === 'open'} onChange={(watching) => setMine((m) => (m ? { ...m, watching } : m))} />
             </div>
             <p className={styles.small}>
-              {card ? `${card.set.nameKo} #${card.number}` : ' '} · 판매자{mine?.isSeller ? ' (나)' : ''}
+              {card ? `${card.set.nameKo} #${card.number}` : ' '} · 판매자{mine?.isSeller ? ' (나)' : ''} <SellerBadge badge={badge} />
             </p>
           </div>
 

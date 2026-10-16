@@ -7,12 +7,14 @@
 ## 1. 보이는 것
 경매 상세의 판매자 줄에 배지 하나(+ 새 회원 표시):
 
-| 판매 완료(`status = 'sold'`, 이 판매자) | 배지 |
+| 팔린 경매의 **서로 다른 구매자** 수(`status = 'sold'`, 이 판매자, B-2) | 배지 |
 | --- | --- |
-| 0건 | 첫 판매 |
-| 1~4건 | 판매 1건+ |
-| 5~19건 | 판매 5건+ |
-| 20건 이상 | 판매 20건+ |
+| 0명 | 첫 판매 |
+| 1~4명 | 구매자 1명+ |
+| 5~19명 | 구매자 5명+ |
+| 20명 이상 | 구매자 20명+ |
+
+같은 사람(부계정)에게 여러 번 팔아 배지를 올릴 수 없게 구매자 수로 센다. 탈퇴한 구매자(NULL)는 세지 않는다.
 
 - **새 회원**: 가입 7일 미만이면 "새 회원"을 함께 표시(다중 계정으로 값을 올리는 경우 참고용)
 - 판매자가 탈퇴한 경매(`seller_id` NULL): 배지 없음
@@ -29,7 +31,7 @@
 - `GET /api/v1/auctions/:id/seller` → `{ badge: 'first' | 'sold1' | 'sold5' | 'sold20' | null, newMember: boolean }`
   - 상태 폴링(`/auctions/:id`, 2초)과 **분리**: 폴링마다 집계하지 않음. `Cache-Control: public, max-age=0, s-maxage=300` (5분)
   - 쿼리 파라미터 없음(엄격, I-1), id 형식 검사, 없는 경매 404
-  - 집계: `select count(*) filter (where status = 'sold') ... from account.auctions where seller_id = (select seller_id from account.auctions where id = $1)` + `users.created_at` — 기존 인덱스 `auctions_seller_idx(seller_id, status)` 사용, 20건 이상은 더 세지 않음(`limit 20` 하위 쿼리)
+  - 집계: 그 경매의 `seller_id` → 서로 다른 `top_bidder_id` (팔린 경매, NULL 제외, `limit 20` 하위 쿼리) + `users.created_at` (DB 시각) — 기존 인덱스 `auctions_seller_idx(seller_id, status)` 사용
 - `GET /api/v1/me` 또는 마이페이지 기존 응답에 본인 배지 추가(no-store)
 - **DB 변경 없음**: 마이그레이션·권한 변경 없음(api_rw는 이미 auctions·users.created_at SELECT)
 
@@ -42,6 +44,16 @@
 - 단위: 구간 경계(0·1·4·5·19·20·21), 새 회원 경계(7일), 탈퇴한 판매자 null, 쿼리 파라미터 400, 잘못된 id 404, 응답 키가 정확히 badge·newMember뿐
 - 실제 DB(dev): 팔린·유찰·취소·진행 중이 섞인 판매자의 구간, 다른 판매자 경매가 섞이지 않음
 - qa: 상세·마이페이지 표시, 모바일, 다크, CLS, 캐시 헤더
+
+## Security 설계 검토 반영 (2026-10-16, 조건부 승인)
+- **B-1** `/seller`는 `GET /auctions/:id`와 같은 공개 범위: 존재하는 경매는 상태와 관계없이 200, 없으면 같은 404. 404는 집계 전에 반환. dev 점검: 모든 상태에서 두 응답의 200/404가 같음
+- **B-2** 서로 다른 구매자 수(`count(distinct top_bidder_id)`, 20에서 멈춤)로 셈 — 부계정으로 배지 올리기 방지. 문구도 "구매자 N명+"
+- **B-3** 응답 키는 정확히 badge·newMember, 숫자 값 없음(시험)
+- **B-4** 새 회원은 DB 시각(`now() - created_at < 7일`)
+- **B-5** 마이페이지 배지는 공개 배지와 같은 함수·쿼리(`badgeFor`)
+- 받아들인 위험: 지금은 사용자가 적어(운영 5명) "구매자 20명+"나 "첫 판매 + 새 회원"이 열린 경매 중 한 판매자를 사실상 가리킬 수 있음 — 신원이 아니라 경매끼리 이어 보기 수준이고, 사용자가 늘면 옅어짐
+- 처리방침: "서로 다른 구매자 기준" 판매 구간과 새 회원 표시 추가(시행일 2026-10-16), 지난 출시의 포인트 지급 알림도 함께 적음
+- 시험 스크립트: `apps/api/scripts/db-check-badge.ts`
 
 ## Security 검토 요청 사항
 - 구간 배지가 A-3(경매별 익명)을 충분히 지키는지, 구간·캐시 시간

@@ -8,7 +8,7 @@ import { createTestProvider } from '../auth/test-provider.js'
 import { loadConfig } from '../config.js'
 import { MemoryDataStore, MemoryStore } from '../test/memory-store.js'
 import type { NotificationsStore } from '../notifications/store.js'
-import type { AuctionPublic, AuctionsStore } from './store.js'
+import { badgeOf, type AuctionPublic, type AuctionsStore } from './store.js'
 
 const SECRET = 's'.repeat(40)
 const ORIGIN = 'https://pokemon-card-dex-git-develop-dydqls-projects.vercel.app'
@@ -48,6 +48,8 @@ function fakeStore(calls: string[]): AuctionsStore {
     settleExpired: async () => (calls.push('settle'), 0),
     leave: async () => ({ kind: 'blocked', auctions: [AID] }),
     endsIn: async () => (calls.push('ends-in'), true),
+    sellerBadge: async (id) => (calls.push('seller-badge'), id === AID ? { badge: 'sold5', newMember: true } : null),
+    myBadge: async () => ({ badge: 'first', newMember: false }),
   }
 }
 
@@ -117,6 +119,25 @@ describe('auction routes (preview)', () => {
     expect((await t.call(`/api/v1/auctions/${AID}`, { headers: { 'if-none-match': etag } })).status).toBe(304)
     expect((await t.call('/api/v1/auctions/not-a-uuid')).status).toBe(404)
     for (const q of ['sort=x', 'set=sv1', 'page=-1', 'x=1']) expect((await t.call(`/api/v1/auctions?${q}`)).status, q).toBe(400)
+  })
+
+  it('seller badge: the bucket and new-member flag only, cached 5 minutes, same 404 as the auction', async () => {
+    const one = await t.call(`/api/v1/auctions/${AID}/seller`)
+    expect(one.status).toBe(200)
+    expect(one.headers.get('cache-control')).toBe('public, max-age=0, s-maxage=300')
+    // Exactly these keys and no number anywhere (Security B-3)
+    expect(one.body).toEqual({ badge: 'sold5', newMember: true })
+    expect(Object.values(one.body).some((v) => typeof v === 'number')).toBe(false)
+    // Unknown or malformed ids answer like GET /auctions/:id (B-1); no parameters at all (I-1)
+    const other = '00000000-0000-4000-8000-000000000000'
+    expect((await t.call(`/api/v1/auctions/${other}/seller`)).status).toBe((await t.call(`/api/v1/auctions/${other}`)).status)
+    expect((await t.call(`/api/v1/auctions/${other}/seller`)).status).toBe(404)
+    expect((await t.call('/api/v1/auctions/not-a-uuid/seller')).status).toBe(404)
+    expect((await t.call(`/api/v1/auctions/${AID}/seller?x=1`)).status).toBe(400)
+  })
+
+  it('seller badge buckets: distinct buyers 0 / 1-4 / 5-19 / 20+', () => {
+    expect([0, 1, 4, 5, 19, 20, 21].map(badgeOf)).toEqual(['first', 'sold1', 'sold1', 'sold5', 'sold5', 'sold20', 'sold20'])
   })
 
   it('lists with whole-100 prices and known durations (short ones on previews), and bids', async () => {

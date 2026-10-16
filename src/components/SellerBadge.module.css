@@ -1,0 +1,27 @@
+.badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 20px;
+  vertical-align: middle;
+}
+
+.badge,
+.newMember {
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.badge {
+  background: var(--surface-muted);
+  color: var(--text-h);
+}
+
+.newMember {
+  background: var(--warn-soft);
+  color: var(--warn-text);
+}
