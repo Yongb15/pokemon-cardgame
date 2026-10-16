@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import CardPicker from '../components/deck/CardPicker'
+import CollectionCoverage from '../components/deck/CollectionCoverage'
 import DeckCardList from '../components/deck/DeckCardList'
 import DeckChecks from '../components/deck/DeckChecks'
+import DeckSimulator from '../components/deck/DeckSimulator'
 import DeckStats from '../components/deck/DeckStats'
 import ExportDialog from '../components/deck/ExportDialog'
 import { NotFoundState } from '../components/ListStates'
@@ -17,6 +19,7 @@ import {
 import { removeFromLibrary, useDeckLibrary } from '../hooks/useDeckLibrary'
 import { useCardInfo } from '../hooks/useDecks'
 import { useMediaQuery } from '../hooks/useMediaQuery'
+import { useOwnedCards } from '../hooks/useOwnedCards'
 import {
   checkDeck,
   cleanDeckName,
@@ -213,6 +216,8 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
 
   const ids = useMemo(() => deck.cards.map((c) => c.id), [deck.cards])
   const { info, loading, error, unknownIds } = useCardInfo(ids)
+  // The owner's collection, for this editor only (docs/deck/simulator.md, Security D-1)
+  const owned = useOwnedCards()
   const total = deckSize(deck.cards)
   const checks = checkDeck(deck.cards, deck.format, info)
   const problems = problemCount(checks)
@@ -405,7 +410,9 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
       ) : (
         <>
           <DeckChecks checks={checks} />
+          {owned && <CollectionCoverage cards={deck.cards} info={info} owned={owned} />}
           <DeckStats cards={deck.cards} info={info} defaultOpen={!isNarrow} />
+          <DeckSimulator cards={deck.cards} info={info} />
         </>
       )}
       {unknownIds.length > 0 && (
@@ -446,7 +453,7 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
     </aside>
   )
 
-  const picker = <CardPicker format={deck.format} counts={counts} nameCounts={nameCounts} total={total} onChange={change} />
+  const picker = <CardPicker format={deck.format} counts={counts} nameCounts={nameCounts} total={total} onChange={change} owned={owned} />
 
   return (
     <main className={styles.main}>
