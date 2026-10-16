@@ -9,7 +9,8 @@
 //   GET    /api/v1/favorites              → { cards }
 //   PUT    /api/v1/favorites/:cardId      → 204                 422 at the 500-card limit
 //   DELETE /api/v1/favorites/:cardId      → 204
-//   GET    /api/v1/me/summary             → { decks, favorites, memberCode } (counts; the code only ever here)
+//   GET    /api/v1/me/summary             → { decks, favorites, memberCode, sellerBadge } (counts; the code only ever here;
+//                                            the badge is the public one's query: seller-badge.md, B-5)
 //   PATCH  /api/v1/me  { nickname }       → { user }
 //   POST   /api/v1/me/logout-all          → 204 (every device)
 //   DELETE /api/v1/me  { confirm }        → 204 (the account and everything in it; confirm = nickname)
@@ -156,7 +157,8 @@ export class MeController extends UserRoutes {
   @Get('summary')
   async summary(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const user = await this.user(req, res)
-    return await this.data.counts(user.id)
+    const counts = await this.data.counts(user.id)
+    return { ...counts, sellerBadge: this.services.auctions ? await this.services.auctions.myBadge(user.id) : null }
   }
 
   @Patch()
