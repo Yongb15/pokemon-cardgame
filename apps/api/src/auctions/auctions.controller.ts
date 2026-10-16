@@ -3,6 +3,7 @@
 // side and every write are per session, no-store, limited per user and origin-checked.
 //   GET  /api/v1/auctions?sort=ending|new|price&set=&page=   → { items, more }
 //   GET  /api/v1/auctions/:id                                → public state (ETag, s-maxage=2)
+//   GET  /api/v1/auctions/:id/seller                         → { badge, newMember } (seller-badge.md, s-maxage=300)
 //   GET  /api/v1/me/auctions                                 → { selling, bidding }
 //   GET  /api/v1/me/auctions/:id                             → { mine, serverNow }
 //   POST /api/v1/me/auctions { cardId, startPrice, duration, idemKey }   → { auctionId }
@@ -79,6 +80,16 @@ export class AuctionsPublicController extends AuctionRoutes {
     }
     // Not a clock to set the countdown by: it may be up to 2 s old (qa: offsets come from no-store answers)
     res.json({ ...state, cachedAt: new Date().toISOString() })
+  }
+
+  /** Kept off the 2 s poll: a bucket changes rarely, and a slow cache blurs when it does (A-3) */
+  @Get(':id/seller')
+  async seller(@Param('id') raw: string, @Query() query: Record<string, unknown>, @Res({ passthrough: true }) res: Response) {
+    if (Object.keys(query).length) throw badRequest()
+    const badge = await this.auctions.sellerBadge(this.id(raw))
+    if (!badge) throw notFound()
+    res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=300')
+    return { badge: badge.badge, newMember: badge.newMember }
   }
 }
 

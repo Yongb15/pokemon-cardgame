@@ -4,6 +4,8 @@ import { Navigate, useLocation, useNavigate } from 'react-router'
 import { AccountApiError, getSummary, leave, logoutEverywhere, renameMe } from '../api/account'
 import Dialog from '../components/deck/Dialog'
 import PointsLedger from '../components/PointsLedger'
+import SellerBadge from '../components/SellerBadge'
+import { BADGE_HELP } from '../lib/sellerBadge'
 import { clearSession, refreshSession, setSessionUser, useSession } from '../hooks/useSession'
 import styles from './AccountPages.module.css'
 
@@ -17,7 +19,7 @@ export default function MyPage() {
   const session = useSession()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const [summary, setSummary] = useState<{ decks: number; favorites: number; memberCode: string | null } | null>(null)
+  const [summary, setSummary] = useState<Awaited<ReturnType<typeof getSummary>> | null>(null)
   const [copied, setCopied] = useState(false)
   const [summaryError, setSummaryError] = useState<string | null>(null)
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null)
@@ -181,6 +183,13 @@ export default function MyPage() {
                   {copied ? '회원 코드를 복사했어요' : ''}
                 </span>
               </span>
+            </div>
+            <div className={styles.row}>
+              <div>
+                <p className={styles.rowTitle}>내 판매자 배지</p>
+                <p className={styles.small}>경매 화면에서 다른 사람에게 이렇게 보여요. {BADGE_HELP}</p>
+              </div>
+              <SellerBadge badge={summary?.sellerBadge ?? null} />
             </div>
           </section>
 
