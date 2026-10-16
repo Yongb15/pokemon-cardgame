@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { searchCards } from '../../api/cards'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
-import { rememberCards } from '../../hooks/useDecks'
+import { rememberCards, useCardInfo } from '../../hooks/useDecks'
 import { cleanName } from '../../lib/cardFilters'
 import { formatCardNumber } from '../../lib/cardText'
 import { DECK_SIZE, FORMATS, isBasicEnergy, MAX_COPIES, ruleName, type DeckFormat } from '../../lib/deck'
@@ -24,6 +24,8 @@ interface Props {
   nameCounts: Map<string, number>
   total: number
   onChange: (card: CardListItem, delta: 1 | -1) => void
+  /** The signed-in owner's copies per card; null hides the collection view (docs/deck/simulator.md §1) */
+  owned?: Map<string, number> | null
 }
 
 interface Result {
@@ -37,7 +39,9 @@ interface Result {
 const isAbort = (error: unknown) => error instanceof DOMException && error.name === 'AbortError'
 
 /** Search cards to add: name, card kind, and only cards legal in the deck's format */
-export default function CardPicker({ format, counts, nameCounts, total, onChange }: Props) {
+export default function CardPicker({ format, counts, nameCounts, total, onChange, owned = null }: Props) {
+  const [source, setSource] = useState<'all' | 'mine'>('all')
+  const mine = source === 'mine' && !!owned
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState('')
   const [page, setPage] = useState(1)
@@ -54,6 +58,8 @@ export default function CardPicker({ format, counts, nameCounts, total, onChange
   }
 
   useEffect(() => {
+    // The collection view filters the owner's cards here: no search requests meanwhile
+    if (mine) return
     const controller = new AbortController()
     searchCards(
       {
@@ -85,14 +91,39 @@ export default function CardPicker({ format, counts, nameCounts, total, onChange
         })
       })
     return () => controller.abort()
-  }, [key, name, kind, format, page, reload])
+  }, [key, name, kind, format, page, reload, mine])
 
-  const current = result?.key === key ? result : null
-  const loading = !current || (current.page !== page && !current.error)
+  const ownedIds = useMemo(() => (mine && owned ? [...owned.keys()] : []), [mine, owned])
+  const { info: ownedInfo, loading: ownedLoading } = useCardInfo(ownedIds)
+  const ownedCards = useMemo(() => {
+    const words = name.toLowerCase()
+    return [...ownedInfo.values()]
+      .filter((c) => (!kind || c.supertype === kind) && (format === 'unlimited' || isBasicEnergy(c) || !!c.formats?.includes(format)))
+      .filter((c) => !words || (c.nameKo ?? '').toLowerCase().includes(words) || c.name.toLowerCase().includes(words))
+      .sort((a, b) => (a.nameKo ?? a.name).localeCompare(b.nameKo ?? b.name, 'ko'))
+  }, [ownedInfo, name, kind, format])
+
+  const searched = result?.key === key ? result : null
+  const current: Result | null = mine
+    ? ownedLoading
+      ? null
+      : { key, cards: ownedCards, totalCount: ownedCards.length, page: 1, error: null }
+    : searched
+  const loading = !current || (!mine && current.page !== page && !current.error)
 
   return (
     <div className={styles.picker}>
-      <SearchBar value={query} onChange={setQuery} placeholder="덱에 넣을 카드 검색 (예: 리자몽, 이상한사탕)" />
+      {owned && (
+        <div className={styles.kinds} role="group" aria-label="카드 출처">
+          <button type="button" className={styles.kind} aria-pressed={!mine} onClick={() => setSource('all')}>
+            전체 카드
+          </button>
+          <button type="button" className={styles.kind} aria-pressed={mine} onClick={() => setSource('mine')}>
+            내 컬렉션
+          </button>
+        </div>
+      )}
+      <SearchBar value={query} onChange={setQuery} placeholder={mine ? '내 카드에서 찾기' : '덱에 넣을 카드 검색 (예: 리자몽, 이상한사탕)'} />
       <div className={styles.kinds} role="group" aria-label="카드 종류">
         {KINDS.map(([value, label]) => (
           <button
@@ -109,7 +140,7 @@ export default function CardPicker({ format, counts, nameCounts, total, onChange
       <p className={styles.pickerCount} role="status">
         {current && !current.error ? (
           <>
-            검색 결과 <b>{current.totalCount.toLocaleString()}</b>장
+            {mine ? '내 카드' : '검색 결과'} <b>{current.totalCount.toLocaleString()}</b>{mine ? '종' : '장'}
             {format !== 'unlimited' && ` · ${FORMATS[format]}에서 쓸 수 있는 카드만`}
           </>
         ) : (
@@ -125,13 +156,17 @@ export default function CardPicker({ format, counts, nameCounts, total, onChange
           </button>
         </div>
       ) : current && !current.cards.length ? (
-        <p className={styles.pickerEmpty}>조건에 맞는 카드가 없어요.</p>
+        <p className={styles.pickerEmpty}>{mine && !owned?.size ? '아직 가진 카드가 없어요. 카드팩을 열어 보세요.' : '조건에 맞는 카드가 없어요.'}</p>
       ) : (
         <ul className={styles.tiles} aria-busy={loading || undefined}>
           {(current?.cards ?? []).map((card) => {
             const count = counts.get(card.id) ?? 0
+            // In the collection view the copies you own are a limit too (basic Energy: unlimited, §1)
+            const have = mine ? (owned?.get(card.id) ?? 0) : null
             const atLimit =
-              total >= DECK_SIZE || (!isBasicEnergy(card) && (nameCounts.get(ruleName(card.name)) ?? 0) >= MAX_COPIES)
+              total >= DECK_SIZE ||
+              (!isBasicEnergy(card) && (nameCounts.get(ruleName(card.name)) ?? 0) >= MAX_COPIES) ||
+              (have !== null && !isBasicEnergy(card) && count >= have)
             const label = card.nameKo ?? card.name
             return (
               <li key={card.id} className={styles.tile}>
@@ -156,7 +191,7 @@ export default function CardPicker({ format, counts, nameCounts, total, onChange
                   {label}
                 </p>
                 <p className={styles.tileSub}>
-                  {card.set.nameKo} {formatCardNumber(card.number)}
+                  {have !== null ? `보유 ${have}장 · 덱 ${count}장` : `${card.set.nameKo} ${formatCardNumber(card.number)}`}
                 </p>
                 <div className={styles.tileActions}>
                   <button
@@ -184,7 +219,7 @@ export default function CardPicker({ format, counts, nameCounts, total, onChange
         </ul>
       )}
 
-      {current && current.cards.length < current.totalCount && (
+      {!mine && current && current.cards.length < current.totalCount && (
         <div className={styles.more}>
           {current.error && <p className={styles.pickerErrorText}>더 불러오지 못했어요. 다시 눌러 주세요.</p>}
           <button
