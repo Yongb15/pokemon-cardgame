@@ -123,6 +123,8 @@ export default function SharedDeckPage() {
         <p className={styles.muted}>카드 정보를 불러오는 중…</p>
       ) : (
         <div className={styles.sharedBody}>
+          {/* The card groups are h3: keep the outline h1 → h2 → h3 (qa Low: heading-order) */}
+          <h2 className="visually-hidden">덱 목록</h2>
           <DeckCardList cards={shared.cards} info={info} columns />
           {problems > 0 && <DeckChecks checks={checks} />}
           <div className={styles.sharedStats}>
