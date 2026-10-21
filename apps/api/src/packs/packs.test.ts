@@ -77,6 +77,11 @@ describe('card packs (preview)', () => {
       expect(new Set(s.cardIds).size).toBe(s.cards)
       expect([...s.cardIds].sort()).toEqual(s.cardIds)
     }
+    // Any query string is refused, so the edge holds one entry (Security PK-1)
+    for (const q of ['?x=1', '?x=1&x=1', '?set=me5']) {
+      const bad = await t.call(`/api/v1/packs${q}`)
+      expect(bad.status, q).toBe(400)
+    }
   })
 
   it('opens a pack: 1,000P, five cards, idempotent per request id (even with another set)', async () => {

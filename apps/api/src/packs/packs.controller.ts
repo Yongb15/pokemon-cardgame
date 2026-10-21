@@ -50,7 +50,9 @@ abstract class PackRoutes extends UserRoutes {
 export class PacksCatalogController {
   // Static odds: cacheable at the edge (qa Info)
   @Get()
-  catalog(@Res({ passthrough: true }) res: Response) {
+  catalog(@Query() query: Record<string, unknown>, @Res({ passthrough: true }) res: Response) {
+    // No parameters at all: one URL is one edge cache entry (Security PK-1, the T-1 rule)
+    if (Object.keys(query).length) throw badRequest()
     res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600')
     return {
       price: PACK_PRICE,
