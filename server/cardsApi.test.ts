@@ -52,6 +52,33 @@ describe('card search by attack/Ability name (?in=move)', () => {
   })
 })
 
+describe('name search puts exact names first (v1.15.0 §2)', () => {
+  it('리자드 lists every 리자드 before 일레도리자드 and the like', async () => {
+    const { body } = await search('name=리자드&pageSize=250')
+    const names = body.data.map((c) => (c as Item & { nameKo?: string }).nameKo ?? c.name)
+    const firstOther = names.findIndex((n) => n !== '리자드')
+    expect(firstOther).toBeGreaterThan(0)
+    expect(names.slice(firstOther)).not.toContain('리자드')
+    expect(names).toContain('일레도리자드')
+  })
+
+  it('a name with a symbol is not an exact match (피카츄 ★ comes after every plain 피카츄)', async () => {
+    const { body } = await search('name=피카츄&pageSize=250')
+    const names = body.data.map((c) => (c as Item & { nameKo?: string }).nameKo ?? c.name)
+    const lastPlain = names.lastIndexOf('피카츄')
+    const firstStar = names.findIndex((n) => n.includes('★'))
+    expect(lastPlain).toBeGreaterThan(-1)
+    if (firstStar >= 0) expect(firstStar).toBeGreaterThan(lastPlain)
+  })
+
+  it('the English name works the same, and move searches are untouched', async () => {
+    const { body } = await search('name=charmeleon&pageSize=250')
+    expect(body.data[0]!.name).toBe('Charmeleon')
+    const moves = await search('name=화염방사&in=move&pageSize=5')
+    expect(moves.body.data.every((c) => c.matchedMove)).toBe(true)
+  })
+})
+
 describe('one URL per answer (Security T-1 / cards I-1)', () => {
   const status = async (rest: string, query: string) => (await handleCards(rest, new URLSearchParams(query))).status
 

@@ -150,7 +150,8 @@ export type PackTier = 'common' | 'uncommon' | 'rare' | 'double' | 'illustration
 export interface PackCatalog {
   price: number
   size: number
-  sets: { id: string; nameKo: string; releaseDate: string; cards: number; odds: { tier: PackTier; percent: number; cards: number }[] }[]
+  /** cardIds: every card the set's packs can give (v1.15.0 §4, for "not collected yet") */
+  sets: { id: string; nameKo: string; releaseDate: string; cards: number; odds: { tier: PackTier; percent: number; cards: number }[]; cardIds?: string[] }[]
 }
 
 export interface PackCard {

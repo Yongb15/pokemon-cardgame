@@ -17,7 +17,7 @@ import path from 'node:path'
 import { addDays, headlineVariant, rateOn, toKrw, utcDay, type FxRow, type Variant } from './logic.js'
 import { isBasicEnergy, loadPriceData } from './refresh.js'
 import { PSA_MAX_AGE_DAYS } from './psaView.js'
-import { getFxRates, getLatestLevels, getLatestLevelsFor, getLatestPsa10 } from './store.js'
+import { getFxRates, getLatestLevels, getLatestLevelsFor, getLatestPsa10, getLevelsAsOf } from './store.js'
 
 export const TOP_LIMIT = 50
 /** A price not confirmed for a week is too old to rank */
@@ -107,6 +107,72 @@ export function rank(levels: Level[], rates: Map<string, FxRow[]>, today: string
   return ranked.sort((a, b) => b.krw - a.krw || a.id.localeCompare(b.id)).slice(0, limit)
 }
 
+// --- 7-day movers (docs/release/v1.15.0-design.md §1, Security M-1..M-3) -------------------------
+
+export const MOVE_DAYS = 7
+/** A level older than this on the earlier day is too stale to compare */
+const MOVE_STALE_DAYS = 14
+/** Below this either side, a few cents read as huge swings */
+export const MOVE_MIN_KRW = 3000
+export const MOVE_MIN_CHANGE = 0.05
+export const MOVE_LIMIT = 30
+
+export interface Mover {
+  id: string
+  /** Today's headline in won */
+  krw: number
+  /** The same source and print 7 days ago, in won at today's rate */
+  thenKrw: number
+  /** (now − then) / then, compared in the original currency: exchange rates don't move it */
+  change: number
+}
+
+/**
+ * Every card's 7-day change: today's headline (chosen like the ranking) against the same source and print
+ * on the earlier day. Both sides unflagged and at least ₩3,000, a change of 5% or more. Rising first (up)
+ * or falling first (down) over all cards; the caller keeps one set's and the top 30.
+ */
+export function rankMovers(now: Level[], then: Level[], rates: Map<string, FxRow[]>, today: string, keep: (cardId: string) => boolean) {
+  const before = new Map(then.map((l) => [`${l.cardId}|${l.source}|${l.variant}`, l]))
+  const heads = rank(now, rates, today, keep, Number.MAX_SAFE_INTEGER)
+  const movers: Mover[] = []
+  for (const head of heads) {
+    const old = before.get(`${head.id}|${head.source}|${head.variant}`)
+    if (!old || old.currency !== head.currency || old.market <= 0) continue
+    const fx = rateOn(rates.get(head.currency) ?? [], today)
+    const thenKrw = fx ? toKrw(old.market, fx.krwPerUnit).krw : null
+    if (thenKrw === null || head.krw < MOVE_MIN_KRW || thenKrw < MOVE_MIN_KRW) continue
+    const change = (head.amount - old.market) / old.market
+    if (Math.abs(change) < MOVE_MIN_CHANGE) continue
+    movers.push({ id: head.id, krw: head.krw, thenKrw, change: Math.round(change * 10_000) / 10_000 })
+  }
+  const byPrice = (a: Mover, b: Mover) => b.krw - a.krw || a.id.localeCompare(b.id)
+  return {
+    up: movers.filter((m) => m.change > 0).sort((a, b) => b.change - a.change || byPrice(a, b)),
+    down: movers.filter((m) => m.change < 0).sort((a, b) => a.change - b.change || byPrice(a, b)),
+  }
+}
+
+/** All cards' movers, worked out once per instance per UTC day; sets are filtered from it (Security M-1) */
+let moversMemo: { day: string; expires: number; value: Promise<ReturnType<typeof rankMovers>> } | null = null
+function allMovers(cards: Awaited<ReturnType<typeof loadPriceData>>['cards'], rates: Map<string, FxRow[]>, today: string, at: number) {
+  if (!moversMemo || moversMemo.day !== today || moversMemo.expires <= at) {
+    const earlier = addDays(today, -MOVE_DAYS)
+    const value = Promise.all([getLatestLevels('en', addDays(today, -FRESH_DAYS)), getLevelsAsOf('en', earlier, addDays(today, -MOVE_STALE_DAYS))]).then(([now, then]) =>
+      rankMovers(now, then, rates, today, (id) => {
+        const card = cards.get(id)
+        return !!card && !isBasicEnergy(card)
+      }),
+    )
+    // A failed read isn't kept: the next request tries again
+    value.catch(() => {
+      if (moversMemo?.value === value) moversMemo = null
+    })
+    moversMemo = { day: today, expires: at + MEMO_MS, value }
+  }
+  return moversMemo.value
+}
+
 function json(body: unknown, status: number, cache: string) {
   return new Response(JSON.stringify(body), {
     status,
@@ -175,7 +241,8 @@ export async function handleTop(params: URLSearchParams, now = new Date()) {
   if ([...params.values()].some((value) => value === '')) return fail(400, 'Bad request')
   const edition = params.get('edition') ?? 'en'
   const set = params.get('set') ?? ''
-  if (edition !== 'en' && edition !== 'ja' && edition !== 'psa10' && edition !== 'packs') return fail(400, 'Bad request')
+  // An exact allow-list (Security M-2)
+  if (edition !== 'en' && edition !== 'ja' && edition !== 'psa10' && edition !== 'packs' && edition !== 'up' && edition !== 'down') return fail(400, 'Bad request')
   if (set && (!SET_ID.test(set) || edition === 'packs')) return fail(400, 'Bad request')
 
   // Also in this instance's memory for 10 minutes, so edge misses don't each read the database
@@ -193,6 +260,15 @@ export async function handleTop(params: URLSearchParams, now = new Date()) {
     const keep = (id: string) => {
       const card = cards.get(id)
       return !!card && !isBasicEnergy(card) && (!set || card.set === set)
+    }
+    if (edition === 'up' || edition === 'down') {
+      // Ids and the two amounts of the top 30 only: no history, no raw rows (Security M-3, P-1)
+      const all = await allMovers(cards, rates, today, now.getTime())
+      const list = all[edition].filter((m) => !set || cards.get(m.id)?.set === set).slice(0, MOVE_LIMIT)
+      const body = { edition, set: set || null, today, days: MOVE_DAYS, cards: list }
+      if (memory.size > 400) memory.clear()
+      memory.set(memoKey, { body, expires: now.getTime() + MEMO_MS })
+      return json(body, 200, OK_CACHE)
     }
     if (edition === 'packs') {
       // English-edition headline (TCGplayer first), every pool card that has one; no cap: the pool is fixed

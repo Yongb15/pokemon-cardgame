@@ -47,7 +47,7 @@ interface SetInfo {
 type RawCard = { id: string; nationalPokedexNumbers?: number[] } & Record<string, unknown>
 
 interface Store {
-  cards: (IndexEntry & { search: string; moveSearch: string[] })[]
+  cards: (IndexEntry & { search: string; exactNames: string[]; moveSearch: string[] })[]
   byId: Map<string, IndexEntry>
   sets: Map<string, SetInfo>
   /** Card ids per set, in set-number order */
@@ -85,14 +85,14 @@ const numberOrder = new Intl.Collator('en', { numeric: true })
 const koOrder = new Intl.Collator('ko', { numeric: true })
 
 /** Lowercase, strip accents, spacing and punctuation: "Flabébé" → "flabebe", "메가 리자몽" → "메가리자몽" */
-function normalize(text: string) {
+function normalize(text: string, keepSymbols = false) {
   return text
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     // NFKD also splits Hangul syllables into jamo ("리" would match "릴"); put them back together
     .normalize('NFC')
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}]/gu, '')
+    .replace(keepSymbols ? /[^\p{L}\p{N}\p{S}]/gu : /[^\p{L}\p{N}]/gu, '')
 }
 
 let storePromise: Promise<Store> | null = null
@@ -114,6 +114,9 @@ function loadStore() {
       cards: index.map((c) => ({
         ...c,
         search: normalize(c.name) + ' ' + normalize(c.nameKo ?? ''),
+        // The whole name, for putting exact matches first ("리자드" before "일레도리자드")
+        // Symbols kept: "피카츄 ★" is not exactly "피카츄" (qa L-2)
+        exactNames: [normalize(c.name, true), normalize(c.nameKo ?? '', true)],
         // One string per move, so a match can say which move it was
         moveSearch: (c.moves ?? []).map(([en, ko]) => normalize(en) + ' ' + normalize(ko ?? '')),
       })),
@@ -264,7 +267,7 @@ async function search(params: URLSearchParams) {
   const byMove = scope === 'move' && !!name
 
   // Filtering a pre-sorted list keeps its order
-  const matches = sortedCards(store, sortKey as SortKey).filter(
+  const filtered = sortedCards(store, sortKey as SortKey).filter(
     (c) =>
       (!name || (byMove ? c.moveSearch.some((m) => m.includes(name)) : c.search.includes(name))) &&
       (!type || c.types?.includes(type)) &&
@@ -273,6 +276,10 @@ async function search(params: URLSearchParams) {
       (!supertype || c.supertype === supertype) &&
       (!formatFlag || !!c.legal?.includes(formatFlag)),
   )
+  // A name search shows the cards called exactly that first, each group still in the chosen order
+  // (the "evolves from" link searches the previous stage's name: docs/release/v1.15.0-design.md §2)
+  const exact = name && !byMove ? filtered.filter((c) => c.exactNames.includes(name)) : []
+  const matches = exact.length ? [...exact, ...filtered.filter((c) => !c.exactNames.includes(name))] : filtered
   const start = (page - 1) * pageSize
   const data = matches
     .slice(start, start + pageSize)

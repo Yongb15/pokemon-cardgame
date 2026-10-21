@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import DeckCardList from '../components/deck/DeckCardList'
 import DeckChecks from '../components/deck/DeckChecks'
+import DeckCost from '../components/deck/DeckCost'
 import DeckStats from '../components/deck/DeckStats'
 import ExportDialog from '../components/deck/ExportDialog'
 import { NotFoundState } from '../components/ListStates'
@@ -123,10 +124,13 @@ export default function SharedDeckPage() {
         <p className={styles.muted}>카드 정보를 불러오는 중…</p>
       ) : (
         <div className={styles.sharedBody}>
+          {/* The card groups are h3: keep the outline h1 → h2 → h3 (qa Low: heading-order) */}
+          <h2 className="visually-hidden">덱 목록</h2>
           <DeckCardList cards={shared.cards} info={info} columns />
           {problems > 0 && <DeckChecks checks={checks} />}
           <div className={styles.sharedStats}>
             <DeckStats cards={shared.cards} info={info} />
+            <DeckCost cards={shared.cards} info={info} />
           </div>
         </div>
       )}

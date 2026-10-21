@@ -50,12 +50,18 @@ abstract class PackRoutes extends UserRoutes {
 export class PacksCatalogController {
   // Static odds: cacheable at the edge (qa Info)
   @Get()
-  catalog(@Res({ passthrough: true }) res: Response) {
+  catalog(@Query() query: Record<string, unknown>, @Res({ passthrough: true }) res: Response) {
+    // No parameters at all: one URL is one edge cache entry (Security PK-1, the T-1 rule)
+    if (Object.keys(query).length) throw badRequest()
     res.setHeader('Cache-Control', 'public, max-age=300, s-maxage=3600')
     return {
       price: PACK_PRICE,
       size: PACK_SIZE,
-      sets: PACK_SETS.map((s) => ({ id: s.id, nameKo: s.nameKo, releaseDate: s.releaseDate, cards: Object.values(s.tiers).flat().length, odds: packOdds(s) })),
+      // cardIds: the fixed pool behind the public odds, for "cards not collected yet" (v1.15.0 §4); draws stay here
+      sets: PACK_SETS.map((s) => {
+        const cardIds = [...new Set(Object.values(s.tiers).flat())].sort()
+        return { id: s.id, nameKo: s.nameKo, releaseDate: s.releaseDate, cards: Object.values(s.tiers).flat().length, odds: packOdds(s), cardIds }
+      }),
     }
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FxRow } from './logic.js'
-import { handleBatch, handlePacks, handleTop, loadPoolIds, rank, type Level } from './top.js'
+import { handleBatch, handlePacks, handleTop, loadPoolIds, rank, rankMovers, type Level } from './top.js'
 
 const today = '2026-10-09'
 const rates = new Map<string, FxRow[]>([
@@ -53,13 +53,54 @@ describe('price ranking', () => {
   })
 })
 
+describe('7-day movers (v1.15.0 §1)', () => {
+  const keep = () => true
+  it('compares the same source and print, in the original currency, both sides at least ₩3,000', () => {
+    const now = [
+      level('rise', 'tcgplayer', 'holo', 20), // ₩20,000 from ₩10,000: +100%
+      level('fall', 'tcgplayer', 'normal', 6), // ₩6,000 from ₩8,000: −25%
+      level('flat', 'tcgplayer', 'holo', 10.2), // +2%: under 5%
+      level('cheap', 'tcgplayer', 'holo', 2.9), // ₩2,900 now: too cheap
+      level('newcomer', 'tcgplayer', 'holo', 50), // no earlier level
+      level('switched', 'tcgplayer', 'holo', 30), // earlier only another print
+    ]
+    const then = [
+      level('rise', 'tcgplayer', 'holo', 10),
+      level('rise', 'tcgplayer', 'normal', 1), // another print: ignored
+      level('fall', 'tcgplayer', 'normal', 8),
+      level('flat', 'tcgplayer', 'holo', 10),
+      level('cheap', 'tcgplayer', 'holo', 2),
+      level('switched', 'tcgplayer', 'reverse', 10),
+    ]
+    const m = rankMovers(now, then, rates, today, keep)
+    expect(m.up).toEqual([{ id: 'rise', krw: 20_000, thenKrw: 10_000, change: 1 }])
+    expect(m.down).toEqual([{ id: 'fall', krw: 6_000, thenKrw: 8_000, change: -0.25 }])
+  })
+
+  it('orders by change, then by price, then by id; leaves out cards it should not keep', () => {
+    const now = [level('a', 'tcgplayer', 'holo', 15), level('b', 'tcgplayer', 'holo', 30), level('c', 'tcgplayer', 'holo', 12), level('x', 'tcgplayer', 'holo', 100)]
+    const then = [level('a', 'tcgplayer', 'holo', 10), level('b', 'tcgplayer', 'holo', 20), level('c', 'tcgplayer', 'holo', 6), level('x', 'tcgplayer', 'holo', 10)]
+    const m = rankMovers(now, then, rates, today, (id) => id !== 'x')
+    expect(m.up.map((r) => r.id)).toEqual(['c', 'b', 'a'])
+    expect(m.down).toEqual([])
+  })
+})
+
 describe('the /api/prices/top request', () => {
   it('refuses unknown parameters and bad values before touching the database', async () => {
-    for (const query of ['edition=ko', 'edition=en&x=1', 'set=../x', 'set=' + 'a'.repeat(21), 'range=30d', 'edition=en&edition=ja', 'edition=en&edition=en&edition=en', 'set=&edition=en', 'edition=', 'edition=packs&set=me5', 'edition=packs&edition=en', 'edition=packs&x=1']) {
+    for (const query of ['edition=ko', 'edition=en&x=1', 'set=../x', 'set=' + 'a'.repeat(21), 'range=30d', 'edition=en&edition=ja', 'edition=en&edition=en&edition=en', 'set=&edition=en', 'edition=', 'edition=packs&set=me5', 'edition=packs&edition=en', 'edition=packs&x=1', 'edition=UP', 'edition=up&edition=down', 'edition=down&x=1', 'edition=up&set=']) {
       const res = await handleTop(new URLSearchParams(query))
       expect(res.status, query).toBe(400)
       expect(res.headers.get('cache-control')).toBe('no-store')
     }
+  })
+})
+
+describe('movers parameters (Security M-2)', () => {
+  it('an unknown set is 404 before any database read', async () => {
+    const res = await handleTop(new URLSearchParams('edition=up&set=zzz'))
+    expect(res.status).toBe(404)
+    expect(res.headers.get('cache-control')).toBe('no-store')
   })
 })
 

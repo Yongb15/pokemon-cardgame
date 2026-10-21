@@ -72,6 +72,16 @@ describe('card packs (preview)', () => {
     expect(res.body.price).toBe(1000)
     expect(res.body.sets.map((s: { id: string }) => s.id)).toEqual(PACK_SETS.map((s) => s.id))
     expect(res.body.sets[0].odds.reduce((n: number, o: { percent: number }) => n + o.percent, 0)).toBeCloseTo(100, 6)
+    // The pool behind the odds, for "cards not collected yet" (v1.15.0 §4): one id per card, as many as `cards`
+    for (const s of res.body.sets as { cards: number; cardIds: string[] }[]) {
+      expect(new Set(s.cardIds).size).toBe(s.cards)
+      expect([...s.cardIds].sort()).toEqual(s.cardIds)
+    }
+    // Any query string is refused, so the edge holds one entry (Security PK-1)
+    for (const q of ['?x=1', '?x=1&x=1', '?set=me5']) {
+      const bad = await t.call(`/api/v1/packs${q}`)
+      expect(bad.status, q).toBe(400)
+    }
   })
 
   it('opens a pack: 1,000P, five cards, idempotent per request id (even with another set)', async () => {

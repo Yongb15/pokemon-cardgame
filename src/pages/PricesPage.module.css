@@ -36,14 +36,19 @@
 
 .segments {
   display: inline-flex;
+  max-width: 100%;
   padding: 3px;
   border-radius: 10px;
   background: var(--surface-muted);
+  /* Five choices since the 7-day movers: on a phone they scroll sideways instead of overflowing */
+  overflow-x: auto;
 }
 
 .segment {
+  flex: 0 0 auto;
   padding: 7px 16px;
   border: 0;
+  white-space: nowrap;
   border-radius: 8px;
   background: none;
   color: var(--text); /* muted grey on the grey track is under 4.5:1 (qa P-2) */
@@ -197,6 +202,27 @@
   white-space: nowrap;
 }
 
+/* 7-day change: red up, blue down, as Korean price tables do */
+.price .up,
+.price .down {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.price .up {
+  color: var(--bad);
+}
+
+.price .down {
+  color: #2563eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  .price .down {
+    color: #7aa7ff;
+  }
+}
+
 @media (max-width: 640px) {
   .row {
     padding: 10px 12px;
@@ -214,6 +240,15 @@
 
   /* The original price and source are on the card page; phones keep just the won */
   .price span {
+    display: none;
+  }
+
+  /* …but the 7-day change is the point of the movers tabs: it stays, without the earlier price (qa M-1) */
+  .price .change {
+    display: inline;
+  }
+
+  .price .then {
     display: none;
   }
 }

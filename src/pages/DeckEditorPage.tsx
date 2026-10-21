@@ -4,6 +4,7 @@ import CardPicker from '../components/deck/CardPicker'
 import CollectionCoverage from '../components/deck/CollectionCoverage'
 import DeckCardList from '../components/deck/DeckCardList'
 import DeckChecks from '../components/deck/DeckChecks'
+import DeckCost from '../components/deck/DeckCost'
 import DeckSimulator from '../components/deck/DeckSimulator'
 import DeckStats from '../components/deck/DeckStats'
 import ExportDialog from '../components/deck/ExportDialog'
@@ -412,6 +413,7 @@ function Editor({ deck: stored, mode }: { deck: Deck; mode: 'local' | 'account' 
           <DeckChecks checks={checks} />
           {owned && <CollectionCoverage cards={deck.cards} info={info} owned={owned} />}
           <DeckStats cards={deck.cards} info={info} defaultOpen={!isNarrow} />
+          <DeckCost cards={deck.cards} info={info} />
           <DeckSimulator cards={deck.cards} info={info} />
         </>
       )}

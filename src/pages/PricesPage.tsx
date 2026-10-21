@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import CardImg from '../components/CardImg'
 import Select from '../components/Select'
@@ -8,17 +8,21 @@ import { formatCardNumber, rarityLabel } from '../lib/cardText'
 import type { CardSet } from '../types/card'
 import styles from './PricesPage.module.css'
 
-type Edition = 'en' | 'ja' | 'psa10'
+type Edition = 'en' | 'ja' | 'psa10' | 'up' | 'down'
+const isMovers = (e: Edition) => e === 'up' || e === 'down'
 
 interface Ranked {
   id: string
   krw: number
-  amount: number
-  currency: string
-  source: string
-  variant: string
-  date: string
+  amount?: number
+  currency?: string
+  source?: string
+  variant?: string
+  date?: string
   sales?: number
+  /** 7-day movers: the same print 7 days ago, and the change (v1.15.0 §1) */
+  thenKrw?: number
+  change?: number
 }
 
 interface TopResponse {
@@ -30,7 +34,10 @@ const EDITIONS: [Edition, string][] = [
   ['en', '영문판'],
   ['ja', '일본판'],
   ['psa10', 'PSA 10'],
+  ['up', '7일 상승'],
+  ['down', '7일 하락'],
 ]
+const percent = (change: number) => `${change > 0 ? '+' : '−'}${Math.abs(change * 100).toFixed(1)}%`
 const SOURCE_LABEL: Record<string, string> = { tcgplayer: 'TCGplayer', cardmarket: 'Cardmarket' }
 const VARIANT_LABEL: Record<string, string> = { normal: '일반', holo: '홀로', reverse: '리버스 홀로', firstEdition: '1판', unlimited: '무제한판' }
 const money = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -50,13 +57,13 @@ function groupBySeries(sets: CardSet[]) {
 }
 
 /**
- * /prices?edition=en|ja|psa10&set=… (docs/design/price-ranking.webp, psa-prices.webp ③): the priciest
- * cards right now
+ * /prices?edition=en|ja|psa10|up|down&set=… (docs/design/price-ranking.webp, psa-prices.webp ③): the priciest
+ * cards right now, or the week's biggest moves (docs/release/v1.15.0-design.md §1)
  */
 export default function PricesPage() {
   const [params, setParams] = useSearchParams()
   const rawEdition = params.get('edition')
-  const edition: Edition = rawEdition === 'ja' || rawEdition === 'psa10' ? rawEdition : 'en'
+  const edition: Edition = rawEdition === 'ja' || rawEdition === 'psa10' || rawEdition === 'up' || rawEdition === 'down' ? rawEdition : 'en'
   const setParam = params.get('set') ?? ''
   const set = SETS.some((s) => s.id === setParam) ? setParam : ''
   const key = `${edition}|${set}`
@@ -75,6 +82,16 @@ export default function PricesPage() {
   }, [tidy, edition, set, setParams])
   if (unknownSet && !missingSet) setMissingSet(true)
   const [result, setResult] = useState<{ key: string; data?: TopResponse; error?: boolean } | null>(null)
+  // On a phone the five choices scroll sideways: keep the chosen one in view, without scrolling the page (qa L-1)
+  const segments = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const box = segments.current
+    const on = box?.querySelector<HTMLElement>('[aria-pressed="true"]')
+    if (!box || !on) return
+    const b = box.getBoundingClientRect()
+    const o = on.getBoundingClientRect()
+    if (o.left < b.left || o.right > b.right) box.scrollLeft += o.left - b.left - (b.width - o.width) / 2
+  }, [edition])
   const [reload, setReload] = useState(0)
 
   useEffect(() => {
@@ -118,13 +135,13 @@ export default function PricesPage() {
       <div>
         <h1 className={styles.title}>시세</h1>
         <p className={styles.subtitle}>
-          지금 가장 비싼 카드 · 시세를 모은 카드 기준(스탠다드는 매일, 나머지는 누군가 본 카드)
+          {isMovers(edition) ? `7일 동안 가장 많이 ${edition === 'up' ? '오른' : '내린'} 카드` : '지금 가장 비싼 카드'} · 시세를 모은 카드 기준
           {current?.data && ` · ${shortDate(current.data.today)} 기준`}
         </p>
       </div>
 
       <div className={styles.controls}>
-        <div className={styles.segments} role="group" aria-label="판">
+        <div ref={segments} className={styles.segments} role="group" aria-label="판">
           {EDITIONS.map(([value, text]) => (
             <button key={value} type="button" aria-pressed={edition === value} className={styles.segment} onClick={() => update({ edition: value })}>
               {text}
@@ -144,7 +161,9 @@ export default function PricesPage() {
           ))}
         </Select>
         <p className={styles.note}>
-          {edition === 'en'
+          {isMovers(edition)
+            ? '영문판 TCGplayer 시장가(없으면 Cardmarket) · 7일 전과 같은 판본을 원래 통화로 비교(환율 변동 제외) · ₩3,000 이상, 5% 이상 움직인 카드'
+            : edition === 'en'
             ? 'TCGplayer 시장가(없으면 Cardmarket)'
             : edition === 'ja'
               ? 'Cardmarket 추세가 · 일본판과 연결된 카드만'
@@ -180,8 +199,8 @@ export default function PricesPage() {
           <div className={styles.skeleton} aria-busy="true" aria-label="시세를 불러오는 중" />
         ) : ranked.length === 0 ? (
           <div className={styles.empty}>
-            <h2>{set ? '이 세트는 아직 모은 시세가 없어요' : '아직 모은 시세가 없어요'}</h2>
-            <p>{edition === 'psa10' ? 'PSA 시세는 비싼 카드부터 주 1회 모아요.' : '카드 상세를 열면 그 카드의 시세를 가져와요.'}</p>
+            <h2>{isMovers(edition) ? `7일 동안 5% 이상 ${edition === 'up' ? '오른' : '내린'} 카드가 없어요` : set ? '이 세트는 아직 모은 시세가 없어요' : '아직 모은 시세가 없어요'}</h2>
+            <p>{isMovers(edition) ? '시세는 매일 모아요. 내일 다시 보면 달라질 수 있어요.' : edition === 'psa10' ? 'PSA 시세는 비싼 카드부터 주 1회 모아요.' : '카드 상세를 열면 그 카드의 시세를 가져와요.'}</p>
           </div>
         ) : (
           <ol className={styles.list}>
@@ -217,12 +236,21 @@ export default function PricesPage() {
                     </span>
                     <span className={styles.price}>
                       <b>{won(r.krw)}</b>
-                      <span>
-                        {(Object.hasOwn(CURRENCY, r.currency) ? CURRENCY[r.currency](r.amount) : `${r.amount} ${r.currency}`) +
-                          (r.source === 'psa10'
-                            ? ` · PSA 10 · 판매 ${(r.sales ?? 0).toLocaleString('ko-KR')}건`
-                            : ` · ${label(SOURCE_LABEL, r.source)} ${label(VARIANT_LABEL, r.variant)}`)}
-                      </span>
+                      {r.change !== undefined ? (
+                        <span className={styles.change}>
+                          <b className={r.change > 0 ? styles.up : styles.down}>
+                            {r.change > 0 ? '▲' : '▼'} {percent(r.change)}
+                          </b>
+                          <span className={styles.then}> · 7일 전 {won(r.thenKrw ?? 0)}</span>
+                        </span>
+                      ) : (
+                        <span>
+                          {(Object.hasOwn(CURRENCY, r.currency ?? '') ? CURRENCY[r.currency!](r.amount ?? 0) : `${r.amount} ${r.currency}`) +
+                            (r.source === 'psa10'
+                              ? ` · PSA 10 · 판매 ${(r.sales ?? 0).toLocaleString('ko-KR')}건`
+                              : ` · ${label(SOURCE_LABEL, r.source ?? '')} ${label(VARIANT_LABEL, r.variant ?? '')}`)}
+                        </span>
+                      )}
                     </span>
                   </Link>
                 </li>

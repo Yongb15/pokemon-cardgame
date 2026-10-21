@@ -208,10 +208,10 @@
   gap: 6px;
 }
 
-.progress li {
+.progress > li {
   min-height: 20px;
   display: grid;
-  grid-template-columns: 140px 1fr 72px;
+  grid-template-columns: 140px 1fr 96px;
   gap: 10px;
   align-items: center;
   font-size: 12px;
@@ -233,6 +233,47 @@
 .count {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+/* v1.15.0 §4: a finished set, and the "not collected yet" list under a set */
+.bar .barDone {
+  background: var(--ok);
+}
+
+.done {
+  color: var(--ok);
+}
+
+.setToggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-text);
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.missing {
+  grid-column: 1 / -1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface-muted);
+}
+
+.missing p {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.missing ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
 }
 
 .chips {
@@ -403,8 +444,8 @@
 }
 
 @media (max-width: 640px) {
-  .progress li {
-    grid-template-columns: 100px 1fr 64px;
+  .progress > li {
+    grid-template-columns: 96px 1fr 88px;
   }
 
   .grid {
