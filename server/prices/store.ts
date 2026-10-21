@@ -364,6 +364,28 @@ export async function getLatestLevelsFor(edition: 'en' | 'ja', sinceDay: string,
   }))
 }
 
+/**
+ * Every card's level as it stood on `day`: the last unflagged row captured on or before it, still seen on or
+ * after `sinceDay` (an older one is too stale to compare). For the 7-day movers (docs/release/v1.15.0-design.md §1)
+ */
+export async function getLevelsAsOf(edition: 'en' | 'ja', day: string, sinceDay: string) {
+  const result = await run((d) =>
+    d.execute(sql`
+      select distinct on (card_id, source, variant) card_id, source, variant, currency, market, last_seen_on
+      from ${priceSnapshot}
+      where edition = ${edition} and flagged = false and captured_on <= ${day} and last_seen_on >= ${sinceDay}
+      order by card_id, source, variant, captured_on desc`),
+  )
+  return rowsOf(result).map((r) => ({
+    cardId: String(r.card_id),
+    source: String(r.source),
+    variant: String(r.variant),
+    currency: String(r.currency),
+    market: Number(r.market),
+    lastSeenOn: String(r.last_seen_on).slice(0, 10),
+  }))
+}
+
 export async function getLatestLevels(edition: 'en' | 'ja', sinceDay: string) {
   const result = await run((d) =>
     d.execute(sql`

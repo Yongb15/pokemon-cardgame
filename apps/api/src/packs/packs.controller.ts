@@ -55,7 +55,11 @@ export class PacksCatalogController {
     return {
       price: PACK_PRICE,
       size: PACK_SIZE,
-      sets: PACK_SETS.map((s) => ({ id: s.id, nameKo: s.nameKo, releaseDate: s.releaseDate, cards: Object.values(s.tiers).flat().length, odds: packOdds(s) })),
+      // cardIds: the fixed pool behind the public odds, for "cards not collected yet" (v1.15.0 §4); draws stay here
+      sets: PACK_SETS.map((s) => {
+        const cardIds = [...new Set(Object.values(s.tiers).flat())].sort()
+        return { id: s.id, nameKo: s.nameKo, releaseDate: s.releaseDate, cards: Object.values(s.tiers).flat().length, odds: packOdds(s), cardIds }
+      }),
     }
   }
 }
