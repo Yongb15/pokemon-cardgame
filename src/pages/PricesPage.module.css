@@ -242,6 +242,15 @@
   .price span {
     display: none;
   }
+
+  /* …but the 7-day change is the point of the movers tabs: it stays, without the earlier price (qa M-1) */
+  .price .change {
+    display: inline;
+  }
+
+  .price .then {
+    display: none;
+  }
 }
 
 .note a {
