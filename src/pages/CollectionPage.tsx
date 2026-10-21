@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router'
-import { AccountApiError, getCollection, getCollectionSummary, getPackCatalog, type CollectionCard, type CollectionSummary, type PackCatalog } from '../api/account'
+import { AccountApiError, getCollection, getCollectionSummary, getPackCatalog, type CollectionCard, type CollectionSummary, type PackCatalog, type PackTier } from '../api/account'
 import CardImg from '../components/CardImg'
+import CardTradeDialog from '../components/CardTradeDialog'
 import ListAuctionDialog from '../components/ListAuctionDialog'
 import { useCardInfo } from '../hooks/useDecks'
 import { useSession } from '../hooks/useSession'
 import { rarityLabel } from '../lib/cardText'
 import { collectionValue, loadPackPrices, wonKrw } from '../lib/collectionValue'
+import { won } from '../lib/points'
 import styles from './CollectionPage.module.css'
 
 /**
@@ -25,6 +27,9 @@ export default function CollectionPage() {
   const [prices, setPrices] = useState<Record<string, number> | 'error' | null>(null)
   /** The set whose "not collected yet" list is open (v1.15.0 §4) */
   const [openSet, setOpenSet] = useState<string | null>(null)
+  /** Exchange or craft in progress (docs/auction/exchange.md §2–3), and a counter that reloads the lists after one */
+  const [trade, setTrade] = useState<{ mode: 'exchange'; cardId: string; name: string; max: number; value: number } | { mode: 'craft'; cardId: string; name: string; cost: number } | null>(null)
+  const [reload, setReload] = useState(0)
   const signedIn = session.status === 'in'
   const key = set ?? ''
 
@@ -50,7 +55,7 @@ export default function CollectionPage() {
     getCollectionSummary()
       .then(setSummary)
       .catch((e: unknown) => setError(e instanceof AccountApiError ? e.message : '컬렉션을 불러오지 못했어요.'))
-  }, [signedIn])
+  }, [signedIn, reload])
 
   useEffect(() => {
     if (!signedIn) return
@@ -61,7 +66,7 @@ export default function CollectionPage() {
     return () => {
       stale = true
     }
-  }, [signedIn, key])
+  }, [signedIn, key, reload])
 
   const current = list?.key === key ? list : null
   const priceMap = prices && prices !== 'error' ? prices : null
@@ -91,6 +96,13 @@ export default function CollectionPage() {
   }
 
   const setName = (id: string) => catalog?.sets.find((s) => s.id === id)?.nameKo ?? id
+  // Each pack card's tier, for what it's worth to exchange (and craft: ×craftFactor)
+  const tierOf = new Map(catalog?.sets.flatMap((s) => Object.entries(s.tiers ?? {}).flatMap(([tier, ids]) => (ids ?? []).map((id) => [id, tier as PackTier] as const))) ?? [])
+  const values = catalog?.exchange
+  const exchangeValue = (cardId: string) => {
+    const tier = tierOf.get(cardId)
+    return tier && values ? values.values[tier] : null
+  }
   // Every pack set, owned or not: the block keeps one height while it loads (qa B)
   const progress = summary?.sets ?? catalog?.sets.map((s) => ({ id: s.id, owned: 0, total: s.cards })) ?? []
 
@@ -195,6 +207,15 @@ export default function CollectionPage() {
                         return (
                           <li key={id}>
                             <Link to={`/cards/${encodeURIComponent(id)}`}>{card ? (card.nameKo ?? card.name) : id}</Link>
+                            {values && exchangeValue(id) !== null && (
+                              <button
+                                type="button"
+                                className={styles.craftButton}
+                                onClick={() => setTrade({ mode: 'craft', cardId: id, name: card ? (card.nameKo ?? card.name) : id, cost: exchangeValue(id)! * values.craftFactor })}
+                              >
+                                만들기 {won(exchangeValue(id)! * values.craftFactor)}
+                              </button>
+                            )}
                           </li>
                         )
                       })}
@@ -242,6 +263,9 @@ export default function CollectionPage() {
               const name = card ? (card.nameKo ?? card.name) : c.cardId
               // Copies that can go up for auction: not a test copy, not already listed (K-3)
               const free = c.count - c.test - c.listed
+              // Copies that can be exchanged: the same, and one always stays (exchange.md §2)
+              const spare = Math.min(free, c.count - 1, 50)
+              const value = exchangeValue(c.cardId)
               return (
                 <li key={c.cardId} className={styles.cell}>
                   <Link className={styles.tile} to={`/cards/${encodeURIComponent(c.cardId)}`}>
@@ -260,6 +284,11 @@ export default function CollectionPage() {
                       {priceMap ? (Object.hasOwn(priceMap, c.cardId) ? wonKrw(priceMap[c.cardId]!) : '시세 없음') : ' '}
                     </span>
                   </Link>
+                  {spare > 0 && value !== null && (
+                    <button type="button" className={styles.listButton} aria-label={`${name} 교환, 1장에 ${won(value)}`} onClick={() => setTrade({ mode: 'exchange', cardId: c.cardId, name, max: spare, value })}>
+                      교환 {won(value)}
+                    </button>
+                  )}
                   {free > 0 ? (
                     <button type="button" className={styles.listButton} aria-label={`${name} 경매 등록`} onClick={() => setListing({ cardId: c.cardId, name })}>
                       경매 등록
@@ -280,6 +309,7 @@ export default function CollectionPage() {
       )}
       <p className={styles.small}>덱과 컬렉션은 별개예요 — 컬렉션 카드를 팔아도 덱에서 빠지지 않아요.</p>
       {listing && <ListAuctionDialog cardId={listing.cardId} name={listing.name} onClose={() => setListing(null)} />}
+      {trade && <CardTradeDialog {...trade} onClose={() => setTrade(null)} onDone={() => setReload((n) => n + 1)} />}
     </main>
   )
 }
