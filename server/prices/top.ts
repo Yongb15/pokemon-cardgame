@@ -128,13 +128,14 @@ export interface Mover {
 }
 
 /**
- * Every card's 7-day change: today's headline (chosen like the ranking) against the same source and print
- * on the earlier day. Both sides unflagged and at least ₩3,000, a change of 5% or more. Rising first (up)
+ * Every card's 7-day change: today's TCGplayer headline (chosen like the ranking) against the same print on the
+ * earlier day. Both sides unflagged and at least ₩3,000, a change of 5% or more. TCGplayer only: Cardmarket trends on
+ * thinly traded cards swing wildly (€20 → €176 in a week), so they topped the list with noise (v1.15.1). Rising first (up)
  * or falling first (down) over all cards; the caller keeps one set's and the top 30.
  */
 export function rankMovers(now: Level[], then: Level[], rates: Map<string, FxRow[]>, today: string, keep: (cardId: string) => boolean) {
   const before = new Map(then.map((l) => [`${l.cardId}|${l.source}|${l.variant}`, l]))
-  const heads = rank(now, rates, today, keep, Number.MAX_SAFE_INTEGER)
+  const heads = rank(now.filter((l) => l.source === 'tcgplayer'), rates, today, keep, Number.MAX_SAFE_INTEGER)
   const movers: Mover[] = []
   for (const head of heads) {
     const old = before.get(`${head.id}|${head.source}|${head.variant}`)
