@@ -47,7 +47,7 @@ interface SetInfo {
 type RawCard = { id: string; nationalPokedexNumbers?: number[] } & Record<string, unknown>
 
 interface Store {
-  cards: (IndexEntry & { search: string; moveSearch: string[] })[]
+  cards: (IndexEntry & { search: string; exactNames: string[]; moveSearch: string[] })[]
   byId: Map<string, IndexEntry>
   sets: Map<string, SetInfo>
   /** Card ids per set, in set-number order */
@@ -114,6 +114,8 @@ function loadStore() {
       cards: index.map((c) => ({
         ...c,
         search: normalize(c.name) + ' ' + normalize(c.nameKo ?? ''),
+        // The whole name, for putting exact matches first ("리자드" before "일레도리자드")
+        exactNames: [normalize(c.name), normalize(c.nameKo ?? '')],
         // One string per move, so a match can say which move it was
         moveSearch: (c.moves ?? []).map(([en, ko]) => normalize(en) + ' ' + normalize(ko ?? '')),
       })),
@@ -264,7 +266,7 @@ async function search(params: URLSearchParams) {
   const byMove = scope === 'move' && !!name
 
   // Filtering a pre-sorted list keeps its order
-  const matches = sortedCards(store, sortKey as SortKey).filter(
+  const filtered = sortedCards(store, sortKey as SortKey).filter(
     (c) =>
       (!name || (byMove ? c.moveSearch.some((m) => m.includes(name)) : c.search.includes(name))) &&
       (!type || c.types?.includes(type)) &&
@@ -273,6 +275,10 @@ async function search(params: URLSearchParams) {
       (!supertype || c.supertype === supertype) &&
       (!formatFlag || !!c.legal?.includes(formatFlag)),
   )
+  // A name search shows the cards called exactly that first, each group still in the chosen order
+  // (the "evolves from" link searches the previous stage's name: docs/release/v1.15.0-design.md §2)
+  const exact = name && !byMove ? filtered.filter((c) => c.exactNames.includes(name)) : []
+  const matches = exact.length ? [...exact, ...filtered.filter((c) => !c.exactNames.includes(name))] : filtered
   const start = (page - 1) * pageSize
   const data = matches
     .slice(start, start + pageSize)

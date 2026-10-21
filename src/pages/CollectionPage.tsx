@@ -23,6 +23,8 @@ export default function CollectionPage() {
   const [loadingMore, setLoadingMore] = useState(false)
   const [listing, setListing] = useState<{ cardId: string; name: string } | null>(null)
   const [prices, setPrices] = useState<Record<string, number> | 'error' | null>(null)
+  /** The set whose "not collected yet" list is open (v1.15.0 §4) */
+  const [openSet, setOpenSet] = useState<string | null>(null)
   const signedIn = session.status === 'in'
   const key = set ?? ''
 
@@ -67,7 +69,11 @@ export default function CollectionPage() {
   // The "priciest" block is always five rows tall, loading or not, however many cards have a price:
   // nothing below it moves (CLS). Placeholder rows while loading, a note when there are fewer than five
   const topRows = value ? value.top.length : prices === 'error' ? 0 : 5
-  const { info } = useCardInfo([...(current?.cards.map((c) => c.cardId) ?? []), ...(value?.top.map((t) => t.cardId) ?? [])])
+  // Not collected yet in the open set: its pack pool minus what this user owns, worked out here (the
+  // collection never goes back to the server for it)
+  const ownedIds = new Set(summary?.owned.map((o) => o.cardId) ?? [])
+  const missing = openSet ? (catalog?.sets.find((s) => s.id === openSet)?.cardIds ?? []).filter((id) => !ownedIds.has(id)) : []
+  const { info } = useCardInfo([...(current?.cards.map((c) => c.cardId) ?? []), ...(value?.top.map((t) => t.cardId) ?? []), ...missing])
 
   if (session.status === 'out') return <Navigate to="/login?next=%2Fcollection" replace />
 
@@ -165,11 +171,40 @@ export default function CollectionPage() {
       <ul className={styles.progress} aria-label="세트별 모은 카드">
         {(progress.length ? progress : Array.from({ length: 6 }, (_, i) => ({ id: `p${i}`, owned: 0, total: 0 }))).map((s) => (
           <li key={s.id}>
-            <span>{progress.length ? setName(s.id) : ' '}</span>
+            {progress.length && summary && s.total ? (
+              <button type="button" className={styles.setToggle} aria-expanded={openSet === s.id} onClick={() => setOpenSet(openSet === s.id ? null : s.id)}>
+                {setName(s.id)}
+              </button>
+            ) : (
+              <span>{progress.length ? setName(s.id) : ' '}</span>
+            )}
             <span className={styles.bar} role="progressbar" aria-valuemin={0} aria-valuemax={s.total} aria-valuenow={s.owned} aria-label={`${setName(s.id)} 모은 카드`}>
-              <i style={{ width: s.total ? `${(s.owned / s.total) * 100}%` : 0 }} />
+              <i className={s.total && s.owned >= s.total ? styles.barDone : undefined} style={{ width: s.total ? `${Math.min(100, (s.owned / s.total) * 100)}%` : 0 }} />
             </span>
-            <span className={styles.count}>{s.total ? `${s.owned}/${s.total}` : ' '}</span>
+            <span className={styles.count}>
+              {s.total ? (s.owned >= s.total ? <b className={styles.done}>완성 ✓</b> : `${s.owned}/${s.total} · ${Math.floor((s.owned / s.total) * 100)}%`) : ' '}
+            </span>
+            {openSet === s.id && (
+              <div className={styles.missing}>
+                {missing.length ? (
+                  <>
+                    <p>아직 못 모은 카드 {missing.length}장</p>
+                    <ul>
+                      {missing.map((id) => {
+                        const card = info.get(id)
+                        return (
+                          <li key={id}>
+                            <Link to={`/cards/${encodeURIComponent(id)}`}>{card ? (card.nameKo ?? card.name) : id}</Link>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </>
+                ) : (
+                  <p>이 세트의 카드를 모두 모았어요!</p>
+                )}
+              </div>
+            )}
           </li>
         ))}
       </ul>

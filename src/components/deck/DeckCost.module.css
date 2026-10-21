@@ -1,0 +1,48 @@
+/* "참고 시세 합계" (docs/release/v1.15.0-design.md §3), under the deck composition */
+
+.cost {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.total {
+  margin: 0;
+  min-height: 1.5em;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.total b {
+  font-size: 16px;
+  color: var(--text-h);
+}
+
+.top {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.top li span {
+  margin-left: 6px;
+  color: var(--text-muted);
+}
+
+.note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
