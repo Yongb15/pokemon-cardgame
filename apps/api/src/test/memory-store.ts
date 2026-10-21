@@ -9,8 +9,8 @@ import { MAX_SESSIONS, type AccountStore, type SessionRecord } from '../auth/sto
 import { planImport, type DeckInput, type DeckRecord, type ImportItem } from '../data/decks.js'
 import { MAX_FAVORITES, type ImportResult, type SaveResult, type UserDataStore } from '../data/store.js'
 import type { PointKind } from '../db/schema.js'
-import { drawPack, PACK_PRICE, packSet, type Rng } from '../packs/odds.js'
-import { asPackCards, COLLECTION_PAGE, summarize, type CollectionRow, type OpenResult, type PackCheck, type PacksStore } from '../packs/store.js'
+import { BUNDLE_SIZE, CRAFT_FACTOR, drawBundle, drawPack, EXCHANGE_VALUE, PACK_PRICE, packSet, tierOf, type Rng } from '../packs/odds.js'
+import { asPackCards, COLLECTION_PAGE, EXCHANGE_MAX, summarize, type CollectionRow, type CraftResult, type ExchangeResult, type OpenResult, type PackCheck, type PacksStore } from '../packs/store.js'
 import { DAILY_BONUS, ENTRIES_PAGE, FIRST_BONUS, type CreditResult, type LedgerCheck, type PointEntry, type PointsStore, type PointsSummary } from '../points/store.js'
 
 interface Session {
@@ -266,37 +266,78 @@ export class MemoryPointsStore implements PointsStore {
 
 /** In-memory packs: shares the points store's balances, same rules as PgPacksStore */
 export class MemoryPacksStore implements PacksStore {
-  openings: { id: string; userId: string; setId: string; cards: string[]; idemKey: string; seeded: boolean; createdAt: Date }[] = []
-  owned: { userId: string; cardId: string; source: 'pack' | 'test'; packId: string | null; at: Date }[] = []
+  openings: { id: string; userId: string; setId: string; cards: string[]; idemKey: string; bundleIdx: number; seeded: boolean; createdAt: Date }[] = []
+  owned: { userId: string; cardId: string; source: 'pack' | 'test' | 'craft'; packId: string | null; at: Date }[] = []
+  /** Request key → points, for exchange and craft replays */
+  exchanges = new Map<string, number>()
+  crafts = new Set<string>()
 
   constructor(private readonly points: MemoryPointsStore) {}
 
-  async open(userId: string, setId: string, idemKey: string, rng?: Rng, seeded = false): Promise<OpenResult> {
+  async open(userId: string, setId: string, idemKey: string, count: 1 | 10, rng?: Rng, seeded = false): Promise<OpenResult> {
     const set = packSet(setId)!
     this.points.ensure(userId)
-    const prior = this.openings.find((o) => o.userId === userId && o.idemKey === idemKey)
-    if (prior) return { kind: 'repeat', pack: { id: prior.id, setId: prior.setId, cards: asPackCards(prior.setId, prior.cards, null), createdAt: prior.createdAt } }
+    const prior = await this.prior(userId, idemKey)
+    if (prior) return prior.length === count ? { kind: 'repeat', packs: prior, guaranteed: false } : { kind: 'conflict' }
     const account = this.points.accounts.get(userId)!
-    if (account.balance - account.held < PACK_PRICE) return { kind: 'insufficient', available: account.balance - account.held }
-    const drawn = drawPack(set, rng)
-    const before = new Set(this.owned.filter((o) => o.userId === userId).map((o) => o.cardId))
-    const id = randomUUID()
-    const createdAt = new Date()
-    this.openings.push({ id, userId, setId, cards: drawn.map((c) => c.cardId), idemKey, seeded, createdAt })
-    this.points.add(userId, -PACK_PRICE, 'pack_purchase', `pack:${idemKey}`)
-    const seen = new Set<string>()
-    const cards = drawn.map((c) => {
-      const isNew = !before.has(c.cardId) && !seen.has(c.cardId)
-      seen.add(c.cardId)
-      this.owned.push({ userId, cardId: c.cardId, source: 'pack', packId: id, at: new Date(createdAt.getTime() + this.owned.length) })
-      return { ...c, isNew }
+    if (account.balance - account.held < PACK_PRICE * count) return { kind: 'insufficient', available: account.balance - account.held }
+    const drawn = count === BUNDLE_SIZE ? drawBundle(set, rng) : { packs: [drawPack(set, rng)], guaranteed: false }
+    const seen = new Set(this.owned.filter((o) => o.userId === userId).map((o) => o.cardId))
+    const packs = drawn.packs.map((cards, i) => {
+      const id = randomUUID()
+      const createdAt = new Date()
+      this.openings.push({ id, userId, setId, cards: cards.map((c) => c.cardId), idemKey, bundleIdx: i, seeded, createdAt })
+      this.points.add(userId, -PACK_PRICE, 'pack_purchase', count === 1 ? `pack:${idemKey}` : `pack:${idemKey}:${i}`)
+      return {
+        id,
+        setId,
+        createdAt,
+        cards: cards.map((c) => {
+          const isNew = !seen.has(c.cardId)
+          seen.add(c.cardId)
+          this.owned.push({ userId, cardId: c.cardId, source: 'pack', packId: id, at: new Date(createdAt.getTime() + this.owned.length) })
+          return { ...c, isNew }
+        }),
+      }
     })
-    return { kind: 'opened', pack: { id, setId, cards, createdAt } }
+    return { kind: 'opened', packs, guaranteed: drawn.guaranteed }
   }
 
   async prior(userId: string, idemKey: string) {
-    const p = this.openings.find((o) => o.userId === userId && o.idemKey === idemKey)
-    return p ? { id: p.id, setId: p.setId, cards: asPackCards(p.setId, p.cards, null), createdAt: p.createdAt } : null
+    const rows = this.openings.filter((o) => o.userId === userId && o.idemKey === idemKey).sort((a, b) => a.bundleIdx - b.bundleIdx)
+    return rows.length ? rows.map((p) => ({ id: p.id, setId: p.setId, cards: asPackCards(p.setId, p.cards, null), createdAt: p.createdAt })) : null
+  }
+
+  /** The same rules as the database function (exchange.md §2), without its locks */
+  async exchange(userId: string, cardId: string, count: number, idemKey: string): Promise<ExchangeResult> {
+    const tier = tierOf(cardId)
+    if (!tier) return { kind: 'not_found' }
+    const done = this.exchanges.get(`${userId}|${idemKey}`)
+    if (done !== undefined) return { kind: 'repeat', exchanged: done / EXCHANGE_VALUE[tier], points: done }
+    const mine = this.owned.filter((o) => o.userId === userId && o.cardId === cardId)
+    const free = mine.filter((o) => o.source !== 'test')
+    const available = Math.max(0, Math.min(free.length, mine.length - 1, EXCHANGE_MAX))
+    if (count > available) return { kind: 'too_many', available }
+    const gone = new Set(free.slice(0, count))
+    this.owned = this.owned.filter((o) => !gone.has(o))
+    const points = EXCHANGE_VALUE[tier] * count
+    this.points.add(userId, points, 'card_exchange', `exchange:${idemKey}`)
+    this.exchanges.set(`${userId}|${idemKey}`, points)
+    return { kind: 'ok', exchanged: count, points }
+  }
+
+  async craft(userId: string, cardId: string, idemKey: string): Promise<CraftResult> {
+    const tier = tierOf(cardId)
+    if (!tier) return { kind: 'not_found' }
+    const cost = EXCHANGE_VALUE[tier] * CRAFT_FACTOR
+    if (this.crafts.has(`${userId}|${idemKey}`)) return { kind: 'repeat', cost }
+    this.points.ensure(userId)
+    const account = this.points.accounts.get(userId)!
+    if (account.balance - account.held < cost) return { kind: 'insufficient', available: account.balance - account.held, cost }
+    this.owned.push({ userId, cardId, source: 'craft', packId: null, at: new Date() })
+    this.points.add(userId, -cost, 'card_craft', `craft:${idemKey}`)
+    this.crafts.add(`${userId}|${idemKey}`)
+    return { kind: 'ok', cost }
   }
 
   async latest(userId: string) {

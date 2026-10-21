@@ -17,6 +17,7 @@ import {
   jsonb,
   pgSchema,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -151,7 +152,7 @@ export const favorites = account.table(
 
 // --- M7 points (docs/auction/design.md §2, ADR 0005) ----------------------------------------------
 
-export const POINT_KINDS = ['signup_bonus', 'daily_bonus', 'pack_purchase', 'sale_income', 'sale_fee', 'purchase', 'admin_adjust'] as const
+export const POINT_KINDS = ['signup_bonus', 'daily_bonus', 'pack_purchase', 'sale_income', 'sale_fee', 'purchase', 'admin_adjust', 'card_exchange', 'card_craft'] as const
 export type PointKind = (typeof POINT_KINDS)[number]
 
 /**
@@ -214,7 +215,7 @@ export const dailyClaims = account.table(
 
 // --- M7 card packs and collection (docs/auction/packs.md) ----------------------------------------
 
-export const CARD_SOURCES = ['pack', 'auction', 'test'] as const
+export const CARD_SOURCES = ['pack', 'auction', 'test', 'craft'] as const
 
 /**
  * One row per opened pack: the audit record (what it cost, the five cards it gave). Never updated:
@@ -233,15 +234,18 @@ export const packOpenings = account.table(
     /** Drawn with a test seed (preview only): left out of any odds statistics */
     seeded: boolean('seeded').notNull().default(false),
     idemKey: text('idem_key').notNull(),
+    /** Which pack of a 10-pack request (0–9); a single pack is 0. One request key, one row per pack (Security X-5) */
+    bundleIdx: smallint('bundle_idx').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().default(sql`clock_timestamp()`),
   },
   (t) => [
-    uniqueIndex('pack_openings_idem_idx').on(t.userId, t.idemKey),
+    uniqueIndex('pack_openings_idem_idx').on(t.userId, t.idemKey, t.bundleIdx),
     index('pack_openings_user_idx').on(t.userId, t.createdAt),
     check('pack_openings_set_check', sql`set_id ~ '^[a-z0-9]{1,20}$'`),
     check('pack_openings_cost_check', sql`cost between 1 and 100000000`),
     check('pack_openings_cards_check', sql`cardinality(cards) = 5`),
     check('pack_openings_idem_check', sql`idem_key ~ '^[A-Za-z0-9_-]{8,64}$'`),
+    check('pack_openings_bundle_check', sql`bundle_idx between 0 and 9`),
   ],
 )
 

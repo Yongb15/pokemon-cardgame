@@ -6,7 +6,12 @@
 import { sql } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { credit, lockAccount } from '../points/store.js'
-import { drawPack, PACK_PRICE, PACK_SETS, packSet, type DrawnCard, type Rng, type Tier } from './odds.js'
+import { BUNDLE_SIZE, CRAFT_FACTOR, drawBundle, drawPack, EXCHANGE_VALUE, PACK_PRICE, PACK_SETS, packSet, tierOf, type DrawnCard, type Rng, type Tier } from './odds.js'
+
+/** Exchange and craft limits (docs/auction/exchange.md, Security X-7) */
+export const EXCHANGE_MAX = 50
+export const EXCHANGE_DAILY_POINTS = 50_000
+export const CRAFT_DAILY = 20
 
 export const COLLECTION_PAGE = 60
 
@@ -18,6 +23,7 @@ export const PACKS_PRIVILEGES: [string, string | null, string][] = [
   ['pack_openings', 'cards', 'INSERT'],
   ['pack_openings', 'seeded', 'INSERT'],
   ['pack_openings', 'idem_key', 'INSERT'],
+  ['pack_openings', 'bundle_idx', 'INSERT'],
   ['owned_cards', null, 'SELECT'],
   ['owned_cards', 'user_id', 'INSERT'],
   ['owned_cards', 'card_id', 'INSERT'],
@@ -46,7 +52,20 @@ export interface OpenedPack {
   createdAt: Date
 }
 
-export type OpenResult = { kind: 'opened' | 'repeat'; pack: OpenedPack } | { kind: 'insufficient'; available: number }
+export type OpenResult =
+  | { kind: 'opened' | 'repeat'; packs: OpenedPack[]; guaranteed: boolean }
+  | { kind: 'insufficient'; available: number }
+  /** The request id already opened a different number of packs (Security X-5) */
+  | { kind: 'conflict' }
+
+export type ExchangeResult =
+  | { kind: 'ok' | 'repeat'; exchanged: number; points: number }
+  | { kind: 'not_found' }
+  /** Fewer exchangeable copies than asked: `available` is how many could go now (one always stays) */
+  | { kind: 'too_many'; available: number }
+  | { kind: 'limit'; left: number }
+
+export type CraftResult = { kind: 'ok' | 'repeat'; cost: number } | { kind: 'not_found' } | { kind: 'insufficient'; available: number; cost: number } | { kind: 'limit' }
 
 export interface CollectionRow {
   cardId: string
@@ -74,9 +93,14 @@ export interface PackCheck {
 }
 
 export interface PacksStore {
-  /** The pack a request id already opened (no lock: a hint before the rate limit; open() decides) */
-  prior(userId: string, idemKey: string): Promise<OpenedPack | null>
-  open(userId: string, setId: string, idemKey: string, rng?: Rng, seeded?: boolean): Promise<OpenResult>
+  /** The packs a request id already opened, in order (no lock: a hint before the rate limit; open() decides) */
+  prior(userId: string, idemKey: string): Promise<OpenedPack[] | null>
+  /** One pack, or ten with the guarantee (docs/auction/exchange.md §1) */
+  open(userId: string, setId: string, idemKey: string, count: 1 | 10, rng?: Rng, seeded?: boolean): Promise<OpenResult>
+  /** Duplicates to points: the DB function deletes, this credits (exchange.md §2) */
+  exchange(userId: string, cardId: string, count: number, idemKey: string): Promise<ExchangeResult>
+  /** Points to one copy of a pack-pool card (exchange.md §3) */
+  craft(userId: string, cardId: string, idemKey: string): Promise<CraftResult>
   latest(userId: string): Promise<OpenedPack | null>
   collection(userId: string, setId: string | null, page: number): Promise<{ rows: CollectionRow[]; more: boolean }>
   summary(userId: string): Promise<CollectionSummary>
@@ -97,56 +121,136 @@ const setPrefix = (setId: string) => `${setId}-`
 export class PgPacksStore implements PacksStore {
   constructor(private readonly db: NodePgDatabase) {}
 
-  async open(userId: string, setId: string, idemKey: string, rng?: Rng, seeded = false): Promise<OpenResult> {
+  async open(userId: string, setId: string, idemKey: string, count: 1 | 10, rng?: Rng, seeded = false): Promise<OpenResult> {
     const set = packSet(setId)
     if (!set) throw new Error('unknown set')
     return this.db.transaction(async (tx) => {
       const account = await lockAccount(tx, userId)
-      // A retry of a request we already served: the same pack, no second charge (K-2)
-      const prior = await tx.execute<{ id: string; set_id: string; cards: string[]; created_at: Date }>(
-        sql`select id, set_id, cards, created_at from account.pack_openings where user_id = ${userId} and idem_key = ${idemKey}`,
-      )
-      if (prior.rows[0]) {
-        const p = prior.rows[0]
-        return { kind: 'repeat', pack: { id: p.id, setId: p.set_id, cards: asPackCards(p.set_id, p.cards, null), createdAt: new Date(p.created_at) } }
-      }
-      if (account.balance - account.held < PACK_PRICE) return { kind: 'insufficient', available: account.balance - account.held }
+      // A retry of a request we already served: the same packs, no second charge (K-2). One key, one row per
+      // pack (bundle_idx), so a single pack's key can never match one pack of a bundle (Security X-5)
+      const prior = await this.priorIn(tx, userId, idemKey)
+      if (prior) return prior.length === count ? { kind: 'repeat', packs: prior, guaranteed: false } : { kind: 'conflict' }
+      const cost = PACK_PRICE * count
+      if (account.balance - account.held < cost) return { kind: 'insufficient', available: account.balance - account.held }
 
-      const drawn = drawPack(set, rng)
-      const ids = drawn.map((c) => c.cardId)
+      const drawn = count === BUNDLE_SIZE ? drawBundle(set, rng) : { packs: [drawPack(set, rng)], guaranteed: false }
       // One JSON parameter: drizzle would spread a JS array into separate ones
-      const idsJson = JSON.stringify(ids)
+      const allJson = JSON.stringify([...new Set(drawn.packs.flat().map((c) => c.cardId))])
       const owned = await tx.execute<{ card_id: string }>(
-        sql`select distinct card_id from account.owned_cards where user_id = ${userId} and card_id in (select json_array_elements_text(${idsJson}::json))`,
+        sql`select distinct card_id from account.owned_cards where user_id = ${userId} and card_id in (select json_array_elements_text(${allJson}::json))`,
       )
-      const before = new Set(owned.rows.map((r) => r.card_id))
-      const inserted = await tx.execute<{ id: string; created_at: Date }>(sql`
-        insert into account.pack_openings (user_id, set_id, cost, cards, seeded, idem_key)
-        values (${userId}, ${setId}, ${PACK_PRICE}, array(select json_array_elements_text(${idsJson}::json)), ${seeded}, ${idemKey})
-        returning id, created_at`)
-      const pack = inserted.rows[0]!
-      const charged = await credit(tx, userId, account, -PACK_PRICE, 'pack_purchase', pack.id, `pack:${idemKey}`)
-      if (charged !== 'ok') throw new Error(`pack charge ${charged}`) // rolls everything back
-      await tx.execute(sql`
-        insert into account.owned_cards (user_id, card_id, source, pack_id)
-        select ${userId}, card_id, 'pack', ${pack.id}::uuid from json_array_elements_text(${idsJson}::json) as card_id`)
-      const cards = drawn.map((c) => ({ ...c, isNew: !before.has(c.cardId) }))
-      // A card drawn twice in one pack is new only the first time
-      const seen = new Set<string>()
-      for (const c of cards) {
-        if (seen.has(c.cardId)) c.isNew = false
-        seen.add(c.cardId)
+      // A card is new only the first time it shows up, across all the packs of this request
+      const seen = new Set(owned.rows.map((r) => r.card_id))
+      const packs: OpenedPack[] = []
+      for (const [i, cards] of drawn.packs.entries()) {
+        const idsJson = JSON.stringify(cards.map((c) => c.cardId))
+        const inserted = await tx.execute<{ id: string; created_at: Date }>(sql`
+          insert into account.pack_openings (user_id, set_id, cost, cards, seeded, idem_key, bundle_idx)
+          values (${userId}, ${setId}, ${PACK_PRICE}, array(select json_array_elements_text(${idsJson}::json)), ${seeded}, ${idemKey}, ${i})
+          returning id, created_at`)
+        const pack = inserted.rows[0]!
+        // A single pack's ledger key is unchanged; a bundle's adds ':i' (':' can't appear in a request key)
+        const charged = await credit(tx, userId, account, -PACK_PRICE, 'pack_purchase', pack.id, count === 1 ? `pack:${idemKey}` : `pack:${idemKey}:${i}`)
+        if (charged !== 'ok') throw new Error(`pack charge ${charged}`) // rolls everything back
+        await tx.execute(sql`
+          insert into account.owned_cards (user_id, card_id, source, pack_id)
+          select ${userId}, card_id, 'pack', ${pack.id}::uuid from json_array_elements_text(${idsJson}::json) as card_id`)
+        packs.push({
+          id: pack.id,
+          setId,
+          cards: cards.map((c) => {
+            const isNew = !seen.has(c.cardId)
+            seen.add(c.cardId)
+            return { ...c, isNew }
+          }),
+          createdAt: new Date(pack.created_at),
+        })
       }
-      return { kind: 'opened', pack: { id: pack.id, setId, cards, createdAt: new Date(pack.created_at) } }
+      return { kind: 'opened', packs, guaranteed: drawn.guaranteed }
     })
   }
 
-  async prior(userId: string, idemKey: string) {
-    const { rows } = await this.db.execute<{ id: string; set_id: string; cards: string[]; created_at: Date }>(
-      sql`select id, set_id, cards, created_at from account.pack_openings where user_id = ${userId} and idem_key = ${idemKey}`,
+  private async priorIn(tx: Pick<NodePgDatabase, 'execute'>, userId: string, idemKey: string): Promise<OpenedPack[] | null> {
+    const { rows } = await tx.execute<{ id: string; set_id: string; cards: string[]; created_at: Date }>(
+      sql`select id, set_id, cards, created_at from account.pack_openings where user_id = ${userId} and idem_key = ${idemKey} order by bundle_idx`,
     )
-    const p = rows[0]
-    return p ? { id: p.id, setId: p.set_id, cards: asPackCards(p.set_id, p.cards, null), createdAt: new Date(p.created_at) } : null
+    return rows.length ? rows.map((p) => ({ id: p.id, setId: p.set_id, cards: asPackCards(p.set_id, p.cards, null), createdAt: new Date(p.created_at) })) : null
+  }
+
+  async prior(userId: string, idemKey: string) {
+    return this.priorIn(this.db, userId, idemKey)
+  }
+
+  async exchange(userId: string, cardId: string, count: number, idemKey: string): Promise<ExchangeResult> {
+    const tier = tierOf(cardId)
+    if (!tier) return { kind: 'not_found' }
+    const ledgerKey = `exchange:${idemKey}`
+    try {
+      return await this.db.transaction(async (tx) => {
+        // Lock order: the point account, then (inside the function) the card's copies (Security X-4)
+        const account = await lockAccount(tx, userId)
+        await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`exchange:${userId}`}, 0))`)
+        const prior = await tx.execute<{ amount: string }>(sql`select amount from account.point_entries where user_id = ${userId} and idem_key = ${ledgerKey}`)
+        if (prior.rows[0]) {
+          const points = Number(prior.rows[0].amount)
+          return { kind: 'repeat', exchanged: Math.round(points / EXCHANGE_VALUE[tier]), points }
+        }
+        const points = EXCHANGE_VALUE[tier] * count
+        // Points from exchange today (Korea time, database clock: A-1)
+        const today = await tx.execute<{ n: string }>(sql`
+          select coalesce(sum(amount), 0) as n from account.point_entries
+          where user_id = ${userId} and kind = 'card_exchange'
+            and created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul')`)
+        const left = EXCHANGE_DAILY_POINTS - Number(today.rows[0]!.n)
+        if (points > left) return { kind: 'limit', left: Math.max(0, left) }
+        const eligible = await this.exchangeable(tx, userId, cardId)
+        if (count > eligible) return { kind: 'too_many', available: eligible }
+        await tx.execute(sql`select account.exchange_cards(${userId}::uuid, ${cardId}, ${count}::int)`)
+        const credited = await credit(tx, userId, account, points, 'card_exchange', cardId, ledgerKey)
+        if (credited !== 'ok') throw new Error(`exchange credit ${credited}`)
+        return { kind: 'ok', exchanged: count, points }
+      })
+    } catch (error) {
+      // The function refused (a copy got listed meanwhile): say how many can go now
+      const code = (error as { code?: string; cause?: { code?: string } }).cause?.code ?? (error as { code?: string }).code
+      if (code === 'P0001') return { kind: 'too_many', available: await this.exchangeable(this.db, userId, cardId) }
+      throw error
+    }
+  }
+
+  /** Copies of a card that may be exchanged now: not test copies, not in an open auction, one always kept */
+  private async exchangeable(tx: Pick<NodePgDatabase, 'execute'>, userId: string, cardId: string) {
+    const { rows } = await tx.execute<{ total: number; free: number }>(sql`
+      select count(*)::int as total,
+             (count(*) filter (where o.source <> 'test' and o.auction_id is null
+               and not exists (select 1 from account.auctions a where a.owned_card_id = o.id and a.status = 'open')))::int as free
+      from account.owned_cards o where o.user_id = ${userId} and o.card_id = ${cardId}`)
+    const r = rows[0]!
+    return Math.max(0, Math.min(r.free, r.total - 1, EXCHANGE_MAX))
+  }
+
+  async craft(userId: string, cardId: string, idemKey: string): Promise<CraftResult> {
+    const tier = tierOf(cardId)
+    if (!tier) return { kind: 'not_found' }
+    const cost = EXCHANGE_VALUE[tier] * CRAFT_FACTOR
+    const ledgerKey = `craft:${idemKey}`
+    return this.db.transaction(async (tx) => {
+      const account = await lockAccount(tx, userId)
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`craft:${userId}`}, 0))`)
+      const prior = await tx.execute(sql`select 1 from account.point_entries where user_id = ${userId} and idem_key = ${ledgerKey}`)
+      if (prior.rows.length) return { kind: 'repeat', cost }
+      const today = await tx.execute<{ n: number }>(sql`
+        select count(*)::int as n from account.point_entries
+        where user_id = ${userId} and kind = 'card_craft'
+          and created_at >= (date_trunc('day', now() at time zone 'Asia/Seoul') at time zone 'Asia/Seoul')`)
+      if (today.rows[0]!.n >= CRAFT_DAILY) return { kind: 'limit' }
+      const available = account.balance - account.held
+      if (available < cost) return { kind: 'insufficient', available, cost }
+      await tx.execute(sql`insert into account.owned_cards (user_id, card_id, source) values (${userId}, ${cardId}, 'craft')`)
+      const charged = await credit(tx, userId, account, -cost, 'card_craft', cardId, ledgerKey)
+      if (charged !== 'ok') throw new Error(`craft charge ${charged}`)
+      return { kind: 'ok', cost }
+    })
   }
 
   async latest(userId: string) {
@@ -215,4 +319,48 @@ export function summarize(rows: { cardId: string; count: number; real: number }[
     }),
     owned: rows.filter((r) => r.real > 0).map((r) => ({ cardId: r.cardId, count: r.real })).sort((a, b) => a.cardId.localeCompare(b.cardId)),
   }
+}
+
+/**
+ * The exchange function's grants, checked at start-up with the table lists (Security X-1, X-2): api_rw may
+ * EXECUTE it; nobody else may, PUBLIC included; its owner can't log in and can only read/delete owned_cards and
+ * read auctions. Returns what's missing (refuse to start) and what's wider than it should be (warn).
+ */
+export async function exchangeFunctionCheck(db: Pick<NodePgDatabase, 'execute'>, role: string | null = null): Promise<{ missing: string[]; excess: string[] }> {
+  const fn = 'account.exchange_cards(uuid,text,integer)'
+  // The app checks itself (current_user); a dev script running as the owner names api_rw instead
+  const canExecute = role ? sql`has_function_privilege(${role}, ${fn}, 'EXECUTE')` : sql`has_function_privilege(${fn}, 'EXECUTE')`
+  const { rows } = await db.execute<Record<string, boolean | null>>(sql`
+    select
+      to_regprocedure(${fn}) is not null as exists,
+      ${canExecute} as api_rw_execute,
+      (select p.prosecdef and pg_get_userbyid(p.proowner) = 'card_exchanger'
+              and p.proconfig @> array['search_path=pg_catalog, pg_temp']
+         from pg_catalog.pg_proc p where p.oid = to_regprocedure(${fn})) as definer_ok,
+      (select p.proacl is null or exists (select 1 from aclexplode(p.proacl) a where a.grantee = 0)
+         from pg_catalog.pg_proc p where p.oid = to_regprocedure(${fn})) as public_execute,
+      exists (select 1 from pg_catalog.pg_roles r where r.rolname = 'collector_rw')
+        and has_function_privilege('collector_rw', ${fn}, 'EXECUTE') as collector_execute,
+      exists (select 1 from pg_catalog.pg_roles r where r.rolname = 'app_rw')
+        and has_function_privilege('app_rw', ${fn}, 'EXECUTE') as app_execute,
+      (select r.rolcanlogin from pg_catalog.pg_roles r where r.rolname = 'card_exchanger') as owner_login,
+      has_table_privilege('card_exchanger', 'account.owned_cards', 'INSERT,UPDATE,TRUNCATE') as owner_owned_write,
+      has_table_privilege('card_exchanger', 'account.point_entries', 'SELECT,INSERT,UPDATE,DELETE') as owner_points,
+      has_table_privilege('card_exchanger', 'account.users', 'SELECT,INSERT,UPDATE,DELETE') as owner_users`)
+  const r = rows[0] ?? {}
+  const missing = [
+    ...(r.exists !== true ? ['FUNCTION account.exchange_cards'] : []),
+    ...(r.exists === true && r.api_rw_execute !== true ? ['EXECUTE account.exchange_cards'] : []),
+    ...(r.exists === true && r.definer_ok !== true ? ['account.exchange_cards: SECURITY DEFINER, owner card_exchanger, fixed search_path'] : []),
+  ]
+  const excess = [
+    ...(r.public_execute === true ? ['EXECUTE account.exchange_cards for PUBLIC'] : []),
+    ...(r.collector_execute === true ? ['EXECUTE account.exchange_cards for collector_rw'] : []),
+    ...(r.app_execute === true ? ['EXECUTE account.exchange_cards for app_rw'] : []),
+    ...(r.owner_login === true ? ['card_exchanger can log in'] : []),
+    ...(r.owner_owned_write === true ? ['card_exchanger INSERT/UPDATE/TRUNCATE on owned_cards'] : []),
+    ...(r.owner_points === true ? ['card_exchanger on point_entries'] : []),
+    ...(r.owner_users === true ? ['card_exchanger on users'] : []),
+  ]
+  return { missing, excess }
 }
