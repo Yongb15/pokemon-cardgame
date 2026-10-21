@@ -218,7 +218,7 @@ export class PgPacksStore implements PacksStore {
     }
   }
 
-  /** Copies of a card that may be exchanged now: not test copies, not in an open auction, one always kept */
+  /** Copies of a card that may be exchanged now: not test copies, not in an open auction, and one of those always kept (I-x1) */
   private async exchangeable(tx: Pick<NodePgDatabase, 'execute'>, userId: string, cardId: string) {
     const { rows } = await tx.execute<{ total: number; free: number }>(sql`
       select count(*)::int as total,
@@ -226,7 +226,7 @@ export class PgPacksStore implements PacksStore {
                and not exists (select 1 from account.auctions a where a.owned_card_id = o.id and a.status = 'open')))::int as free
       from account.owned_cards o where o.user_id = ${userId} and o.card_id = ${cardId}`)
     const r = rows[0]!
-    return Math.max(0, Math.min(r.free, r.total - 1, EXCHANGE_MAX))
+    return Math.max(0, Math.min(r.free - 1, EXCHANGE_MAX))
   }
 
   async craft(userId: string, cardId: string, idemKey: string): Promise<CraftResult> {
@@ -346,7 +346,10 @@ export async function exchangeFunctionCheck(db: Pick<NodePgDatabase, 'execute'>,
       (select r.rolcanlogin from pg_catalog.pg_roles r where r.rolname = 'card_exchanger') as owner_login,
       has_table_privilege('card_exchanger', 'account.owned_cards', 'INSERT,UPDATE,TRUNCATE') as owner_owned_write,
       has_table_privilege('card_exchanger', 'account.point_entries', 'SELECT,INSERT,UPDATE,DELETE') as owner_points,
-      has_table_privilege('card_exchanger', 'account.users', 'SELECT,INSERT,UPDATE,DELETE') as owner_users`)
+      has_table_privilege('card_exchanger', 'account.users', 'SELECT,INSERT,UPDATE,DELETE') as owner_users,
+      -- The app's roles never become the owner role (Security I-x2)
+      exists (select 1 from pg_catalog.pg_roles r where r.rolname = 'api_rw') and pg_has_role('api_rw', 'card_exchanger', 'MEMBER') as api_member,
+      exists (select 1 from pg_catalog.pg_roles r where r.rolname = 'collector_rw') and pg_has_role('collector_rw', 'card_exchanger', 'MEMBER') as collector_member`)
   const r = rows[0] ?? {}
   const missing = [
     ...(r.exists !== true ? ['FUNCTION account.exchange_cards'] : []),
@@ -361,6 +364,8 @@ export async function exchangeFunctionCheck(db: Pick<NodePgDatabase, 'execute'>,
     ...(r.owner_owned_write === true ? ['card_exchanger INSERT/UPDATE/TRUNCATE on owned_cards'] : []),
     ...(r.owner_points === true ? ['card_exchanger on point_entries'] : []),
     ...(r.owner_users === true ? ['card_exchanger on users'] : []),
+    ...(r.api_member === true ? ['api_rw is a member of card_exchanger'] : []),
+    ...(r.collector_member === true ? ['collector_rw is a member of card_exchanger'] : []),
   ]
   return { missing, excess }
 }

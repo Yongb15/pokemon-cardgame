@@ -263,8 +263,8 @@ export default function CollectionPage() {
               const name = card ? (card.nameKo ?? card.name) : c.cardId
               // Copies that can go up for auction: not a test copy, not already listed (K-3)
               const free = c.count - c.test - c.listed
-              // Copies that can be exchanged: the same, and one always stays (exchange.md §2)
-              const spare = Math.min(free, c.count - 1, 50)
+              // Copies that can be exchanged: the same, and one of those always stays (exchange.md §2, I-x1)
+              const spare = Math.min(free - 1, 50)
               const value = exchangeValue(c.cardId)
               return (
                 <li key={c.cardId} className={styles.cell}>

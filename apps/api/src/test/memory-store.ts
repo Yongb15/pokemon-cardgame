@@ -316,7 +316,7 @@ export class MemoryPacksStore implements PacksStore {
     if (done !== undefined) return { kind: 'repeat', exchanged: done / EXCHANGE_VALUE[tier], points: done }
     const mine = this.owned.filter((o) => o.userId === userId && o.cardId === cardId)
     const free = mine.filter((o) => o.source !== 'test')
-    const available = Math.max(0, Math.min(free.length, mine.length - 1, EXCHANGE_MAX))
+    const available = Math.max(0, Math.min(free.length - 1, EXCHANGE_MAX))
     if (count > available) return { kind: 'too_many', available }
     const gone = new Set(free.slice(0, count))
     this.owned = this.owned.filter((o) => !gone.has(o))

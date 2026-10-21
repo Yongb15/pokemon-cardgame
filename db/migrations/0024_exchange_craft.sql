@@ -43,8 +43,11 @@ BEGIN
     RETURNING o.id
   )
   SELECT count(*) INTO v_deleted FROM gone;
-  SELECT count(*) INTO v_left FROM account.owned_cards WHERE user_id = p_user AND card_id = p_card;
-  -- Exactly n went and at least one copy stays, or nothing happens (the caller's transaction rolls back)
+  -- What stays must be a copy the user can use: not listed, not a test copy (Security I-x1)
+  SELECT count(*) INTO v_left FROM account.owned_cards o
+  WHERE o.user_id = p_user AND o.card_id = p_card AND o.source <> 'test' AND o.auction_id IS NULL
+    AND NOT EXISTS (SELECT 1 FROM account.auctions a WHERE a.owned_card_id = o.id AND a.status = 'open');
+  -- Exactly n went and at least one usable copy stays, or nothing happens (the caller's transaction rolls back)
   IF v_deleted < p_n OR v_left < 1 THEN
     RAISE EXCEPTION 'exchange_cards: not enough copies' USING ERRCODE = 'P0001';
   END IF;
