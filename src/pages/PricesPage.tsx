@@ -162,7 +162,7 @@ export default function PricesPage() {
         </Select>
         <p className={styles.note}>
           {isMovers(edition)
-            ? '영문판 TCGplayer 시장가(없으면 Cardmarket) · 7일 전과 같은 판본을 원래 통화로 비교(환율 변동 제외) · ₩3,000 이상, 5% 이상 움직인 카드'
+            ? '영문판 TCGplayer 시장가 기준(거래가 적어 들쭉날쭉한 Cardmarket 추세가는 제외) · 7일 전과 같은 판본을 달러로 비교(환율 변동 제외) · ₩3,000 이상, 5% 이상 움직인 카드'
             : edition === 'en'
             ? 'TCGplayer 시장가(없으면 Cardmarket)'
             : edition === 'ja'
