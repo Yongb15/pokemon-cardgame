@@ -17,10 +17,11 @@
     "drizzle-orm": "^0.45.3",
     "express": "^5.2.1",
     "jose": "^6.2.12",
+    "multer": "^2.5.0",
     "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@nestjs/testing": "^11.2.7",
