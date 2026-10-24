@@ -1,0 +1,54 @@
+name: E2E preview
+
+# Signed-in flows against the develop preview (test sign-in, dev database), after each develop API deploy or by
+# hand. Never production: the target is hardcoded in e2e/account/session.ts and checked at start (Security E-2).
+# No secrets: the test accounts sign in through the preview's test provider and are deleted afterwards (E-3).
+on:
+  workflow_run:
+    workflows: [Deploy API]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One run at a time, never cut short: a cancelled run would leave its accounts to the sweeper (E-9)
+concurrency:
+  group: e2e-preview
+  cancel-in-progress: false
+
+jobs:
+  account:
+    # A finished develop deploy of this repository, or a manual run (Security E-1)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'develop' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The commit that was deployed (manual runs: the chosen branch)
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e:account
+      # Always, even after a failure or a timeout in the suite: this run's accounts go (E-3)
+      - name: Delete this run's test accounts
+        if: always()
+        run: npx tsx e2e/account/cleanup.ts
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-account-screenshots
+          path: e2e-results/**/*.png
+          retention-days: 7
+          if-no-files-found: ignore

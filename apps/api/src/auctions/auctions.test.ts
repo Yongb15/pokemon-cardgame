@@ -48,6 +48,7 @@ function fakeStore(calls: string[]): AuctionsStore {
     settleExpired: async () => (calls.push('settle'), 0),
     leave: async () => ({ kind: 'blocked', auctions: [AID] }),
     endsIn: async () => (calls.push('ends-in'), true),
+    sweepE2E: async () => (calls.push('sweep'), 0),
     sellerBadge: async (id) => (calls.push('seller-badge'), id === AID ? { badge: 'sold5', newMember: true } : null),
     myBadge: async () => ({ badge: 'first', newMember: false }),
   }
@@ -202,6 +203,13 @@ describe('auction routes (preview)', () => {
     const id = [...t.accounts.accounts.entries()].find(([k]) => k === 'test:realseller')![1]
     t.accounts.accounts.set('google:42', id)
     expect((await t.call('/api/v1/test/auctions/settle', { method: 'POST', session: real })).status).toBe(403)
+    // The E2E sweeper (Security E-3): test accounts only, no body, answers a count
+    const sweep = await t.call('/api/v1/test/auctions/sweep-e2e', { method: 'POST', session })
+    expect(sweep.status).toBe(200)
+    expect(sweep.body).toEqual({ deleted: 0 })
+    expect(calls).toContain('sweep')
+    expect((await t.call('/api/v1/test/auctions/sweep-e2e', { method: 'POST', session, body: { all: true } })).status).toBe(400)
+    expect((await t.call('/api/v1/test/auctions/sweep-e2e', { method: 'POST', session: real })).status).toBe(403)
   })
 })
 
@@ -211,6 +219,7 @@ describe('auction routes in production', () => {
     const t = await start('production', calls)
     try {
       expect((await t.call('/api/v1/test/auctions/settle', { method: 'POST' })).status).toBe(404)
+      expect((await t.call('/api/v1/test/auctions/sweep-e2e', { method: 'POST' })).status).toBe(404)
       const userId = await t.accounts.signIn('google', 'prod-seller', '트레이너0002')
       const token = randomToken(32)
       const { sha256 } = await import('../auth/crypto.js')
