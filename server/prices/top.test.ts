@@ -77,6 +77,12 @@ describe('7-day movers (v1.15.0 §1)', () => {
     expect(m.down).toEqual([{ id: 'fall', krw: 6_000, thenKrw: 8_000, change: -0.25 }])
   })
 
+  it('compares TCGplayer headlines only: a thin Cardmarket trend is left out (v1.15.1)', () => {
+    const now = [level('cm', 'cardmarket', 'holo', 176), level('tp', 'tcgplayer', 'holo', 90)]
+    const then = [level('cm', 'cardmarket', 'holo', 20), level('tp', 'tcgplayer', 'holo', 10)]
+    expect(rankMovers(now, then, rates, today, () => true).up.map((m) => m.id)).toEqual(['tp'])
+  })
+
   it('orders by change, then by price, then by id; leaves out cards it should not keep', () => {
     const now = [level('a', 'tcgplayer', 'holo', 15), level('b', 'tcgplayer', 'holo', 30), level('c', 'tcgplayer', 'holo', 12), level('x', 'tcgplayer', 'holo', 100)]
     const then = [level('a', 'tcgplayer', 'holo', 10), level('b', 'tcgplayer', 'holo', 20), level('c', 'tcgplayer', 'holo', 6), level('x', 'tcgplayer', 'holo', 10)]

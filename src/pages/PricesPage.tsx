@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import CardImg from '../components/CardImg'
 import Select from '../components/Select'
@@ -82,6 +82,16 @@ export default function PricesPage() {
   }, [tidy, edition, set, setParams])
   if (unknownSet && !missingSet) setMissingSet(true)
   const [result, setResult] = useState<{ key: string; data?: TopResponse; error?: boolean } | null>(null)
+  // On a phone the five choices scroll sideways: keep the chosen one in view, without scrolling the page (qa L-1)
+  const segments = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const box = segments.current
+    const on = box?.querySelector<HTMLElement>('[aria-pressed="true"]')
+    if (!box || !on) return
+    const b = box.getBoundingClientRect()
+    const o = on.getBoundingClientRect()
+    if (o.left < b.left || o.right > b.right) box.scrollLeft += o.left - b.left - (b.width - o.width) / 2
+  }, [edition])
   const [reload, setReload] = useState(0)
 
   useEffect(() => {
@@ -131,7 +141,7 @@ export default function PricesPage() {
       </div>
 
       <div className={styles.controls}>
-        <div className={styles.segments} role="group" aria-label="판">
+        <div ref={segments} className={styles.segments} role="group" aria-label="판">
           {EDITIONS.map(([value, text]) => (
             <button key={value} type="button" aria-pressed={edition === value} className={styles.segment} onClick={() => update({ edition: value })}>
               {text}
@@ -152,7 +162,7 @@ export default function PricesPage() {
         </Select>
         <p className={styles.note}>
           {isMovers(edition)
-            ? '영문판 TCGplayer 시장가(없으면 Cardmarket) · 7일 전과 같은 판본을 원래 통화로 비교(환율 변동 제외) · ₩3,000 이상, 5% 이상 움직인 카드'
+            ? '영문판 TCGplayer 시장가 기준(거래가 적어 들쭉날쭉한 Cardmarket 추세가는 제외) · 7일 전과 같은 판본을 달러로 비교(환율 변동 제외) · ₩3,000 이상, 5% 이상 움직인 카드'
             : edition === 'en'
             ? 'TCGplayer 시장가(없으면 Cardmarket)'
             : edition === 'ja'
@@ -189,7 +199,7 @@ export default function PricesPage() {
           <div className={styles.skeleton} aria-busy="true" aria-label="시세를 불러오는 중" />
         ) : ranked.length === 0 ? (
           <div className={styles.empty}>
-            <h2>{isMovers(edition) ? `7일 동안 5% 넘게 ${edition === 'up' ? '오른' : '내린'} 카드가 없어요` : set ? '이 세트는 아직 모은 시세가 없어요' : '아직 모은 시세가 없어요'}</h2>
+            <h2>{isMovers(edition) ? `7일 동안 5% 이상 ${edition === 'up' ? '오른' : '내린'} 카드가 없어요` : set ? '이 세트는 아직 모은 시세가 없어요' : '아직 모은 시세가 없어요'}</h2>
             <p>{isMovers(edition) ? '시세는 매일 모아요. 내일 다시 보면 달라질 수 있어요.' : edition === 'psa10' ? 'PSA 시세는 비싼 카드부터 주 1회 모아요.' : '카드 상세를 열면 그 카드의 시세를 가져와요.'}</p>
           </div>
         ) : (
@@ -227,11 +237,11 @@ export default function PricesPage() {
                     <span className={styles.price}>
                       <b>{won(r.krw)}</b>
                       {r.change !== undefined ? (
-                        <span>
+                        <span className={styles.change}>
                           <b className={r.change > 0 ? styles.up : styles.down}>
                             {r.change > 0 ? '▲' : '▼'} {percent(r.change)}
-                          </b>{' '}
-                          · 7일 전 {won(r.thenKrw ?? 0)}
+                          </b>
+                          <span className={styles.then}> · 7일 전 {won(r.thenKrw ?? 0)}</span>
                         </span>
                       ) : (
                         <span>

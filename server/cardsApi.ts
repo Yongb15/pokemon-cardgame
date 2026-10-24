@@ -85,14 +85,14 @@ const numberOrder = new Intl.Collator('en', { numeric: true })
 const koOrder = new Intl.Collator('ko', { numeric: true })
 
 /** Lowercase, strip accents, spacing and punctuation: "Flabébé" → "flabebe", "메가 리자몽" → "메가리자몽" */
-function normalize(text: string) {
+function normalize(text: string, keepSymbols = false) {
   return text
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     // NFKD also splits Hangul syllables into jamo ("리" would match "릴"); put them back together
     .normalize('NFC')
     .toLowerCase()
-    .replace(/[^\p{L}\p{N}]/gu, '')
+    .replace(keepSymbols ? /[^\p{L}\p{N}\p{S}]/gu : /[^\p{L}\p{N}]/gu, '')
 }
 
 let storePromise: Promise<Store> | null = null
@@ -115,7 +115,8 @@ function loadStore() {
         ...c,
         search: normalize(c.name) + ' ' + normalize(c.nameKo ?? ''),
         // The whole name, for putting exact matches first ("리자드" before "일레도리자드")
-        exactNames: [normalize(c.name), normalize(c.nameKo ?? '')],
+        // Symbols kept: "피카츄 ★" is not exactly "피카츄" (qa L-2)
+        exactNames: [normalize(c.name, true), normalize(c.nameKo ?? '', true)],
         // One string per move, so a match can say which move it was
         moveSearch: (c.moves ?? []).map(([en, ko]) => normalize(en) + ' ' + normalize(ko ?? '')),
       })),

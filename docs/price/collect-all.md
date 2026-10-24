@@ -57,7 +57,8 @@
 |---|---|---|---|---|---|
 | 10/09 | 1,968 | 516KB | — | 9.4MB | 수집 전 (Vercel Cron 스탠다드분만) |
 | 10/10 | 12,242 | 2.6MB | 3,923 | 11.6MB | 첫 Cloud Run 실행들 (3,627장 처리, 대부분 첫 행) |
-| 10/11 | 14,458 | 3.1MB | 4,192 | 12.6MB | 첫 예약 실행 750장(바뀜 689, 실패 0, 429 ×6) + PSA 35장. DB 전체에는 M7 빈 테이블(0014~0018) 포함 |
+| 10/11 | 14,458 | 3.1MB | 4,192 | 12.6MB | 첫 예약 실행 750장(바뀜 689, 실패 0, 429 ×6) + PSA 35장. DB 전체에는 M7 빈 테이블(0014~0018) 포함 |
+| 10/24 | 95,433 | 18MB | 19,645 | 30MB | 2주 뒤 점검: 최근 7일 29,506행(하루 약 4,200행·0.8MB). 이 속도면 무료 한도 0.5GB까지 약 1.5년 — 보존 정책 손대지 않음 |
 
 ### D-3 출처(TCGdex) 배려
 - 요청 헤더 `User-Agent: card-dex-collector (+https://github.com/Yongb15/pokemon-cardgame)`
@@ -111,3 +112,9 @@
 - J-2: 워크플로 파일 삭제, Environment `prices-production` 삭제, `collector_rw` 비밀번호 재설정(GitHub에 남았던 값 무효)
 - R-1: 별도 AR 저장소 `collector`(immutable tags, 정리 규칙), Job은 digest로 지정 · R-2: 비밀 `:1` 고정, 1 task·재시도 0·110분 · R-3: Scheduler asia-southeast1 → Job asia-southeast3, OAuth(`collector-scheduler`, `run.invoker`만) · R-5: `DbError` 이름 + 내부 오류 라벨
 - 첫 실행 `price-collector-94mvf`: 권한 검사 통과, 오늘 대상 5,525장 중 4,046장 수집 시작
+
+### R-6 요금 점검 (2026-10-24)
+- 프로젝트 결제 연결: 켜져 있음. billing-guard는 ₩1,000 이상이면 연결을 끊으므로 → 이번 달 비용 ₩1,000 미만
+- billing-guard: 예산 알림을 약 20분마다 받고 있음(인스턴스 시작 로그). 차단 로그 없음
+- 예산: `card-dex-guard`(₩7,000, 20% 알림), `₩0 월 예산 알림`(50% 알림) 그대로
+- DB(D-2): 30MB / 0.5GB, 하루 약 0.8MB 증가 → 보존 정책 변경 불필요. 다음 점검은 한 달 뒤(11/24)
