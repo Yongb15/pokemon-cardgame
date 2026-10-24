@@ -10,7 +10,8 @@
 //   POST /api/v1/me/auctions/:id/bids { amount, idemKey }               → { result, state, mine, serverNow }
 //   POST /api/v1/me/auctions/:id/cancel                                 → { result }
 //   PUT|DELETE /api/v1/me/auctions/:id/watch                            → 204 (§12: 404 unknown, 409 not open, 422 over 100)
-// Preview only, test accounts only: POST /api/v1/test/auctions/:id/ends-in { seconds }, POST /api/v1/test/auctions/settle
+// Preview only, test accounts only: POST /api/v1/test/auctions/:id/ends-in { seconds }, POST /api/v1/test/auctions/settle,
+// POST /api/v1/test/auctions/sweep-e2e (leftover e2e-… accounts: Security E-3)
 
 import { Body, Controller, Delete, Get, HttpCode, Inject, Param, Post, Put, Query, Req, Res } from '@nestjs/common'
 import type { Request, Response } from 'express'
@@ -225,5 +226,16 @@ export class TestAuctionsController extends AuctionRoutes {
   async settle(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.testOnly(req, res)
     return { settled: await this.auctions.settleExpired(50) }
+  }
+
+  /** Leftover E2E accounts (`e2e-…`, over 2 h old) go, so a cancelled run can't pile them up (Security E-3). Count only */
+  @Post('sweep-e2e')
+  @HttpCode(200)
+  async sweepE2E(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: unknown) {
+    const user = await this.testOnly(req, res)
+    if (body !== undefined && body !== null && (typeof body !== 'object' || Object.keys(body).length)) throw badRequest()
+    const deleted = await this.auctions.sweepE2E(user.id)
+    console.log('e2e sweep: deleted', deleted)
+    return { deleted }
   }
 }

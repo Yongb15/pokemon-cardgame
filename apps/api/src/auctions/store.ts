@@ -166,6 +166,11 @@ export interface AuctionsStore {
   sellerBadge(auctionId: string): Promise<SellerBadge | null>
   /** The user's own badge, by the same query as the public one (B-5) */
   myBadge(userId: string): Promise<SellerBadge>
+  /**
+   * Preview test hook (Security E-3): test-only accounts whose test sign-in is `e2e-…` and that are over two hours
+   * old, other than the caller: their open auctions end and settle, then they leave. Returns how many went.
+   */
+  sweepE2E(callerId: string): Promise<number>
   /** Preview test hook: move an own auction's end (seller only) */
   endsIn(userId: string, auctionId: string, seconds: number): Promise<boolean>
 }
@@ -514,6 +519,25 @@ export class PgAuctionsStore implements AuctionsStore {
       await tx.execute(sql`delete from account.users where id = ${userId}`)
       return { kind: 'deleted' }
     })
+  }
+
+  async sweepE2E(callerId: string) {
+    const { rows } = await this.db.execute<{ id: string }>(sql`
+      select u.id from account.users u
+      where u.id <> ${callerId} and u.created_at < now() - interval '2 hours'
+        and exists (select 1 from account.oauth_accounts o where o.user_id = u.id and o.provider = 'test' and starts_with(o.subject, 'e2e-'))
+        and not exists (select 1 from account.oauth_accounts o where o.user_id = u.id and o.provider <> 'test')
+      order by u.created_at limit 50`)
+    let deleted = 0
+    for (const { id } of rows) {
+      // An open auction blocks leaving: end it now and settle it, then the account can go
+      await this.db.execute(sql`
+        update account.auctions set ends_at = greatest(now(), starts_at + interval '1 second'), version = version + 1
+        where status = 'open' and (seller_id = ${id} or top_bidder_id = ${id})`)
+      await this.settleExpired(50, id)
+      if ((await this.leave(id)).kind === 'deleted') deleted++
+    }
+    return deleted
   }
 
   async endsIn(userId: string, auctionId: string, seconds: number) {

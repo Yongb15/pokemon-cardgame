@@ -41,3 +41,7 @@ public/sitemap.xml
 # Locally installed agent skills and personal Claude settings
 .claude/skills/
 .claude/settings.local.json
+
+# Playwright output (screenshots on failure only)
+e2e-results/
+playwright-report/
