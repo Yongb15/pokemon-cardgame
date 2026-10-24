@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router'
-import { AccountApiError, getLatestPack, getPackCatalog, openPack, type OpenedPack, type PackCatalog } from '../api/account'
+import { AccountApiError, getLatestPack, getPackCatalog, openPack, openTenPacks, type OpenedPack, type PackCatalog } from '../api/account'
 import CardImg from '../components/CardImg'
+import TenPackResult from '../components/TenPackResult'
 import { useCardInfo } from '../hooks/useDecks'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { setPointsSummary, usePoints } from '../hooks/usePoints'
@@ -148,7 +149,9 @@ export default function PacksPage() {
   const [error, setError] = useState<string | null>(null)
   const [oddsOf, setOddsOf] = useState<string | null>(null)
   // The request id of a press that hasn't got an answer yet: a retry sends the same one (K-2)
-  const pending = useRef<{ setId: string; key: string } | null>(null)
+  const pending = useRef<{ setId: string; count: 1 | 10; key: string } | null>(null)
+  /** The last 10-pack answer, or `opening` while one is on its way (exchange.md §1) */
+  const [ten, setTen] = useState<{ packs: OpenedPack[]; guaranteed: boolean } | 'opening' | null>(null)
   const signedIn = session.status === 'in'
 
   useEffect(() => {
@@ -180,11 +183,38 @@ export default function PacksPage() {
   const available = points.status === 'ready' ? points.summary.available : null
   const price = catalog?.price ?? 1000
   const short = available !== null && available < price ? price - available : 0
+  const tenPrice = catalog?.bundle?.price ?? price * 10
+  const shortTen = available !== null && available < tenPrice ? tenPrice - available : 0
+
+  const openTen = async (setId: string) => {
+    if (busy) return
+    setError(null)
+    if (!pending.current || pending.current.setId !== setId || pending.current.count !== 10) pending.current = { setId, count: 10, key: newRequestId() }
+    setBusy(`${setId}|10`)
+    setPack(null)
+    setTen('opening')
+    try {
+      const res = await openTenPacks(setId, pending.current.key)
+      pending.current = null
+      setPointsSummary(res.points)
+      markSeen(res.packs.at(-1)!.id)
+      setTen({ packs: res.packs, guaranteed: res.guaranteed })
+      setLastSet(setId)
+    } catch (e) {
+      if (e instanceof AccountApiError && e.status !== 0 && e.status < 500) pending.current = null
+      if (e instanceof AccountApiError && e.status === 429) setError(`${e.retryAfter ?? 60}초 뒤에 다시 열 수 있어요.`)
+      else setError(e instanceof AccountApiError ? e.message : '팩을 열지 못했어요. 다시 눌러 주세요.')
+      setTen(null)
+    } finally {
+      setBusy(null)
+    }
+  }
 
   const open = async (setId: string) => {
     if (busy) return
     setError(null)
-    if (!pending.current || pending.current.setId !== setId) pending.current = { setId, key: newRequestId() }
+    setTen(null)
+    if (!pending.current || pending.current.setId !== setId || pending.current.count !== 1) pending.current = { setId, count: 1, key: newRequestId() }
     setBusy(setId)
     // The section shows up now, inside the click's input window, with face-down slots (qa B7-1)
     setPack((current) => (current ? { ...current, fresh: false } : null))
@@ -250,8 +280,13 @@ export default function PacksPage() {
           {won(short)} 부족해요 · 출석 체크로 모을 수 있어요
         </p>
       )}
+      {short === 0 && shortTen > 0 && (
+        <p id="pack-short-ten" className={styles.reason}>
+          10팩은 {won(shortTen)} 부족해요
+        </p>
+      )}
 
-      {!below && result}
+      {ten ? <TenPackResult packs={ten === 'opening' ? null : ten.packs} guaranteed={ten !== 'opening' && ten.guaranteed} /> : !below && result}
 
       {catalogError ? (
         <p className={styles.alert} role="alert">
@@ -284,6 +319,16 @@ export default function PacksPage() {
                 >
                   {busy === s.id ? '여는 중…' : `열기 ${won(price)}`}
                 </button>
+                <button
+                  type="button"
+                  className={styles.button}
+                  aria-label={`${s.nameKo} 10팩 열기, ${won(tenPrice)}, 울트라 레어 이상 1장 보장`}
+                  aria-disabled={shortTen > 0 || !!busy || undefined}
+                  aria-describedby={short > 0 ? 'pack-short' : shortTen > 0 ? 'pack-short-ten' : undefined}
+                  onClick={() => shortTen === 0 && void openTen(s.id)}
+                >
+                  {busy === `${s.id}|10` ? '여는 중…' : `10팩 ${won(tenPrice)}`}
+                </button>
               </div>
               {oddsOf === s.id && (
                 <div className={styles.odds}>
@@ -300,7 +345,21 @@ export default function PacksPage() {
                       ))}
                     </tbody>
                   </table>
+                  {s.guarantee && s.guarantee.length > 0 && (
+                    <table>
+                      <caption>10팩 보장 · 10번째 팩의 레어 슬롯</caption>
+                      <tbody>
+                        {s.guarantee.map((o) => (
+                          <tr key={o.tier}>
+                            <th scope="row">{TIER_LABEL[o.tier]}</th>
+                            <td>{o.percent.toFixed(1)}%</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
                   <p className={styles.small}>
+                    10팩을 한 번에 열 때 1~9팩에 울트라 레어 이상이 없으면 10번째 팩의 레어 슬롯을 위 확률로 뽑아 1장 이상을 보장해요(1팩씩 열 때는 보장 없음).{' '}
                     커먼 3장·언커먼 1장은 이 세트의 커먼·언커먼(포켓몬·트레이너스)에서 같은 확률로 나와요. 같은 등급 안에서는 카드마다 같은 확률이고, 한 팩에 같은 카드가 두 번 나올 수 있어요. 없는 등급은 다른 등급에 나눠요.
                   </p>
                 </div>

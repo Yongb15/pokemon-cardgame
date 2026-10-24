@@ -273,7 +273,7 @@
   list-style: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
+  gap: 8px 12px;
 }
 
 .chips {
@@ -482,4 +482,19 @@
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
+}
+
+/* "만들기" next to a card not collected yet (docs/auction/exchange.md §3) */
+.craftButton {
+  margin-left: 6px;
+  /* A 24px target at least, next to the card link (qa L-1, WCAG 2.5.8) */
+  min-height: 24px;
+  padding: 2px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
 }

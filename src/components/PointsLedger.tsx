@@ -15,6 +15,8 @@ const KIND_LABEL: Record<PointKind, string> = {
   sale_fee: '판매 수수료',
   purchase: '낙찰',
   admin_adjust: '운영자 지급',
+  card_exchange: '카드 교환',
+  card_craft: '카드 만들기',
 }
 
 /** "10.11" in Korea time */
