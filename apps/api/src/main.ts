@@ -9,7 +9,7 @@ import { GRANTS_EXCESS, GRANTS_PRIVILEGES, PgGrantsStore } from './moderation/gr
 import { MODERATION_EXCESS, MODERATION_PRIVILEGES, PgModerationStore } from './moderation/store.js'
 import { ALERTS_EXCESS, ALERTS_PRIVILEGES, PgAlertsStore } from './alerts/store.js'
 import { NOTIFICATIONS_EXCESS, NOTIFICATIONS_PRIVILEGES, PgNotificationsStore } from './notifications/store.js'
-import { PgPacksStore, PACKS_EXCESS, PACKS_PRIVILEGES } from './packs/store.js'
+import { exchangeFunctionCheck, PgPacksStore, PACKS_EXCESS, PACKS_PRIVILEGES } from './packs/store.js'
 import { PgPointsStore, POINTS_EXCESS, POINTS_PRIVILEGES } from './points/store.js'
 
 const config = loadConfig()
@@ -28,11 +28,15 @@ const grants = database ? new PgGrantsStore(database.db) : null
 
 if (store) {
   const missing = await store.missingPrivileges([...REQUIRED_PRIVILEGES, ...DATA_PRIVILEGES, ...POINTS_PRIVILEGES, ...PACKS_PRIVILEGES, ...AUCTIONS_PRIVILEGES, ...NOTIFICATIONS_PRIVILEGES, ...ALERTS_PRIVILEGES, ...MODERATION_PRIVILEGES, ...GRANTS_PRIVILEGES])
+  // The exchange function: api_rw executes it, nobody else (docs/auction/exchange.md §2, Security X-1/X-2)
+  const fn = await exchangeFunctionCheck(database!.db)
+  missing.push(...fn.missing)
   if (missing.length) {
     console.error(`database grants don't match this code (missing: ${missing.join(', ')}); refusing to start`)
     process.exit(1)
   }
   const excess = [...(await store.excessPrivileges()), ...(await store.grantedOf([...POINTS_EXCESS, ...PACKS_EXCESS, ...AUCTIONS_EXCESS, ...NOTIFICATIONS_EXCESS, ...ALERTS_EXCESS, ...MODERATION_EXCESS, ...GRANTS_EXCESS]))]
+  excess.push(...fn.excess)
   if (excess.length) console.warn(`database grants wider than needed: ${excess.join(', ')}`)
 }
 

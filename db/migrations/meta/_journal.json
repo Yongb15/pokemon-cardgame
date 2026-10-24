@@ -169,6 +169,13 @@
       "when": 1792105593821,
       "tag": "0023_grant_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792543685196,
+      "tag": "0024_exchange_craft",
+      "breakpoints": true
     }
   ]
 }

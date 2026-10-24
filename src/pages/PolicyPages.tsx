@@ -2,9 +2,9 @@ import { useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import styles from './AccountPages.module.css'
 
-const EFFECTIVE = '2026년 10월 16일'
+const EFFECTIVE = '2026년 10월 21일'
 /** What changed last (shown under the date) */
-const CHANGES = '경매 화면의 판매자 거래 기록 배지와 포인트 지급 알림 추가(이전 시행일 2026년 10월 14일)'
+const CHANGES = '10팩 보장, 중복 카드 교환·카드 만들기 추가(이전 시행일 2026년 10월 16일)'
 
 function Policy({ title, children }: { title: string; children: ReactNode }) {
   useEffect(() => {
@@ -185,9 +185,14 @@ export function TermsPage() {
           팔거나 환불·현금으로 바꿀 수 없으며, 포인트를 파는 일도 없습니다.
         </li>
         <li>
-          포인트는 가입 보너스, 매일 출석, 경매 판매로 얻습니다. 운영자는 보상·이벤트·오류 보정을 위해 회원 코드로 포인트를
+          포인트는 가입 보너스, 매일 출석, 경매 판매, 중복 카드 교환으로 얻습니다. 운영자는 보상·이벤트·오류 보정을 위해 회원 코드로 포인트를
           지급할 수 있고(한 번에 10만P, 하루 50만P 이내, 차감 없음), 오류나 금지된 행위를 바로잡을 때 포인트를 조정할 수
-          있습니다. 카드팩 확률은 카드팩 화면에 공개합니다.
+          있습니다. 카드팩 확률은 카드팩 화면에 공개합니다. 10팩을 한 번에 열면 울트라 레어 이상 1장 이상을 보장하고, 보장 방식과
+          확률도 같은 화면에 공개합니다.
+        </li>
+        <li>
+          중복 카드는 정해진 포인트로 교환할 수 있고(카드마다 1장은 남김), 카드팩에서 나오는 카드는 정해진 포인트로 만들 수
+          있습니다(하루 20장). 교환과 만들기는 되돌릴 수 없습니다.
         </li>
         <li>
           경매에서 낙찰되면 낙찰가가 빠지고 카드가 옮겨지며, 판매자는 낙찰가의 5%(1P 미만 버림)를 수수료로 뺀 포인트를

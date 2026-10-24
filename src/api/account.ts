@@ -129,7 +129,7 @@ export interface PointsSummary {
   bonusGranted: boolean
 }
 
-export type PointKind = 'signup_bonus' | 'daily_bonus' | 'pack_purchase' | 'sale_income' | 'sale_fee' | 'purchase' | 'admin_adjust'
+export type PointKind = 'signup_bonus' | 'daily_bonus' | 'pack_purchase' | 'sale_income' | 'sale_fee' | 'purchase' | 'admin_adjust' | 'card_exchange' | 'card_craft'
 
 export interface PointEntry {
   id: string
@@ -151,7 +151,21 @@ export interface PackCatalog {
   price: number
   size: number
   /** cardIds: every card the set's packs can give (v1.15.0 §4, for "not collected yet") */
-  sets: { id: string; nameKo: string; releaseDate: string; cards: number; odds: { tier: PackTier; percent: number; cards: number }[]; cardIds?: string[] }[]
+  sets: {
+    id: string
+    nameKo: string
+    releaseDate: string
+    cards: number
+    odds: { tier: PackTier; percent: number; cards: number }[]
+    cardIds?: string[]
+    /** The 10th pack's rare slot when the guarantee applies (docs/auction/exchange.md §1) */
+    guarantee?: { tier: PackTier; percent: number }[]
+    /** Card ids per tier: what each card is worth to exchange or craft */
+    tiers?: Partial<Record<PackTier, string[]>>
+  }[]
+  bundle?: { size: number; price: number }
+  /** Points per copy exchanged; crafting costs `craftFactor` times that (exchange.md §2–3) */
+  exchange?: { values: Record<PackTier, number>; craftFactor: number; dailyPoints: number; craftDaily: number }
 }
 
 export interface PackCard {
@@ -188,6 +202,13 @@ export interface CollectionSummary {
 export const getPackCatalog = () => accountFetch<PackCatalog>('/packs')
 export const openPack = (setId: string, idemKey: string) =>
   accountFetch<{ kind: 'opened' | 'repeat'; pack: OpenedPack; points: PointsSummary }>('/me/packs', { method: 'POST', body: { setId, idemKey } })
+/** Ten packs at once, with the guarantee (exchange.md §1) */
+export const openTenPacks = (setId: string, idemKey: string) =>
+  accountFetch<{ kind: 'opened' | 'repeat'; packs: OpenedPack[]; guaranteed: boolean; points: PointsSummary }>('/me/packs', { method: 'POST', body: { setId, idemKey, count: 10 } })
+export const exchangeCards = (cardId: string, count: number, idemKey: string) =>
+  accountFetch<{ kind: 'ok' | 'repeat'; exchanged: number; points: number; summary: PointsSummary }>('/me/cards/exchange', { method: 'POST', body: { cardId, count, idemKey } })
+export const craftCard = (cardId: string, idemKey: string) =>
+  accountFetch<{ kind: 'ok' | 'repeat'; cost: number; summary: PointsSummary }>('/me/cards/craft', { method: 'POST', body: { cardId, idemKey } })
 export const getLatestPack = () => accountFetch<{ pack: OpenedPack | null }>('/me/packs/latest')
 export const getCollection = (set: string | null, page: number) =>
   accountFetch<{ cards: CollectionCard[]; more: boolean }>(`/me/collection?${new URLSearchParams({ ...(set && { set }), ...(page > 0 && { page: String(page) }) })}`)

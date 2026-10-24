@@ -105,6 +105,54 @@ describe('card packs (preview)', () => {
     expect(late.body).toMatchObject({ kind: 'repeat', pack: { id: first.body.pack.id } })
   })
 
+  it('opens ten packs at once: 10,000P, 50 cards, an ultra or better, one key per request (Security X-5)', async () => {
+    const session = await t.signIn('bundler')
+    const ten = await t.call('/api/v1/me/packs', { method: 'POST', session, body: { setId: SET, idemKey: 'bundle-0001', count: 10 } })
+    expect(ten.status).toBe(200)
+    expect(ten.body.kind).toBe('opened')
+    expect(ten.body.packs).toHaveLength(10)
+    const tiers = (ten.body.packs as { cards: { tier: string }[] }[]).flatMap((p) => p.cards.map((c) => c.tier))
+    expect(tiers).toHaveLength(50)
+    expect(tiers.some((tier) => ['ultra', 'sir', 'hyper'].includes(tier))).toBe(true)
+    expect(ten.body.points.balance).toBe(0)
+    // The same key: the same ten again; with count 1 (or the reverse) it's a conflict, never one pack of the ten
+    const again = await t.call('/api/v1/me/packs', { method: 'POST', session, body: { setId: SET, idemKey: 'bundle-0001', count: 10 } })
+    expect(again.body.kind).toBe('repeat')
+    expect(again.body.packs.map((p: { id: string }) => p.id)).toEqual(ten.body.packs.map((p: { id: string }) => p.id))
+    expect((await t.call('/api/v1/me/packs', { method: 'POST', session, body: { setId: SET, idemKey: 'bundle-0001' } })).status).toBe(409)
+    expect((await t.call('/api/v1/me/packs', { method: 'POST', session, body: { setId: SET, idemKey: 'bundle-0001-3' } })).status).toBe(422) // a fresh key: just short of points
+    for (const count of [0, 2, 9, 11, '10']) {
+      expect((await t.call('/api/v1/me/packs', { method: 'POST', session, body: { setId: SET, idemKey: 'bundle-0002', count } })).status, String(count)).toBe(400)
+    }
+  })
+
+  it('exchanges duplicates for points and crafts pool cards (exchange.md §2–3)', async () => {
+    const session = await t.signIn('exchanger')
+    const common = PACK_SETS[0]!.tiers.common![0]!
+    const rare = PACK_SETS[0]!.tiers.rare![0]!
+    // Three crafted copies of a common: 300P
+    for (let i = 0; i < 3; i++) expect((await t.call('/api/v1/me/cards/craft', { method: 'POST', session, body: { cardId: common, idemKey: `craft-000${i}` } })).status).toBe(200)
+    const replay = await t.call('/api/v1/me/cards/craft', { method: 'POST', session, body: { cardId: common, idemKey: 'craft-0000' } })
+    expect(replay.body.kind).toBe('repeat')
+    expect((await t.call('/api/v1/me/points', { session })).body.balance).toBe(10_000 - 300)
+    // Exchange: one copy always stays
+    expect((await t.call('/api/v1/me/cards/exchange', { method: 'POST', session, body: { cardId: common, count: 3, idemKey: 'swap-0001' } })).status).toBe(409)
+    const ok = await t.call('/api/v1/me/cards/exchange', { method: 'POST', session, body: { cardId: common, count: 2, idemKey: 'swap-0002' } })
+    expect(ok.status).toBe(200)
+    expect(ok.body).toMatchObject({ kind: 'ok', exchanged: 2, points: 20 })
+    expect((await t.call('/api/v1/me/points', { session })).body.balance).toBe(10_000 - 300 + 20)
+    // Not pool cards, bad bodies, not enough points
+    expect((await t.call('/api/v1/me/cards/craft', { method: 'POST', session, body: { cardId: 'nope-1', idemKey: 'craft-0009' } })).status).toBe(404)
+    expect((await t.call('/api/v1/me/cards/exchange', { method: 'POST', session, body: { cardId: 'nope-1', count: 1, idemKey: 'swap-0009' } })).status).toBe(404)
+    for (const body of [{ cardId: common, count: 0, idemKey: 'swap-0003' }, { cardId: common, count: 51, idemKey: 'swap-0003' }, { cardId: common, count: 1, idemKey: 'x' }, { cardId: common, count: 1, idemKey: 'swap-0003', y: 1 }]) {
+      expect((await t.call('/api/v1/me/cards/exchange', { method: 'POST', session, body })).status, JSON.stringify(body)).toBe(400)
+    }
+    await t.call('/api/v1/test/points', { method: 'POST', session, body: { amount: -9000, idemKey: 'drain-0009' } })
+    const poor = await t.call('/api/v1/me/cards/craft', { method: 'POST', session, body: { cardId: rare, idemKey: 'craft-0010' } })
+    expect(poor.status).toBe(422)
+    expect(poor.body.error.message).toContain('1,000P')
+  })
+
   it('refuses when short of points and writes nothing', async () => {
     const session = await t.signIn('short')
     await t.call('/api/v1/test/points', { method: 'POST', session, body: { amount: -9500, idemKey: 'drain-0001' } })
